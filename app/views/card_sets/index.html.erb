@@ -17,9 +17,9 @@
         </h2>
         
         <% if @available_sets.any? %>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
-            <% @available_sets.each do |set| %>
-              <% downloaded = @downloaded_sets.find_by(code: set[:code]) %>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
+             <% @available_sets.each do |set| %>
+               <% downloaded = @downloaded_sets_map[set[:code]] %>
               <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 p-4 glass hover:shadow-lg hover:shadow-purple-500/20">
                 <div class="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
                 
@@ -75,12 +75,12 @@
                       <%= link_to set.name, card_set_path(set), class: "hover:underline" %>
                     </h3>
                     <div class="text-xs text-purple-300 mt-1">
-                      <p><%= set.cards.count %> / <%= set.card_count %> cards</p>
-                      <% owned = set.cards.joins(:collection_card).count %>
-                      <% if owned > 0 %>
-                        <p class="text-green-300 font-semibold">Owned: <%= owned %></p>
-                      <% end %>
-                    </div>
+                       <p><%= set.cards_count %> / <%= set.card_count %> cards</p>
+                       <% owned = set.owned_cards_count %>
+                       <% if owned > 0 %>
+                         <p class="text-green-300 font-semibold">Owned: <%= owned %></p>
+                       <% end %>
+                     </div>
                   </div>
                 </div>
                 

@@ -4,11 +4,17 @@ class CardSetsController < ApplicationController
   def index
     # Fetch all sets from Scryfall
     @available_sets = ScryfallService.fetch_sets
-    @downloaded_sets = CardSet.all
+
+    # Pre-load downloaded sets with all related data
+    @downloaded_sets = CardSet.includes(:cards)
+
+    # Create a map for O(1) lookups by code
+    @downloaded_sets_map = @downloaded_sets.index_by(&:code)
   end
 
   def show
-    @cards = @card_set.cards
+    # Pre-load cards with collection card data
+    @cards = @card_set.cards.includes(:collection_card)
     @view_type = params[:view_type] || "table"
   end
 
