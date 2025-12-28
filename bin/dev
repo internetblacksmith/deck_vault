@@ -46,4 +46,4 @@ case "$1" in
     ;;
 esac
 
-exec foreman start -f "$PROCFILE" "$@"
+exec bundle exec foreman start -f "$PROCFILE" "$@"
