@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_155027) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_28_155652) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "card_count"
     t.string "code"
@@ -25,6 +25,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_155027) do
     t.integer "card_set_id", null: false
     t.string "collector_number"
     t.datetime "created_at", null: false
+    t.string "image_path"
     t.text "image_uris"
     t.string "mana_cost"
     t.string "name"
