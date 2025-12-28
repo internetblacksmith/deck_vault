@@ -1,5 +1,5 @@
 class Card < ApplicationRecord
-  belongs_to :card_set
+  belongs_to :card_set, touch: true
   has_one :collection_card, dependent: :destroy
 
   validates :name, :scryfall_id, presence: true
