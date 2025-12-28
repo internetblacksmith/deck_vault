@@ -21,10 +21,34 @@ class DownloadCardImagesJob < ApplicationJob
     images_count = card_set.cards.where.not(image_path: nil).count
     card_set.update(images_downloaded: images_count)
 
+    # Broadcast progress update via ActionCable
+    ActionCable.server.broadcast(
+      "set_progress:#{card_set.id}",
+      {
+        type: "progress_update",
+        images_downloaded: images_count,
+        card_count: card_set.card_count,
+        percentage: card_set.download_progress_percentage,
+        status: card_set.download_status
+      }
+    )
+
     # Mark as completed if all images downloaded
     if card_set.images_downloaded >= card_set.card_count
       card_set.update(download_status: :completed)
       Rails.logger.info("Completed downloading all images for set #{card_set.name}")
+
+      # Broadcast completion
+      ActionCable.server.broadcast(
+        "set_progress:#{card_set.id}",
+        {
+          type: "completed",
+          images_downloaded: card_set.card_count,
+          card_count: card_set.card_count,
+          percentage: 100,
+          status: "completed"
+        }
+      )
     end
   rescue StandardError => e
     Rails.logger.error("Error downloading image for card #{card_id}: #{e.message}")

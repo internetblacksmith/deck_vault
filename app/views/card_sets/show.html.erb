@@ -1,103 +1,131 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-6">
-    <%= link_to "← Back to Sets", card_sets_path, class: "text-blue-500 hover:text-blue-700" %>
-  </div>
-
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex justify-between items-start">
-      <div>
-        <h1 class="text-4xl font-bold"><%= @card_set.name %></h1>
-        <p class="text-gray-600 text-lg">Set Code: <%= @card_set.code %></p>
-        <% if @card_set.released_at %>
-          <p class="text-gray-600">Released: <%= @card_set.released_at.strftime("%B %d, %Y") %></p>
-        <% end %>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header with Back Button -->
+  <div class="mb-8">
+    <%= link_to "← Back to Collection", card_sets_path, class: "text-purple-400 hover:text-purple-300 transition flex items-center gap-2 mb-6" %>
+    
+    <div class="flex justify-between items-start gap-8">
+      <div class="flex-1">
+        <h1 class="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-2">
+          <%= @card_set.name %>
+        </h1>
+        <div class="flex items-center gap-6 text-purple-300">
+          <p class="text-lg">
+            <span class="font-semibold text-white"><%= @card_set.code.upcase %></span> 
+          </p>
+          <% if @card_set.released_at %>
+            <p class="text-sm">
+              Released <%= @card_set.released_at.strftime("%b %d, %Y") %>
+            </p>
+          <% end %>
+        </div>
       </div>
-      <div class="text-right">
-        <p class="text-2xl font-bold"><%= @cards.count %> / <%= @card_set.card_count %> Cards</p>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="glass rounded-lg p-4 border border-purple-500/20">
+          <p class="text-purple-300 text-sm">Total Cards</p>
+          <p class="text-3xl font-bold"><%= @card_set.card_count %></p>
+        </div>
+        <div class="glass rounded-lg p-4 border border-purple-500/20">
+          <p class="text-purple-300 text-sm">Downloaded</p>
+          <p class="text-3xl font-bold"><%= @cards.count %></p>
+        </div>
         <% owned = @cards.joins(:collection_card).count %>
-        <% if owned > 0 %>
-          <p class="text-green-600 text-lg">Owned: <%= owned %></p>
-        <% end %>
+        <div class="glass rounded-lg p-4 border border-purple-500/20">
+          <p class="text-purple-300 text-sm">Owned</p>
+          <p class="text-3xl font-bold text-green-400"><%= owned %></p>
+        </div>
+        <div class="glass rounded-lg p-4 border border-purple-500/20">
+          <p class="text-purple-300 text-sm">Completion</p>
+          <p class="text-3xl font-bold text-blue-400"><%= @card_set.download_progress_percentage %>%</p>
+        </div>
       </div>
     </div>
-
-    <!-- Image Download Progress -->
-    <% if @card_set.download_status != "completed" && @card_set.download_status != "failed" %>
-      <div class="mt-4 pt-4 border-t">
-        <div class="flex justify-between items-center mb-2">
-          <p class="text-sm font-semibold text-gray-700">
-            <% if @card_set.downloading? %>
-              <span class="text-blue-600">Downloading images...</span>
-            <% else %>
-              <span class="text-yellow-600">Pending image download</span>
-            <% end %>
-          </p>
-          <p class="text-sm font-semibold"><%= @card_set.images_downloaded %> / <%= @card_set.card_count %></p>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
-               style="width: <%= @card_set.download_progress_percentage %>%"
-               id="progress-bar"></div>
-        </div>
-        <p class="text-xs text-gray-500 mt-1"><%= @card_set.download_progress_percentage %>% complete</p>
-      </div>
-    <% elsif @card_set.completed? %>
-      <div class="mt-4 pt-4 border-t">
-        <p class="text-sm font-semibold text-green-600">✓ All images downloaded</p>
-      </div>
-    <% end %>
   </div>
+
+  <!-- Download Progress -->
+  <% if @card_set.download_status != "completed" && @card_set.download_status != "failed" %>
+    <div class="glass rounded-lg border border-purple-500/20 p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-lg font-semibold">
+          <% if @card_set.downloading? %>
+            <span class="text-blue-400 flex items-center gap-2">
+              <span class="animate-spin">⚙️</span> Downloading Images...
+            </span>
+          <% else %>
+            <span class="text-yellow-400 flex items-center gap-2">
+              <span>⏳</span> Pending Download
+            </span>
+          <% end %>
+        </p>
+        <p class="text-purple-300"><%= @card_set.images_downloaded %> / <%= @card_set.card_count %> images</p>
+      </div>
+      <div class="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden border border-purple-500/20">
+        <div class="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500" 
+             style="width: <%= @card_set.download_progress_percentage %>%; min-width: 2px;"
+             id="progress-bar"></div>
+      </div>
+      <p class="text-sm text-purple-300 mt-3"><%= @card_set.download_progress_percentage %>% complete</p>
+    </div>
+  <% elsif @card_set.completed? %>
+    <div class="glass rounded-lg border border-green-500/20 bg-green-500/10 p-6 mb-8">
+      <p class="text-green-400 font-semibold flex items-center gap-2">
+        <span>✓</span> All images downloaded and ready to view
+      </p>
+    </div>
+  <% end %>
 
   <!-- View Type Selector -->
-  <div class="mb-4 flex gap-2">
-    <%= link_to "Table View", card_set_path(@card_set, view_type: "table"), 
-        class: "px-4 py-2 rounded #{@view_type == 'table' ? 'bg-blue-500 text-white' : 'bg-gray-200'}" %>
-    <%= link_to "Grid View", card_set_path(@card_set, view_type: "grid"), 
-        class: "px-4 py-2 rounded #{@view_type == 'grid' ? 'bg-blue-500 text-white' : 'bg-gray-200'}" %>
-    <%= link_to "Binder Pages", card_set_path(@card_set, view_type: "binder"), 
-        class: "px-4 py-2 rounded #{@view_type == 'binder' ? 'bg-blue-500 text-white' : 'bg-gray-200'}" %>
-  </div>
+   <div class="flex gap-3 mb-8">
+     <% ["table", "grid", "binder"].each do |view| %>
+       <% button_class = @view_type == view ? 'gradient-primary text-white shadow-lg shadow-purple-500/50' : 'glass border border-purple-500/20 text-purple-300 hover:border-purple-500/40' %>
+       <%= link_to view.capitalize, card_set_path(@card_set, view_type: view), 
+           class: "px-6 py-2 rounded-lg font-semibold transition-all duration-200 #{button_class}" %>
+     <% end %>
+   </div>
 
   <!-- Table View -->
   <% if @view_type == "table" %>
-    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="glass rounded-lg border border-purple-500/20 overflow-hidden">
       <table class="w-full">
-        <thead class="bg-gray-100 border-b">
+        <thead class="bg-purple-900/50 border-b border-purple-500/20 sticky top-0">
           <tr>
-            <th class="px-4 py-3 text-left">Card Name</th>
-            <th class="px-4 py-3 text-left">Type</th>
-            <th class="px-4 py-3 text-left">Rarity</th>
-            <th class="px-4 py-3 text-left">Quantity</th>
-            <th class="px-4 py-3 text-left">Page #</th>
-            <th class="px-4 py-3 text-left">Notes</th>
+            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Card Name</th>
+            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Type</th>
+            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Rarity</th>
+            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Qty</th>
+            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Page</th>
+            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Notes</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-purple-500/20">
           <% @cards.each do |card| %>
-            <tr class="border-b hover:bg-gray-50" data-card-id="<%= card.id %>">
-              <td class="px-4 py-3">
-                <strong><%= card.name %></strong>
-                <p class="text-sm text-gray-600"><%= card.collector_number %></p>
+            <tr class="hover:bg-purple-500/10 transition" data-card-id="<%= card.id %>">
+              <td class="px-6 py-4">
+                <div>
+                  <p class="font-semibold text-white"><%= card.name %></p>
+                  <p class="text-xs text-purple-400"><%= card.collector_number %></p>
+                </div>
               </td>
-              <td class="px-4 py-3 text-sm"><%= card.type_line %></td>
-              <td class="px-4 py-3 text-sm">
-                <span class="px-2 py-1 rounded text-xs font-semibold <%= rarity_class(card.rarity) %>">
+              <td class="px-6 py-4 text-sm text-purple-300"><%= card.type_line %></td>
+              <td class="px-6 py-4">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold <%= rarity_class(card.rarity) %>">
                   <%= card.rarity&.upcase || "N/A" %>
                 </span>
               </td>
-              <td class="px-4 py-3">
-                <input type="number" min="0" class="quantity-input w-16 px-2 py-1 border rounded" 
+              <td class="px-6 py-4">
+                <input type="number" min="0" class="quantity-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center" 
                        value="<%= card.collection_card&.quantity || 0 %>" 
                        data-card-id="<%= card.id %>">
               </td>
-              <td class="px-4 py-3">
-                <input type="number" min="1" max="200" class="page-input w-16 px-2 py-1 border rounded" 
+              <td class="px-6 py-4">
+                <input type="number" min="1" max="200" class="page-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center" 
                        value="<%= card.collection_card&.page_number || '' %>" 
                        placeholder="—"
                        data-card-id="<%= card.id %>">
               </td>
-              <td class="px-4 py-3">
-                <input type="text" class="notes-input w-full px-2 py-1 border rounded" 
+              <td class="px-6 py-4">
+                <input type="text" class="notes-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-full text-sm" 
                        value="<%= card.collection_card&.notes || '' %>" 
                        placeholder="Add notes..."
                        data-card-id="<%= card.id %>">
@@ -107,61 +135,76 @@
         </tbody>
       </table>
     </div>
+
+  <!-- Grid View -->
   <% elsif @view_type == "grid" %>
-    <div class="grid grid-cols-6 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       <% @cards.each do |card| %>
-        <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition" data-card-id="<%= card.id %>">
-          <% if card.image_path %>
-            <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full rounded mb-2" onerror="this.style.display='none'">
-          <% elsif card.image_uris %>
-            <% image_data = JSON.parse(card.image_uris) %>
-            <% if image_data['normal'] %>
-              <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full rounded mb-2">
+        <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 glass p-2 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>">
+          <!-- Card Image -->
+          <div class="relative overflow-hidden rounded mb-2">
+            <% if card.image_path %>
+              <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
+            <% elsif card.image_uris %>
+              <% image_data = JSON.parse(card.image_uris) %>
+              <% if image_data['normal'] %>
+                <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+              <% end %>
             <% end %>
-          <% end %>
-          <h3 class="font-semibold text-sm mb-1 truncate"><%= card.name %></h3>
-          <p class="text-xs text-gray-600 mb-3"><%= card.collector_number %></p>
-          
-          <div class="space-y-2 text-sm">
-            <input type="number" min="0" class="quantity-input w-full px-2 py-1 border rounded text-center" 
-                   value="<%= card.collection_card&.quantity || 0 %>" 
-                   placeholder="Qty">
-            <input type="number" min="1" max="200" class="page-input w-full px-2 py-1 border rounded text-center" 
-                   value="<%= card.collection_card&.page_number || '' %>" 
-                   placeholder="Page #">
+          </div>
+
+          <!-- Card Info -->
+          <div class="space-y-2">
+            <p class="font-bold text-sm text-white truncate group-hover:text-purple-300 transition"><%= card.name %></p>
+            <p class="text-xs text-purple-400"><%= card.collector_number %></p>
+            
+            <div class="space-y-1">
+              <input type="number" min="0" class="quantity-input w-full bg-purple-900/50 border border-purple-500/20 text-white px-2 py-1 text-xs rounded text-center" 
+                     value="<%= card.collection_card&.quantity || 0 %>" 
+                     placeholder="Qty">
+              <input type="number" min="1" max="200" class="page-input w-full bg-purple-900/50 border border-purple-500/20 text-white px-2 py-1 text-xs rounded text-center" 
+                     value="<%= card.collection_card&.page_number || '' %>" 
+                     placeholder="Page #">
+            </div>
           </div>
         </div>
       <% end %>
     </div>
+
+  <!-- Binder Pages View -->
   <% elsif @view_type == "binder" %>
-    <div class="space-y-6">
+    <div class="space-y-8">
       <% grouped_cards = @cards.includes(:collection_card).group_by { |c| c.collection_card&.page_number || 0 }.sort %>
       <% grouped_cards.each do |page, cards| %>
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-bold mb-4">
+        <div class="glass rounded-lg border border-purple-500/20 p-6">
+          <h3 class="text-2xl font-bold mb-6">
             <% if page == 0 %>
-              Not Yet Placed
+              <span class="text-yellow-400">⚠️ Not Yet Placed</span>
             <% else %>
-              Page <%= page %>
+              <span class="text-purple-300">Page <%= page %></span>
             <% end %>
-            <span class="text-gray-600 text-sm">(<%= cards.count %> cards)</span>
+            <span class="text-sm font-normal text-purple-400 ml-3">(<%= cards.count %> cards)</span>
           </h3>
-          <div class="grid grid-cols-4 gap-4">
+          <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
             <% cards.each do |card| %>
-              <div class="border rounded-lg p-3 text-center hover:bg-gray-50">
+              <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>">
                 <% if card.image_path %>
-                  <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full rounded mb-2" onerror="this.style.display='none'">
+                  <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
                 <% elsif card.image_uris %>
                   <% image_data = JSON.parse(card.image_uris) %>
                   <% if image_data['normal'] %>
-                    <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full rounded mb-2">
+                    <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300">
                   <% end %>
                 <% end %>
-                <p class="font-semibold text-sm"><%= card.name %></p>
-                <p class="text-xs text-gray-600"><%= card.collector_number %></p>
-                <% if card.collection_card&.quantity && card.collection_card.quantity > 0 %>
-                  <p class="text-xs text-green-600 font-semibold">Qty: <%= card.collection_card.quantity %></p>
-                <% end %>
+                
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                  <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
+                    <p class="text-white font-bold text-xs mb-1"><%= card.name %></p>
+                    <% if card.collection_card&.quantity && card.collection_card.quantity > 0 %>
+                      <p class="text-green-400 text-xs font-semibold">Qty: <%= card.collection_card.quantity %></p>
+                    <% end %>
+                  </div>
+                </div>
               </div>
             <% end %>
           </div>
@@ -171,14 +214,19 @@
   <% end %>
 </div>
 
+<!-- ActionCable real-time progress updates -->
+<div data-controller="set-progress" 
+     data-set-progress-set-id-value="<%= @card_set.id %>"
+     data-set-progress-is-downloading-value="<%= @card_set.downloading? || @card_set.pending? %>"></div>
+
 <script>
+  // Save card updates
   document.addEventListener('DOMContentLoaded', function() {
-    // Save card collection info when inputs change
     const saveCard = async (cardId, field, value) => {
-      const row = document.querySelector(`[data-card-id="${cardId}"]`);
-      const quantity = row.querySelector('.quantity-input').value || 0;
-      const page_number = row.querySelector('.page-input').value || 0;
-      const notes = row.querySelector('.notes-input')?.value || '';
+      const row = document.querySelector(`[data-card-id="${cardId}"]`)
+      const quantity = row.querySelector('.quantity-input')?.value || 0
+      const page_number = row.querySelector('.page-input')?.value || null
+      const notes = row.querySelector('.notes-input')?.value || ''
 
       try {
         const response = await fetch(`<%= card_set_path(@card_set) %>/update_card`, {
@@ -193,84 +241,40 @@
             page_number: page_number,
             notes: notes
           })
-        });
+        })
 
         if (response.ok) {
-          row.classList.add('bg-green-50');
-          setTimeout(() => row.classList.remove('bg-green-50'), 1500);
+          row.classList.add('bg-green-500/20')
+          setTimeout(() => row.classList.remove('bg-green-500/20'), 1500)
         }
       } catch (error) {
-        console.error('Error saving card:', error);
+        console.error('Error saving card:', error)
       }
-    };
+    }
 
     document.querySelectorAll('.quantity-input, .page-input, .notes-input').forEach(input => {
       input.addEventListener('change', (e) => {
-        const cardId = e.target.dataset.cardId;
-        saveCard(cardId, e.target.classList[0], e.target.value);
-      });
-    });
-
-    // Auto-refresh progress bar if download is in progress
-    <% if @card_set.downloading? %>
-      const refreshProgress = async () => {
-        try {
-          const response = await fetch(`<%= card_set_path(@card_set) %>`);
-          if (!response.ok) return;
-          
-          const html = await response.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const newBar = doc.querySelector('#progress-bar');
-          const oldBar = document.querySelector('#progress-bar');
-          
-          if (newBar && oldBar) {
-            oldBar.style.width = newBar.style.width;
-          }
-        } catch (error) {
-          console.error('Error refreshing progress:', error);
-        }
-      };
-      
-      const interval = setInterval(refreshProgress, 2000);
-      
-      // Stop polling once download is complete
-      const checkCompletion = async () => {
-        try {
-          const response = await fetch(`<%= card_set_path(@card_set) %>`);
-          const html = await response.text();
-          if (html.includes('All images downloaded')) {
-            clearInterval(interval);
-            location.reload();
-          }
-        } catch (error) {
-          console.error('Error checking completion:', error);
-        }
-      };
-      
-      setInterval(checkCompletion, 5000);
-    <% end %>
-  });
+        const cardId = e.target.dataset.cardId
+        saveCard(cardId, e.target.classList[0], e.target.value)
+      })
+    })
+  })
 </script>
 
 <style>
-  .container {
-    max-width: 1400px;
-  }
-
   .rarity-common {
-    @apply bg-gray-300 text-gray-800;
+    @apply bg-gray-500/30 text-gray-300;
   }
 
   .rarity-uncommon {
-    @apply bg-blue-300 text-blue-900;
+    @apply bg-blue-500/30 text-blue-300;
   }
 
   .rarity-rare {
-    @apply bg-yellow-300 text-yellow-900;
+    @apply bg-yellow-500/30 text-yellow-300;
   }
 
   .rarity-mythic {
-    @apply bg-orange-300 text-orange-900;
+    @apply bg-orange-500/30 text-orange-300;
   }
 </style>
