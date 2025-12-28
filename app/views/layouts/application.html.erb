@@ -11,7 +11,7 @@
 
     <%= yield :head %>
 
-    <%# Tailwind CSS with config -->
+    <%# Tailwind CSS with config %>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -90,14 +90,19 @@
             </div>
           </div>
            <div class="flex items-center space-x-4">
-             <button data-controller="dark-mode" data-action="dark-mode#toggle" 
-                     data-dark-mode-target="toggle"
-                     class="text-xl hover:scale-110 transition-transform duration-200 p-2 rounded-lg hover:bg-purple-500/20"
-                     aria-label="Toggle dark mode">
-               🌙
-             </button>
-             <%= link_to "Home", card_sets_path, class: "text-sm text-purple-300 hover:text-purple-100 transition" %>
-           </div>
+              <button data-controller="dark-mode" data-action="dark-mode#toggle" 
+                      data-dark-mode-target="toggle"
+                      class="text-xl hover:scale-110 transition-transform duration-200 p-2 rounded-lg hover:bg-purple-500/20"
+                      aria-label="Toggle dark mode">
+                🌙
+              </button>
+              <% if current_user %>
+                <span class="text-sm text-purple-300"><%= current_user.email %></span>
+                <%= button_to "Logout", logout_path, method: :delete, class: "text-sm text-purple-300 hover:text-purple-100 transition" %>
+              <% else %>
+                <%= link_to "Login", login_path, class: "text-sm text-purple-300 hover:text-purple-100 transition" %>
+              <% end %>
+            </div>
         </div>
       </div>
     </nav>
