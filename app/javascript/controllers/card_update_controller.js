@@ -8,6 +8,10 @@ export default class extends Controller {
     this.quantityTarget.addEventListener("change", () => this.submit())
     this.pageNumberTarget.addEventListener("change", () => this.submit())
     this.notesTarget.addEventListener("change", () => this.submit())
+    
+    // Listen for Turbo Frame load events
+    this.element.addEventListener("turbo:submit-start", () => this.onSubmitStart())
+    this.element.addEventListener("turbo:submit-end", () => this.onSubmitEnd())
   }
 
   async submit() {
@@ -18,6 +22,7 @@ export default class extends Controller {
 
     // Show loading state
     this.setLoading(true)
+    this.showSpinner()
 
     try {
       // Find the form's CSRF token from the document
@@ -50,6 +55,7 @@ export default class extends Controller {
       this.showError("Error saving card")
     } finally {
       this.setLoading(false)
+      this.hideSpinner()
     }
   }
 
@@ -68,15 +74,43 @@ export default class extends Controller {
     // Add opacity and disable inputs during loading
     if (isLoading) {
       this.element.classList.add("opacity-60")
-      this.quantityTarget.disabled = true
-      this.pageNumberTarget.disabled = true
-      this.notesTarget.disabled = true
+      // Disable visible inputs only (skip hidden inputs in binder view)
+      const visibleInputs = this.element.querySelectorAll("input:not([type='hidden'])")
+      visibleInputs.forEach(input => (input.disabled = true))
     } else {
       this.element.classList.remove("opacity-60")
-      this.quantityTarget.disabled = false
-      this.pageNumberTarget.disabled = false
-      this.notesTarget.disabled = false
+      // Re-enable visible inputs
+      const visibleInputs = this.element.querySelectorAll("input:not([type='hidden'])")
+      visibleInputs.forEach(input => (input.disabled = false))
     }
+  }
+
+  showSpinner() {
+    // Show loading spinner overlay
+    if (this.element.classList.contains("group")) {
+      // Grid/Binder card - add spinner to the card
+      const spinner = document.createElement("div")
+      spinner.className = "absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg spinner-overlay"
+      spinner.innerHTML = '<div class="animate-spin text-purple-400">⚙️</div>'
+      this.element.style.position = "relative"
+      this.element.appendChild(spinner)
+    }
+  }
+
+  hideSpinner() {
+    // Remove loading spinner
+    const spinner = this.element.querySelector(".spinner-overlay")
+    if (spinner) {
+      spinner.remove()
+    }
+  }
+
+  onSubmitStart() {
+    this.showSpinner()
+  }
+
+  onSubmitEnd() {
+    this.hideSpinner()
   }
 
   showSuccess() {

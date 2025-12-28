@@ -81,81 +81,38 @@
        </table>
      </div>
 
-  <!-- Grid View -->
-  <% elsif @view_type == "grid" %>
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      <% @cards.each do |card| %>
-        <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 glass p-2 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>">
-          <!-- Card Image -->
-          <div class="relative overflow-hidden rounded mb-2">
-            <% if card.image_path %>
-              <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
-            <% elsif card.image_uris %>
-              <% image_data = JSON.parse(card.image_uris) %>
-              <% if image_data['normal'] %>
-                <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
-              <% end %>
-            <% end %>
-          </div>
+   <!-- Grid View -->
+   <% elsif @view_type == "grid" %>
+     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+       <% @cards.each do |card| %>
+         <%= render "card_sets/grid_card", card: card %>
+       <% end %>
+     </div>
 
-          <!-- Card Info -->
-          <div class="space-y-2">
-            <p class="font-bold text-sm text-white truncate group-hover:text-purple-300 transition"><%= card.name %></p>
-            <p class="text-xs text-purple-400"><%= card.collector_number %></p>
-            
-            <div class="space-y-1">
-              <input type="number" min="0" class="quantity-input w-full bg-purple-900/50 border border-purple-500/20 text-white px-2 py-1 text-xs rounded text-center" 
-                     value="<%= card.collection_card&.quantity || 0 %>" 
-                     placeholder="Qty">
-              <input type="number" min="1" max="200" class="page-input w-full bg-purple-900/50 border border-purple-500/20 text-white px-2 py-1 text-xs rounded text-center" 
-                     value="<%= card.collection_card&.page_number || '' %>" 
-                     placeholder="Page #">
-            </div>
-          </div>
-        </div>
-      <% end %>
-    </div>
-
-  <!-- Binder Pages View -->
-  <% elsif @view_type == "binder" %>
-    <div class="space-y-8">
-      <% grouped_cards = @cards.includes(:collection_card).group_by { |c| c.collection_card&.page_number || 0 }.sort %>
-      <% grouped_cards.each do |page, cards| %>
-        <div class="glass rounded-lg border border-purple-500/20 p-6">
-          <h3 class="text-2xl font-bold mb-6">
-            <% if page == 0 %>
-              <span class="text-yellow-400">⚠️ Not Yet Placed</span>
-            <% else %>
-              <span class="text-purple-300">Page <%= page %></span>
-            <% end %>
-            <span class="text-sm font-normal text-purple-400 ml-3">(<%= cards.count %> cards)</span>
-          </h3>
-          <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-            <% cards.each do |card| %>
-              <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>">
-                <% if card.image_path %>
-                  <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
-                <% elsif card.image_uris %>
-                  <% image_data = JSON.parse(card.image_uris) %>
-                  <% if image_data['normal'] %>
-                    <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300">
-                  <% end %>
-                <% end %>
-                
-                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
-                  <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
-                    <p class="text-white font-bold text-xs mb-1"><%= card.name %></p>
-                    <% if card.collection_card&.quantity && card.collection_card.quantity > 0 %>
-                      <p class="text-green-400 text-xs font-semibold">Qty: <%= card.collection_card.quantity %></p>
-                    <% end %>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
-    </div>
+   <!-- Binder Pages View -->
+   <% elsif @view_type == "binder" %>
+     <div class="space-y-8">
+       <% grouped_cards = @cards.includes(:collection_card).group_by { |c| c.collection_card&.page_number || 0 }.sort %>
+       <% grouped_cards.each do |page, cards| %>
+         <%= turbo_frame_tag "binder-page-#{page}" do %>
+           <div class="glass rounded-lg border border-purple-500/20 p-6">
+             <h3 class="text-2xl font-bold mb-6">
+               <% if page == 0 %>
+                 <span class="text-yellow-400">⚠️ Not Yet Placed</span>
+               <% else %>
+                 <span class="text-purple-300">Page <%= page %></span>
+               <% end %>
+               <span class="text-sm font-normal text-purple-400 ml-3">(<%= cards.count %> cards)</span>
+             </h3>
+             <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+               <% cards.each do |card| %>
+                 <%= render "card_sets/binder_card", card: card %>
+               <% end %>
+             </div>
+           </div>
+         <% end %>
+       <% end %>
+     </div>
   <% end %>
 </div>
 
