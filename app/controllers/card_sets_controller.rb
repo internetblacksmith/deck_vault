@@ -27,8 +27,11 @@ class CardSetsController < ApplicationController
     card = @card_set.cards.find(params[:card_id])
     collection_card = card.collection_card || CollectionCard.new(card: card)
 
-    collection_card.quantity = params[:quantity].to_i
-    collection_card.page_number = params[:page_number].to_i
+    quantity = params[:quantity].to_i
+    page_number = params[:page_number].presence ? params[:page_number].to_i : nil
+
+    collection_card.quantity = quantity
+    collection_card.page_number = page_number
     collection_card.notes = params[:notes]
 
     if collection_card.save
@@ -36,6 +39,8 @@ class CardSetsController < ApplicationController
     else
       render json: { success: false, errors: collection_card.errors }, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotFound
+    render json: { success: false, errors: "Card not found" }, status: :not_found
   end
 
   private
