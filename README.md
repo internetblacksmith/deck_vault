@@ -5,13 +5,15 @@ A Rails web application for managing your Magic: The Gathering card collection. 
 ## Features
 
 - **Download Sets**: Fetch complete card lists from Scryfall API for any Magic set
+- **Local Image Downloads**: Automatically download and cache all card images locally for offline access
 - **Collection Tracking**: Mark cards as owned and track quantity of copies
 - **Binder Management**: Organize cards by binder page number for easy physical organization
 - **Multiple Views**:
   - **Table View**: Detailed list with all card information
-  - **Grid View**: Card images in a compact grid layout
-  - **Binder Pages View**: Cards organized by page number for visual reference
+  - **Grid View**: Card images in a compact grid layout with local caching
+  - **Binder Pages View**: Cards organized by page number with visual card previews
 - **Card Information**: Complete details including mana cost, type, rarity, and official artwork
+- **Offline Ready**: Once downloaded, all card images are cached locally and don't require internet connection to view
 
 ## Requirements
 
@@ -86,11 +88,29 @@ Changes are auto-saved when you modify the inputs.
 
 This app uses the **Scryfall API** to fetch card data:
 - Card names, types, mana costs, and abilities
-- Official card images
+- Official card images (automatically downloaded and cached locally)
 - Rarity information
 - Collector numbers
 
 Learn more: https://scryfall.com/docs/api
+
+### Image Caching
+
+When you download a set, the app automatically:
+1. Downloads all card images from Scryfall servers
+2. Stores them locally in `storage/card_images/` directory
+3. Creates an index of local paths in the database
+4. Serves images from local storage when viewing cards
+
+**Benefits:**
+- No internet connection needed to view card images after initial download
+- Faster loading times compared to remote URLs
+- Reduced bandwidth usage
+- Complete offline access to your collection
+
+**Storage Requirements:**
+- Typical set: ~20-50 MB depending on card count
+- Example: 265-card Dominaria set = ~24 MB
 
 ## Database Schema
 
@@ -109,7 +129,8 @@ Learn more: https://scryfall.com/docs/api
 - `oracle_text`: Card abilities/text
 - `rarity`: Card rarity (common, uncommon, rare, mythic)
 - `scryfall_id`: Unique Scryfall identifier
-- `image_uris`: JSON field with card images
+- `image_uris`: JSON field with remote card image URLs (for fallback)
+- `image_path`: Local path to downloaded card image (e.g., `card_images/[scryfall-id].jpg`)
 - `collector_number`: Card number within set
 
 ### CollectionCard
