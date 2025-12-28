@@ -1,5 +1,6 @@
 class CardSetsController < ApplicationController
   before_action :set_card_set, only: [ :show, :update_card ]
+  before_action :set_cache_headers, only: [ :show ]
 
   def index
     # Fetch all sets from Scryfall
@@ -10,12 +11,21 @@ class CardSetsController < ApplicationController
 
     # Create a map for O(1) lookups by code
     @downloaded_sets_map = @downloaded_sets.index_by(&:code)
+
+    # Set cache headers for index page
+    # Cache for 1 hour since sets don't change often
+    expires_in 1.hour, public: true
   end
 
   def show
     # Pre-load cards with collection card data
     @cards = @card_set.cards.includes(:collection_card)
     @view_type = params[:view_type] || "table"
+
+    # Set ETag for conditional requests
+    # Cache is invalidated when card_set is updated (via touch: true in associations)
+    # Collection cards touching their card model propagates to card_set
+    fresh_when(@card_set)
   end
 
   def download_set
@@ -57,9 +67,23 @@ class CardSetsController < ApplicationController
       partial: "card_sets/error", locals: { errors: "Card not found" }), status: :not_found
   end
 
-  private
+   private
 
-  def set_card_set
-    @card_set = CardSet.find(params[:id])
-  end
+   def set_card_set
+     @card_set = CardSet.find(params[:id])
+   end
+
+   def set_cache_headers
+     # For completed sets, cache aggressively since they don't change
+     # For downloading/pending sets, don't cache to show real-time progress
+     if @card_set.completed?
+       expires_in 24.hours, public: true
+     elsif @card_set.downloading? || @card_set.pending?
+       # Don't cache while downloading to ensure progress shows real-time
+       expires_in 0.seconds, public: false
+     else
+       # Default cache for 1 hour for other states
+       expires_in 1.hour, public: true
+     end
+   end
 end

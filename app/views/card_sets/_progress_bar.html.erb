@@ -1,30 +1,32 @@
-<% if card_set.downloading? || card_set.pending? %>
-   <div class="glass rounded-lg border border-purple-500/20 p-6 mb-8">
-     <div class="flex items-center justify-between mb-4">
-       <p class="text-lg font-semibold">
-         <% if card_set.downloading? %>
-           <span class="text-blue-400 flex items-center gap-2">
-             <span class="animate-spin">⚙️</span> Downloading Images...
-           </span>
-         <% else %>
-           <span class="text-yellow-400 flex items-center gap-2">
-             <span>⏳</span> Pending Download
-           </span>
-         <% end %>
+<% cache ["progress_bar", card_set, card_set.download_status, card_set.images_downloaded] do %>
+  <% if card_set.downloading? || card_set.pending? %>
+     <div class="glass rounded-lg border border-purple-500/20 p-6 mb-8">
+       <div class="flex items-center justify-between mb-4">
+         <p class="text-lg font-semibold">
+           <% if card_set.downloading? %>
+             <span class="text-blue-400 flex items-center gap-2">
+               <span class="animate-spin">⚙️</span> Downloading Images...
+             </span>
+           <% else %>
+             <span class="text-yellow-400 flex items-center gap-2">
+               <span>⏳</span> Pending Download
+             </span>
+           <% end %>
+         </p>
+         <p class="text-purple-300"><%= card_set.images_downloaded %> / <%= card_set.card_count %> images</p>
+       </div>
+       <div class="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden border border-purple-500/20">
+         <div class="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500" 
+              style="width: <%= card_set.download_progress_percentage %>%; min-width: 2px;"
+              id="progress-bar"></div>
+       </div>
+       <p class="text-sm text-purple-300 mt-3"><%= card_set.download_progress_percentage %>% complete</p>
+     </div>
+   <% elsif card_set.completed? %>
+     <div class="glass rounded-lg border border-green-500/20 bg-green-500/10 p-6 mb-8">
+       <p class="text-green-400 font-semibold flex items-center gap-2">
+         <span>✓</span> All images downloaded and ready to view
        </p>
-       <p class="text-purple-300"><%= card_set.images_downloaded %> / <%= card_set.card_count %> images</p>
      </div>
-     <div class="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden border border-purple-500/20">
-       <div class="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500" 
-            style="width: <%= card_set.download_progress_percentage %>%; min-width: 2px;"
-            id="progress-bar"></div>
-     </div>
-     <p class="text-sm text-purple-300 mt-3"><%= card_set.download_progress_percentage %>% complete</p>
-   </div>
- <% elsif card_set.completed? %>
-   <div class="glass rounded-lg border border-green-500/20 bg-green-500/10 p-6 mb-8">
-     <p class="text-green-400 font-semibold flex items-center gap-2">
-       <span>✓</span> All images downloaded and ready to view
-     </p>
-   </div>
- <% end %>
+   <% end %>
+<% end %>

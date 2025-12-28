@@ -1,26 +1,28 @@
 <%= turbo_frame_tag "binder-card-#{card.id}" do %>
-  <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>" data-controller="card-update">
-    <% if card.image_path %>
-      <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
-    <% elsif card.image_uris %>
-      <% image_data = JSON.parse(card.image_uris) %>
-      <% if image_data['normal'] %>
-        <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300">
-      <% end %>
-    <% end %>
-    
-    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
-      <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
-        <p class="text-white font-bold text-xs mb-1"><%= card.name %></p>
-        <% if card.collection_card&.quantity && card.collection_card.quantity > 0 %>
-          <p class="text-green-400 text-xs font-semibold">Qty: <%= card.collection_card.quantity %></p>
+  <% cache ["binder_card", card, card.collection_card] do %>
+    <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>" data-controller="card-update">
+      <% if card.image_path %>
+        <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
+      <% elsif card.image_uris %>
+        <% image_data = JSON.parse(card.image_uris) %>
+        <% if image_data['normal'] %>
+          <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-110 transition-transform duration-300">
         <% end %>
+      <% end %>
+      
+      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
+          <p class="text-white font-bold text-xs mb-1"><%= card.name %></p>
+          <% if card.collection_card&.quantity && card.collection_card.quantity > 0 %>
+            <p class="text-green-400 text-xs font-semibold">Qty: <%= card.collection_card.quantity %></p>
+          <% end %>
+        </div>
       </div>
-    </div>
 
-    <!-- Hidden inputs for form submission -->
-    <input type="hidden" data-card-update-target="quantity" value="<%= card.collection_card&.quantity || 0 %>" data-card-id="<%= card.id %>">
-    <input type="hidden" data-card-update-target="pageNumber" value="<%= card.collection_card&.page_number || '' %>" data-card-id="<%= card.id %>">
-    <input type="hidden" data-card-update-target="notes" value="<%= card.collection_card&.notes || '' %>" data-card-id="<%= card.id %>">
-  </div>
+      <!-- Hidden inputs for form submission -->
+      <input type="hidden" data-card-update-target="quantity" value="<%= card.collection_card&.quantity || 0 %>" data-card-id="<%= card.id %>">
+      <input type="hidden" data-card-update-target="pageNumber" value="<%= card.collection_card&.page_number || '' %>" data-card-id="<%= card.id %>">
+      <input type="hidden" data-card-update-target="notes" value="<%= card.collection_card&.notes || '' %>" data-card-id="<%= card.id %>">
+    </div>
+  <% end %>
 <% end %>
