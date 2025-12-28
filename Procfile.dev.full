@@ -1,0 +1,7 @@
+# Full development stack including all services
+# Prerequisites: docker-compose up -d redis
+# Usage: bin/dev --full
+
+web: bin/rails server
+css: bin/rails tailwindcss:watch
+sidekiq: bundle exec sidekiq -c 5 -v

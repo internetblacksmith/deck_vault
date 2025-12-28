@@ -60,30 +60,49 @@ bin/brakeman
 
 ### Development Workflow
 
-#### Option 1: Simplified (Redis + Rails)
+#### Option 1: Simple Development (Rails + CSS)
 ```bash
-# Terminal 1: Redis
-docker-compose up redis
-
-# Terminal 2: Rails Server (with auto CSS rebuild)
 bin/dev
 ```
+Just Rails server with automatic Tailwind CSS rebuilding. No background jobs.
 
-#### Option 2: Full Stack (Redis + Rails + Sidekiq)
+#### Option 2: Full Stack with Separate Redis Terminal
+```bash
+# Terminal 1: Redis (required for Sidekiq)
+docker-compose up redis
+
+# Terminal 2: Rails + CSS + Sidekiq (all in one with foreman)
+bin/dev --sidekiq
+```
+
+#### Option 3: Integrated Full Stack
 ```bash
 # Terminal 1: Redis
 docker-compose up redis
 
-# Terminal 2: Rails Server with CSS watcher
-bin/dev
+# Terminal 2: All services (Rails + CSS + Sidekiq)
+bin/dev --redis
+```
 
-# Terminal 3: Sidekiq Worker
-bundle exec sidekiq -c 5 -v
+#### Using foreman directly
+```bash
+# Use default Procfile.dev
+foreman start
+
+# Use Procfile with Sidekiq
+foreman start -f Procfile.dev
+
+# Use Procfile with Redis
+foreman start -f Procfile.dev.redis
 ```
 
 #### Shutdown
 ```bash
+# Stop foreman (Ctrl+C)
+# Stop Redis
 docker-compose down
+
+# Kill any remaining processes
 pkill -f "puma|sidekiq|tailwindcss"
 ```
 
