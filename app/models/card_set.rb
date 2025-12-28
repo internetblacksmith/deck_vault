@@ -3,7 +3,7 @@ class CardSet < ApplicationRecord
   validates :code, :name, presence: true
   validates :code, uniqueness: true
 
-  enum download_status: { pending: "pending", downloading: "downloading", completed: "completed", failed: "failed" }
+  enum :download_status, { pending: "pending", downloading: "downloading", completed: "completed", failed: "failed" }
 
   def download_progress_percentage
     return 0 if card_count.blank? || card_count.zero?
