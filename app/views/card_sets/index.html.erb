@@ -33,20 +33,44 @@
       <h2 class="text-2xl font-bold mb-4">My Collection</h2>
       <div class="space-y-2">
         <% if @downloaded_sets.any? %>
-          <% @downloaded_sets.each do |set| %>
-            <div class="flex justify-between items-center p-3 border rounded hover:bg-gray-50">
-              <div>
-                <h3 class="font-semibold"><%= link_to set.name, card_set_path(set) %></h3>
-                <p class="text-sm text-gray-600">
-                  <%= set.cards.count %> / <%= set.card_count %> cards
-                  <% owned = set.cards.joins(:collection_card).count %>
-                  <% if owned > 0 %>
-                    | Owned: <%= owned %>
-                  <% end %>
-                </p>
-              </div>
-            </div>
-          <% end %>
+           <% @downloaded_sets.each do |set| %>
+             <div class="p-3 border rounded hover:bg-gray-50">
+               <div class="flex justify-between items-center mb-2">
+                 <div>
+                   <h3 class="font-semibold"><%= link_to set.name, card_set_path(set) %></h3>
+                   <p class="text-sm text-gray-600">
+                     <%= set.cards.count %> / <%= set.card_count %> cards
+                     <% owned = set.cards.joins(:collection_card).count %>
+                     <% if owned > 0 %>
+                       | Owned: <%= owned %>
+                     <% end %>
+                   </p>
+                 </div>
+               </div>
+               
+               <!-- Image Download Progress -->
+               <% if set.downloading? || set.pending? %>
+                 <div class="mt-2">
+                   <div class="flex justify-between items-center mb-1">
+                     <p class="text-xs font-semibold text-blue-600">
+                       <% if set.downloading? %>
+                         Downloading images...
+                       <% else %>
+                         Pending image download
+                       <% end %>
+                     </p>
+                     <p class="text-xs font-semibold text-gray-600"><%= set.images_downloaded %> / <%= set.card_count %></p>
+                   </div>
+                   <div class="w-full bg-gray-200 rounded-full h-2">
+                     <div class="bg-blue-600 h-2 rounded-full transition-all" 
+                          style="width: <%= set.download_progress_percentage %>%"></div>
+                   </div>
+                 </div>
+               <% elsif set.completed? %>
+                 <p class="text-xs text-green-600 font-semibold">✓ Images downloaded</p>
+               <% end %>
+             </div>
+           <% end %>
         <% else %>
           <p class="text-gray-600">No sets downloaded yet. Start by downloading a set!</p>
         <% end %>

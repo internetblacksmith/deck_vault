@@ -20,6 +20,32 @@
         <% end %>
       </div>
     </div>
+
+    <!-- Image Download Progress -->
+    <% if @card_set.download_status != "completed" && @card_set.download_status != "failed" %>
+      <div class="mt-4 pt-4 border-t">
+        <div class="flex justify-between items-center mb-2">
+          <p class="text-sm font-semibold text-gray-700">
+            <% if @card_set.downloading? %>
+              <span class="text-blue-600">Downloading images...</span>
+            <% else %>
+              <span class="text-yellow-600">Pending image download</span>
+            <% end %>
+          </p>
+          <p class="text-sm font-semibold"><%= @card_set.images_downloaded %> / <%= @card_set.card_count %></p>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
+               style="width: <%= @card_set.download_progress_percentage %>%"
+               id="progress-bar"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1"><%= @card_set.download_progress_percentage %>% complete</p>
+      </div>
+    <% elsif @card_set.completed? %>
+      <div class="mt-4 pt-4 border-t">
+        <p class="text-sm font-semibold text-green-600">✓ All images downloaded</p>
+      </div>
+    <% end %>
   </div>
 
   <!-- View Type Selector -->
@@ -184,6 +210,46 @@
         saveCard(cardId, e.target.classList[0], e.target.value);
       });
     });
+
+    // Auto-refresh progress bar if download is in progress
+    <% if @card_set.downloading? %>
+      const refreshProgress = async () => {
+        try {
+          const response = await fetch(`<%= card_set_path(@card_set) %>`);
+          if (!response.ok) return;
+          
+          const html = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const newBar = doc.querySelector('#progress-bar');
+          const oldBar = document.querySelector('#progress-bar');
+          
+          if (newBar && oldBar) {
+            oldBar.style.width = newBar.style.width;
+          }
+        } catch (error) {
+          console.error('Error refreshing progress:', error);
+        }
+      };
+      
+      const interval = setInterval(refreshProgress, 2000);
+      
+      // Stop polling once download is complete
+      const checkCompletion = async () => {
+        try {
+          const response = await fetch(`<%= card_set_path(@card_set) %>`);
+          const html = await response.text();
+          if (html.includes('All images downloaded')) {
+            clearInterval(interval);
+            location.reload();
+          }
+        } catch (error) {
+          console.error('Error checking completion:', error);
+        }
+      };
+      
+      setInterval(checkCompletion, 5000);
+    <% end %>
   });
 </script>
 

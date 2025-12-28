@@ -14,10 +14,13 @@ class CardSetsController < ApplicationController
 
   def download_set
     set_code = params[:set_code]
+
+    # Start download in background
     card_set = ScryfallService.download_set(set_code)
 
     if card_set
-      redirect_to card_set_path(card_set), notice: "Set downloaded successfully!"
+      card_set.update(download_status: :downloading)
+      redirect_to card_set_path(card_set), notice: "Set download started! Images will be downloaded in the background..."
     else
       redirect_to card_sets_path, alert: "Failed to download set"
     end

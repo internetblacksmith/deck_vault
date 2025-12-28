@@ -40,6 +40,9 @@ Rails.application.configure do
   # Set localhost to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
+  # Configure Active Job to use Sidekiq
+  config.active_job.queue_adapter = :sidekiq
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 

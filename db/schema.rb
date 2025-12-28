@@ -10,11 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_155652) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_28_160520) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "card_count"
     t.string "code"
     t.datetime "created_at", null: false
+    t.string "download_status", default: "pending"
+    t.integer "images_downloaded", default: 0
     t.string "name"
     t.date "released_at"
     t.string "scryfall_uri"

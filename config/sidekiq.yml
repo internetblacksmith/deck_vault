@@ -1,0 +1,17 @@
+---
+:max_concurrency: 5
+:timeout: 30
+:verbose: false
+:queues:
+  - critical
+  - default
+  - mailers
+  - low
+
+development:
+  :max_concurrency: 5
+  :timeout: 25
+
+production:
+  :max_concurrency: 25
+  :timeout: 25
