@@ -23,5 +23,8 @@ module MtgCollector
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Include Tailwind CSS builds in asset pipeline
+    config.assets.paths << Rails.root.join("app/assets/builds")
   end
 end

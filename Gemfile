@@ -10,6 +10,8 @@ gem "sqlite3", "2.9.0"
 gem "puma", "7.1.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails", "2.2.2"
+# Tailwind CSS [https://github.com/rails/tailwindcss-rails]
+gem "tailwindcss-rails", "~> 4.0"
 # Hotwire's SPA-like page accelerator [https://github.com/rails/turbo-rails]
 gem "turbo-rails", "2.0.20"
 # Hotwire's modest JavaScript framework [https://github.com/rails/stimulus-rails]
@@ -18,7 +20,7 @@ gem "stimulus-rails", "1.3.4"
 gem "jbuilder", "2.14.1"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "3.1.20"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]

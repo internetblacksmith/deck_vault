@@ -11,65 +11,12 @@
 
     <%= yield :head %>
 
-    <%# Tailwind CSS with config %>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              mtg: {
-                primary: '#1a1f36',
-                secondary: '#5b21b6',
-                accent: '#8b5cf6',
-              }
-            },
-            animation: {
-              shimmer: 'shimmer 2s infinite',
-              pulse: 'pulse 2s infinite',
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      @keyframes shimmer {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-      }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-      .glass { backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.1); }
-      .gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-      .gradient-accent { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-      
-      /* Dark mode styles */
-      :root {
-        color-scheme: light;
-      }
-      
-      .dark {
-        color-scheme: dark;
-      }
-      
-      .dark body {
-        @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950;
-      }
-      
-      .dark .glass {
-        background: rgba(0, 0, 0, 0.3);
-      }
-    </style>
-
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%# Tailwind CSS compiled stylesheet %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 

@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Toast Notifications */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.toast-notification {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.3s ease-out;
+}
+
+/* Custom utilities */
+.glass {
+  @apply backdrop-blur-xl bg-white/10;
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .dark .glass {
+    @apply bg-black/30;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950;
+  }
+}
