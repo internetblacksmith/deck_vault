@@ -37,7 +37,8 @@
 
 /* Custom utilities */
 .glass {
-  @apply backdrop-blur-xl bg-white/10;
+  backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .gradient-primary {
@@ -48,44 +49,90 @@
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
-/* Dark mode - Manual selector-based implementation */
+/* Dark mode - Pure CSS implementation (no Tailwind @apply) */
 html.dark {
   color-scheme: dark;
 }
 
 html.dark body {
-  @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white;
+  background: linear-gradient(to bottom right, rgb(5, 5, 15), rgb(15, 23, 42), rgb(5, 5, 15));
+  color: rgb(255, 255, 255);
 }
 
 html.dark nav {
-  @apply bg-gray-950/50;
+  background: rgba(3, 7, 18, 0.5);
 }
 
 html.dark footer {
-  @apply bg-gray-950;
+  background: rgb(3, 7, 18);
 }
 
 html.dark .glass {
-  @apply bg-black/30;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 html.dark .border-gray-200 {
-  @apply border-purple-500/20;
+  border-color: rgba(172, 75, 255, 0.2);
 }
 
 html.dark .text-gray-600,
 html.dark .text-gray-900 {
-  @apply text-white;
+  color: rgb(255, 255, 255);
 }
 
 html.dark .text-gray-700 {
-  @apply text-purple-300;
+  color: rgb(196, 181, 253);
 }
 
 html.dark .bg-gray-50 {
-  @apply bg-gray-950;
+  background-color: rgb(3, 7, 18);
 }
 
 html.dark .bg-gray-50\/50 {
-  @apply bg-gray-950/50;
+  background-color: rgba(3, 7, 18, 0.5);
+}
+
+html.dark main {
+  background: inherit;
+}
+
+html.dark a {
+  color: rgb(196, 181, 253);
+}
+
+html.dark a:hover {
+  color: rgb(217, 70, 239);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: rgb(20, 30, 50);
+  color: rgb(255, 255, 255);
+  border-color: rgba(172, 75, 255, 0.3);
+}
+
+html.dark button,
+html.dark [role="button"] {
+  color: rgb(255, 255, 255);
+}
+
+html.dark .bg-white {
+  background-color: rgb(15, 23, 42);
+}
+
+html.dark .text-white {
+  color: rgb(255, 255, 255);
+}
+
+html.dark .bg-red-50 {
+  background-color: rgba(139, 0, 0, 0.2);
+}
+
+html.dark .bg-green-500\/20 {
+  background-color: rgba(0, 199, 88, 0.2);
+}
+
+html.dark .bg-blue-500\/20 {
+  background-color: rgba(48, 128, 255, 0.2);
 }
