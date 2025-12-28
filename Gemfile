@@ -50,8 +50,9 @@ gem "csv"
 gem "faraday"
 
 # Background job processing
-gem "sidekiq", "~> 7.0"
+gem "sidekiq", "~> 7.1"
 gem "redis", "~> 5.0"
+gem "connection_pool", "~> 2.3"
 
 # Environment variables
 gem "dotenv-rails", "~> 3.0", groups: [:development, :test]
