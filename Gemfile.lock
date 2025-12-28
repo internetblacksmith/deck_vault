@@ -365,6 +365,8 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
+    shoulda-matchers (6.4.0)
+      activesupport (>= 5.2.0)
     sidekiq (7.3.10)
       base64
       connection_pool (>= 2.3.0, < 3)
@@ -468,6 +470,7 @@ DEPENDENCIES
   rspec-rails (= 6.1.1)
   rubocop-rails-omakase (= 1.1.0)
   selenium-webdriver (= 4.39.0)
+  shoulda-matchers (= 6.4.0)
   sidekiq (= 7.3.10)
   solid_cable (= 1.1.0)
   solid_cache (= 1.0.10)
@@ -616,6 +619,7 @@ CHECKSUMS
   rubyzip (3.2.2) sha256=c0ed99385f0625415c8f05bcae33fe649ed2952894a95ff8b08f26ca57ea5b3c
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   selenium-webdriver (4.39.0) sha256=984a1e63d39472eaf286bac3c6f1822fa7eea6eed9c07a66ce7b3bc5417ba826
+  shoulda-matchers (6.4.0) sha256=9055bb7f4bb342125fb860809798855c630e05ef5e75837b3168b8e6ee1608b0
   sidekiq (7.3.10) sha256=781eb4f65ef36042534ad73d72f211283afb7fee82eec786ada4ed1972ef8e3c
   solid_cable (1.1.0) sha256=c4082305065c60d01c2158e64c7666dd922a37e8e1cc5a1446630d9e4d93c0ae
   solid_cache (1.0.10) sha256=bc05a2fb3ac78a6f43cbb5946679cf9db67dd30d22939ededc385cb93e120d41

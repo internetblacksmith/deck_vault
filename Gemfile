@@ -76,17 +76,18 @@ group :development, :test do
    gem "web-console", "4.2.1"
  end
 
-  group :test do
-    # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
-    gem "capybara", "3.40.0"
-    gem "selenium-webdriver", "4.39.0"
+   group :test do
+     # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
+     gem "capybara", "3.40.0"
+     gem "selenium-webdriver", "4.39.0"
 
-    # RSpec - Unit and integration testing
-    gem "rspec-rails", "6.1.1"
-    gem "factory_bot_rails", "6.4.0"
-    gem "faker", "3.2.3"
-    
-    # VCR - Record and replay HTTP interactions
-    gem "vcr", "6.4.0"
-    gem "webmock", "3.26.1"
-  end
+     # RSpec - Unit and integration testing
+     gem "rspec-rails", "6.1.1"
+     gem "factory_bot_rails", "6.4.0"
+     gem "faker", "3.2.3"
+     gem "shoulda-matchers", "6.4.0"
+     
+     # VCR - Record and replay HTTP interactions
+     gem "vcr", "6.4.0"
+     gem "webmock", "3.26.1"
+   end
