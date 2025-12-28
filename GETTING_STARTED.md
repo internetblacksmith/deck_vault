@@ -26,11 +26,32 @@ bin/rails db:create db:migrate
 
 ### 3. Start the Server
 
+#### Option A: Simple (Development)
 ```bash
 bin/rails server
 ```
 
+#### Option B: With CSS Auto-Rebuild (Recommended)
+To automatically rebuild Tailwind CSS when you make style changes:
+
+```bash
+bin/dev
+```
+
+This runs both the Rails server and Tailwind CSS watcher using foreman.
+
 The app will be available at `http://localhost:3000`
+
+### 4. Create Your Account
+
+On first visit:
+1. Go to `http://localhost:3000`
+2. You'll be redirected to the login page
+3. Click "Sign up" to create a new account
+4. Enter your email and a secure password
+5. After creation, you'll be logged in automatically
+
+**Note:** The app uses secure bcrypt password hashing. Your password is never stored in plain text.
 
 ## Your First Steps
 

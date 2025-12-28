@@ -20,21 +20,27 @@ docker-compose up -d redis
 
 ## Build, Test & Lint Commands
 
-### Running Tests
+### Running Tests (RSpec)
 ```bash
-# Run all tests
-bin/rails test
+# Run all tests (242 tests: 127 model + 115 request)
+bundle exec rspec
 
-# Run specific test file
-bin/rails test test/models/card_set_test.rb
+# Run specific test suites
+bundle exec rspec spec/models                    # Model unit tests
+bundle exec rspec spec/requests                  # Controller/request tests
+bundle exec rspec spec/requests/auth_spec.rb     # Authentication tests only
 
-# Run single test method (syntax: TEST=path/to/test:line_number)
-bin/rails test test/models/card_set_test.rb -n test_download_progress_percentage
+# Run with detailed output
+bundle exec rspec --format documentation
 
-# Run tests in specific directory
-bin/rails test test/models/
-bin/rails test test/controllers/
-bin/rails test test/jobs/
+# With coverage report
+COVERAGE=true bundle exec rspec
+
+# Run single test file
+bundle exec rspec spec/models/user_spec.rb
+
+# Run tests matching a pattern
+bundle exec rspec -e "validations"
 ```
 
 ### Code Quality
@@ -53,19 +59,32 @@ bin/brakeman
 ```
 
 ### Development Workflow
+
+#### Option 1: Simplified (Redis + Rails)
 ```bash
 # Terminal 1: Redis
 docker-compose up redis
 
-# Terminal 2: Rails Server
-bin/rails server
+# Terminal 2: Rails Server (with auto CSS rebuild)
+bin/dev
+```
+
+#### Option 2: Full Stack (Redis + Rails + Sidekiq)
+```bash
+# Terminal 1: Redis
+docker-compose up redis
+
+# Terminal 2: Rails Server with CSS watcher
+bin/dev
 
 # Terminal 3: Sidekiq Worker
 bundle exec sidekiq -c 5 -v
+```
 
-# Stop all services
+#### Shutdown
+```bash
 docker-compose down
-pkill -f "puma|sidekiq"
+pkill -f "puma|sidekiq|tailwindcss"
 ```
 
 ## Code Style Guidelines
@@ -180,11 +199,14 @@ rescue ActiveRecord::RecordNotFound
 - Always rescue and re-raise: `rescue StandardError => e; raise`
 - Update progress in database if needed
 
-### Testing
-- Test file mirrors source: `app/models/card.rb` → `test/models/card_test.rb`
-- Use descriptive test names: `test_download_progress_percentage_returns_zero_when_empty`
-- Setup test data in fixtures or use factories
-- Assert behavior not implementation
+### Testing with RSpec
+- Test file mirrors source: `app/models/card.rb` → `spec/models/card_spec.rb`
+- Use FactoryBot factories for test data: `create(:card), build(:user)`
+- Use shoulda-matchers for model testing: `validate_presence_of(:email)`
+- Descriptive test names: `'returns 0 when card_count is zero'`
+- Happy path, sad path, and edge case coverage
+- Request tests should login users: create user and POST to login route first
+- Use `before do` for common setup in request tests
 
 ### Gems & Dependencies
 - Keep versions flexible but safe: `gem "rails", "~> 8.1.1"` not exact versions
@@ -193,6 +215,16 @@ rescue ActiveRecord::RecordNotFound
 - Check compatibility before upgrading: `connection_pool ~> 2.3` (verified with Sidekiq 7.1)
 
 ## Project-Specific Patterns
+
+### Authentication
+- Uses custom bcrypt authentication (no Devise needed)
+- `ApplicationController#authenticate_user` protects all routes by default
+- `SessionsController` handles login/logout
+- `RegistrationsController` handles signup
+- Routes: GET/POST `/login`, GET/POST `/sign_up`, DELETE `/logout`
+- User model: `has_secure_password`, email validation with RFC regex
+- Session stored in encrypted Rails cookie
+- Test helper: Login users in request specs with `post login_path, params: { email:, password: }`
 
 ### Scryfall Integration
 - Use `ScryfallService` for all API calls
