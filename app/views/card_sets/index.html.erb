@@ -1,0 +1,62 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">MTG Collection Manager</h1>
+  </div>
+
+  <div class="grid grid-cols-2 gap-8">
+    <!-- Available Sets -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold mb-4">Available Sets</h2>
+      <div class="space-y-2 max-h-96 overflow-y-auto">
+        <% if @available_sets.any? %>
+          <% @available_sets.each do |set| %>
+            <div class="flex justify-between items-center p-3 border rounded hover:bg-gray-50">
+              <div>
+                <h3 class="font-semibold"><%= set[:name] %></h3>
+                <p class="text-sm text-gray-600">Code: <%= set[:code] %> | Cards: <%= set[:card_count] %></p>
+              </div>
+              <% if @downloaded_sets.find_by(code: set[:code]) %>
+                <span class="text-green-600 font-semibold">✓ Downloaded</span>
+              <% else %>
+                <%= button_to "Download", download_set_card_sets_path(set_code: set[:code]), method: :post, class: "bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" %>
+              <% end %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-gray-600">Loading available sets...</p>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Downloaded Sets -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold mb-4">My Collection</h2>
+      <div class="space-y-2">
+        <% if @downloaded_sets.any? %>
+          <% @downloaded_sets.each do |set| %>
+            <div class="flex justify-between items-center p-3 border rounded hover:bg-gray-50">
+              <div>
+                <h3 class="font-semibold"><%= link_to set.name, card_set_path(set) %></h3>
+                <p class="text-sm text-gray-600">
+                  <%= set.cards.count %> / <%= set.card_count %> cards
+                  <% owned = set.cards.joins(:collection_card).count %>
+                  <% if owned > 0 %>
+                    | Owned: <%= owned %>
+                  <% end %>
+                </p>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-gray-600">No sets downloaded yet. Start by downloading a set!</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container {
+    max-width: 1200px;
+  }
+</style>
