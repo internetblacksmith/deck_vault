@@ -21,7 +21,32 @@ class DownloadCardImagesJob < ApplicationJob
     images_count = card_set.cards.where.not(image_path: nil).count
     card_set.update(images_downloaded: images_count)
 
-    # Broadcast progress update via ActionCable
+    # Broadcast Turbo Stream update for progress bar
+    broadcast_progress_update(card_set, images_count)
+
+    # Mark as completed if all images downloaded
+    if card_set.images_downloaded >= card_set.card_count
+      card_set.update(download_status: :completed)
+      Rails.logger.info("Completed downloading all images for set #{card_set.name}")
+      broadcast_completion(card_set)
+    end
+  rescue StandardError => e
+    Rails.logger.error("Error downloading image for card #{card_id}: #{e.message}")
+    raise
+  end
+
+  private
+
+  def broadcast_progress_update(card_set, images_count)
+    # Use Turbo Stream to update progress bar
+    Turbo::StreamsChannel.broadcast_update_to(
+      "card_set_#{card_set.id}_progress",
+      target: "progress-#{card_set.id}",
+      partial: "card_sets/progress_bar",
+      locals: { card_set: card_set }
+    )
+
+    # Also keep ActionCable broadcast for legacy support
     ActionCable.server.broadcast(
       "set_progress:#{card_set.id}",
       {
@@ -32,26 +57,27 @@ class DownloadCardImagesJob < ApplicationJob
         status: card_set.download_status
       }
     )
+  end
 
-    # Mark as completed if all images downloaded
-    if card_set.images_downloaded >= card_set.card_count
-      card_set.update(download_status: :completed)
-      Rails.logger.info("Completed downloading all images for set #{card_set.name}")
+  def broadcast_completion(card_set)
+    # Broadcast Turbo Stream completion update
+    Turbo::StreamsChannel.broadcast_update_to(
+      "card_set_#{card_set.id}_progress",
+      target: "progress-#{card_set.id}",
+      partial: "card_sets/progress_bar",
+      locals: { card_set: card_set }
+    )
 
-      # Broadcast completion
-      ActionCable.server.broadcast(
-        "set_progress:#{card_set.id}",
-        {
-          type: "completed",
-          images_downloaded: card_set.card_count,
-          card_count: card_set.card_count,
-          percentage: 100,
-          status: "completed"
-        }
-      )
-    end
-  rescue StandardError => e
-    Rails.logger.error("Error downloading image for card #{card_id}: #{e.message}")
-    raise
+    # Also keep ActionCable broadcast for legacy support
+    ActionCable.server.broadcast(
+      "set_progress:#{card_set.id}",
+      {
+        type: "completed",
+        images_downloaded: card_set.card_count,
+        card_count: card_set.card_count,
+        percentage: 100,
+        status: "completed"
+      }
+    )
   end
 end

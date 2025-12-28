@@ -44,12 +44,17 @@ class CardSetsController < ApplicationController
     collection_card.notes = params[:notes]
 
     if collection_card.save
-      render json: { success: true, collection_card: collection_card }
+      # Broadcast via Turbo Streams for real-time updates
+      # The partial determines what gets rendered based on view type
+      render turbo_stream: turbo_stream.replace("card-row-#{card.id}",
+        partial: "card_sets/card_row", locals: { card: card, view_type: @view_type || "table", card_set: @card_set })
     else
-      render json: { success: false, errors: collection_card.errors }, status: :unprocessable_entity
+      render turbo_stream: turbo_stream.replace("card-row-#{card.id}",
+        partial: "card_sets/error", locals: { errors: collection_card.errors }), status: :unprocessable_entity
     end
   rescue ActiveRecord::RecordNotFound
-    render json: { success: false, errors: "Card not found" }, status: :not_found
+    render turbo_stream: turbo_stream.replace("card-row-#{card.id}",
+      partial: "card_sets/error", locals: { errors: "Card not found" }), status: :not_found
   end
 
   private
