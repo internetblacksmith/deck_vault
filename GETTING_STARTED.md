@@ -48,16 +48,24 @@ This shows all sets with their card counts. Look for sets you want to manage:
 
 ### Step 2: Download Your First Set
 
-Download a set using its code (e.g., "tla" for Avatar: The Last Airbender):
+Download a set using its code (e.g., "dom" for Dominaria):
 
 ```bash
-bin/rails scryfall:download_set[tla]
+bin/rails scryfall:download_set[dom]
 ```
+
+**What happens during download:**
+- Card data (name, type, rarity, etc.) is fetched from Scryfall API
+- All card images are automatically downloaded and saved locally
+- Database is updated with card information and local image paths
+
+**First time setup note:** Initial download may take 1-5 minutes depending on set size and internet speed. The app downloads images in the background while parsing card data.
 
 Or through the web interface:
 1. Go to `http://localhost:3000`
 2. Find the set in "Available Sets"
 3. Click the "Download" button
+4. Wait for completion message
 
 ### Step 3: Track Your Cards
 
@@ -133,6 +141,30 @@ Add custom notes like:
 In the current version, all cards in a set are shown. You can:
 - Use your browser's find function (Ctrl+F) to search
 - Sort cards using the Table view headers
+
+### Offline Usage
+
+Once you've downloaded a set:
+- All card images are cached locally
+- You can browse your collection **without internet connection**
+- Just keep the Rails server running with `bin/rails server`
+- Access the app at `http://localhost:3000` anytime
+
+**Note:** You'll need internet connection only when:
+- Downloading new sets from Scryfall
+- First time setting up the app
+
+## Storage Tips
+
+Card images are stored in `storage/card_images/`:
+- Each image is typically 70-100 KB
+- A typical set uses 20-50 MB of disk space
+- Images are cached permanently until you delete them
+
+To see how much space your images use:
+```bash
+du -sh storage/card_images/
+```
 
 ## Troubleshooting
 
