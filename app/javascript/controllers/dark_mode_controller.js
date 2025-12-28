@@ -21,6 +21,12 @@ export default class extends Controller {
   }
 
   loadPreference() {
+    // Don't apply dark mode on auth pages
+    if (document.body.getAttribute("data-auth-page") === "true") {
+      document.documentElement.classList.remove("dark")
+      return
+    }
+
     const darkMode = localStorage.getItem("darkMode")
     const prefersDark = window.matchMedia(
       "(prefers-color-scheme: dark)"
