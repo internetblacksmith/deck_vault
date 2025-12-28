@@ -23,21 +23,40 @@ bundle install
 
 ## Redis Setup
 
-Sidekiq requires Redis to be running. Redis can be installed via:
+Sidekiq requires Redis to be running. The easiest way for development is using Docker Compose:
 
-### macOS
+### Recommended: Docker Compose (Easiest for Development)
+
+```bash
+# Start Redis
+docker-compose up -d redis
+
+# Verify it's running
+docker-compose ps
+# Should show redis container as UP
+
+# Test connection
+docker-compose exec redis redis-cli ping
+# Should return: PONG
+```
+
+### Alternative: Local Installation
+
+If you prefer to install Redis locally:
+
+**macOS**
 ```bash
 brew install redis
 brew services start redis
 ```
 
-### Linux (Ubuntu/Debian)
+**Linux (Ubuntu/Debian)**
 ```bash
 sudo apt-get install redis-server
 sudo systemctl start redis-server
 ```
 
-### Docker
+**Docker (single container)**
 ```bash
 docker run -d -p 6379:6379 redis:latest
 ```
@@ -48,14 +67,49 @@ redis-cli ping
 # Should return: PONG
 ```
 
+### Stop Redis
+```bash
+# Docker Compose
+docker-compose down
+
+# Docker container
+docker stop mtg_collector_redis
+
+# macOS
+brew services stop redis
+
+# Linux
+sudo systemctl stop redis-server
+```
+
 ## Running in Development
 
-### Terminal 1: Rails Server
+### Setup (One Time)
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env if needed (Redis URL should already be correct for Docker)
+# REDIS_URL=redis://localhost:6379/0
+```
+
+### Terminal 1: Start Redis with Docker Compose
+```bash
+docker-compose up redis
+```
+
+Or in the background:
+```bash
+docker-compose up -d redis
+```
+
+### Terminal 2: Rails Server
 ```bash
 bin/rails server
 ```
 
-### Terminal 2: Sidekiq Worker
+### Terminal 3: Sidekiq Worker
 ```bash
 bundle exec sidekiq -c 5 -v
 ```
@@ -63,13 +117,28 @@ bundle exec sidekiq -c 5 -v
 The `-c 5` flag sets concurrency to 5 (5 images downloading in parallel)
 The `-v` flag enables verbose logging
 
-### Terminal 3 (Optional): Redis Monitor
+### Verify Everything Works
+
 ```bash
-redis-cli
-> MONITOR
+# Test Rails app
+curl http://localhost:3000
+
+# Test Sidekiq is connected
+# You should see "Connected to Redis at localhost:6379" in Sidekiq logs
+
+# Test Redis connection
+docker-compose exec redis redis-cli ping
+# Should return: PONG
 ```
 
-This shows Redis commands as they happen (useful for debugging)
+### Stop Everything
+```bash
+# Stop Redis
+docker-compose down
+
+# Stop Rails (Ctrl+C in terminal 2)
+# Stop Sidekiq (Ctrl+C in terminal 3)
+```
 
 ## How It Works
 
@@ -107,6 +176,41 @@ Completion detected, page shows "✓ All images downloaded"
 
 ## Configuration Files
 
+### docker-compose.yml
+Defines Redis service for local development:
+- Redis container runs on port 6379
+- Data persists in `redis_data` volume
+- Health checks ensure Redis is ready
+- Uses Alpine Linux for minimal image size
+
+```yaml
+redis:
+  image: redis:7-alpine
+  ports:
+    - "6379:6379"
+  volumes:
+    - redis_data:/data
+  command: redis-server --appendonly yes
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 5
+```
+
+### .env.example & .env
+Environment configuration for Redis connection:
+```bash
+REDIS_URL=redis://localhost:6379/0
+RAILS_ENV=development
+SIDEKIQ_CONCURRENCY=5
+```
+
+Copy `.env.example` to `.env` and adjust if needed:
+```bash
+cp .env.example .env
+```
+
 ### config/sidekiq.yml
 Defines Sidekiq queues and concurrency settings:
 - `critical`: High priority jobs
@@ -114,15 +218,18 @@ Defines Sidekiq queues and concurrency settings:
 - `mailers`: Email jobs
 - `low`: Low priority jobs
 
-### config/environments/development.rb
+### config/environments/development.rb & production.rb
+Configures Sidekiq to use Redis from environment variable:
 ```ruby
-config.active_job.queue_adapter = :sidekiq
+redis_url = ENV.fetch("REDIS_URL", "redis://localhost:6379/0")
+Sidekiq.configure_server { |config| config.redis = { url: redis_url } }
+Sidekiq.configure_client { |config| config.redis = { url: redis_url } }
 ```
 
-### config/environments/production.rb
-```ruby
-config.active_job.queue_adapter = :sidekiq
-```
+This allows:
+- Development: Use Docker Redis or local Redis
+- Production: Use Redis from environment variable (e.g., Redis Cloud)
+- Easy switching without code changes
 
 ## Job Retry Logic
 
@@ -137,15 +244,59 @@ If an image download fails, it will retry up to 3 times before giving up.
 ## Monitoring
 
 ### View Pending Jobs
+Using Docker Compose:
+```bash
+docker-compose exec redis redis-cli LLEN "queue:default"
+docker-compose exec redis redis-cli LLEN "queue:critical"
+```
+
+Using local Redis:
 ```bash
 redis-cli
-> LLEN "queue:default"  # Number of pending jobs
-> LLEN "queue:critical" # Number of critical jobs
+> LLEN "queue:default"   # Number of pending jobs
+> LLEN "queue:critical"  # Number of critical jobs
+```
+
+### Check Redis Connection
+```bash
+# Docker Compose
+docker-compose exec redis redis-cli ping
+
+# Local Redis
+redis-cli ping
+```
+
+### Monitor Redis Commands in Real-Time
+```bash
+# Docker Compose
+docker-compose exec redis redis-cli MONITOR
+
+# Local Redis
+redis-cli
+> MONITOR
 ```
 
 ### Clear All Jobs (Development Only)
+Using Docker Compose:
+```bash
+docker-compose exec redis redis-cli FLUSHDB
+```
+
+Using local Redis:
 ```bash
 redis-cli FLUSHDB
+```
+
+### View Docker Container Logs
+```bash
+# View Redis logs
+docker-compose logs redis
+
+# Follow Redis logs in real-time
+docker-compose logs -f redis
+
+# View all services
+docker-compose ps
 ```
 
 ### Web UI (Optional)

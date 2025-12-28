@@ -43,6 +43,11 @@ Rails.application.configure do
   # Configure Active Job to use Sidekiq
   config.active_job.queue_adapter = :sidekiq
 
+  # Configure Redis connection for Sidekiq
+  redis_url = ENV.fetch("REDIS_URL", "redis://localhost:6379/0")
+  Sidekiq.configure_server { |config| config.redis = { url: redis_url } }
+  Sidekiq.configure_client { |config| config.redis = { url: redis_url } }
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 

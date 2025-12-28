@@ -42,11 +42,14 @@ bundle install
 bin/rails db:create db:migrate
 ```
 
-4. Start Redis (required for background jobs):
+4. Start Redis using Docker Compose:
 ```bash
-redis-server
-# Or in another terminal for development:
-redis-cli
+docker-compose up redis
+```
+
+Or run in background:
+```bash
+docker-compose up -d redis
 ```
 
 5. Start the development server:
@@ -65,20 +68,27 @@ bundle exec sidekiq -c 5 -v
 
 For development, you need three terminals running:
 
-**Terminal 1: Rails Server**
+**Terminal 1: Redis (Docker Compose)**
+```bash
+docker-compose up redis
+```
+
+**Terminal 2: Rails Server**
 ```bash
 bin/rails server
 ```
 
-**Terminal 2: Sidekiq Worker**
+**Terminal 3: Sidekiq Worker**
 ```bash
 bundle exec sidekiq -c 5 -v
 ```
 
-**Terminal 3: Redis** (if not running as service)
-```bash
-redis-server
-```
+### Docker Compose Benefits
+- No need to install Redis locally
+- Works consistently across macOS, Linux, and Windows
+- Easy to start/stop
+- Data persists between restarts
+- Uses minimal Alpine Linux image
 
 See [SIDEKIQ_SETUP.md](SIDEKIQ_SETUP.md) for detailed Sidekiq configuration and troubleshooting.
 
