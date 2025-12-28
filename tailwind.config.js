@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ['selector', 'html.dark'],
+  darkMode: false,
   content: [
     './app/views/**/*.html.erb',
     './app/helpers/**/*.rb',
