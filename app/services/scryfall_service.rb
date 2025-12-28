@@ -50,10 +50,8 @@ class ScryfallService
     }
   end
 
-  # Format card data for database
+  # Format card data for database (without downloading image)
   def self.format_card(card_data)
-    image_path = download_card_image(card_data)
-
     {
       name: card_data["name"],
       mana_cost: card_data["mana_cost"],
@@ -63,7 +61,7 @@ class ScryfallService
       scryfall_id: card_data["id"],
       image_uris: card_data["image_uris"].to_json,
       collector_number: card_data["collector_number"],
-      image_path: image_path
+      image_path: nil  # Will be set by background job
     }
   end
 
@@ -102,7 +100,7 @@ class ScryfallService
     end
   end
 
-  # Download and save a set to the database
+  # Download and save a set to the database (without images)
   def self.download_set(set_code)
     card_set = CardSet.find_or_create_by(code: set_code) do |set|
       set_data = fetch_set_details(set_code)
@@ -115,10 +113,13 @@ class ScryfallService
     # Fetch and save cards for this set
     cards_data = fetch_cards_for_set(set_code)
     cards_data.each do |card_data|
-      Card.find_or_create_by(scryfall_id: card_data[:scryfall_id]) do |card|
-        card.card_set = card_set
-        card.assign_attributes(card_data)
+      card = Card.find_or_create_by(scryfall_id: card_data[:scryfall_id]) do |c|
+        c.card_set = card_set
+        c.assign_attributes(card_data)
       end
+
+      # Queue image download as background job
+      DownloadCardImagesJob.perform_later(card.id) if card.persisted? && card.image_path.blank?
     end
 
     card_set
