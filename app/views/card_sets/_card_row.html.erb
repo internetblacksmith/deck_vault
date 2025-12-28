@@ -15,19 +15,22 @@
     <td class="px-6 py-4">
       <input type="number" min="0" data-card-update-target="quantity" class="quantity-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center transition-all" 
              value="<%= card.collection_card&.quantity || 0 %>" 
-             data-card-id="<%= card.id %>">
+             data-card-id="<%= card.id %>"
+             aria-label="Quantity for <%= card.name %>">
     </td>
     <td class="px-6 py-4">
       <input type="number" min="1" max="200" data-card-update-target="pageNumber" class="page-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center transition-all" 
              value="<%= card.collection_card&.page_number || '' %>" 
              placeholder="—"
-             data-card-id="<%= card.id %>">
+             data-card-id="<%= card.id %>"
+             aria-label="Binder page number for <%= card.name %>">
     </td>
     <td class="px-6 py-4">
       <input type="text" data-card-update-target="notes" class="notes-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-full text-sm transition-all" 
              value="<%= card.collection_card&.notes || '' %>" 
              placeholder="Add notes..."
-             data-card-id="<%= card.id %>">
+             data-card-id="<%= card.id %>"
+             aria-label="Notes for <%= card.name %>">
     </td>
   </tr>
 <% end %>
