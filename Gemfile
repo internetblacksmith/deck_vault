@@ -73,10 +73,13 @@ group :development, :test do
    gem "rubocop-rails-omakase", "1.1.0", require: false
  end
 
- group :development do
-   # Use console on exceptions pages [https://github.com/rails/web-console]
-   gem "web-console", "4.2.1"
- end
+  group :development do
+    # Use console on exceptions pages [https://github.com/rails/web-console]
+    gem "web-console", "4.2.1"
+    
+    # Process manager for managing multiple services [https://github.com/ddollar/foreman]
+    gem "foreman", "0.90.0"
+  end
 
    group :test do
      # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
