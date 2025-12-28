@@ -119,6 +119,9 @@ export default class extends Controller {
     // Show brief success visual feedback
     this.element.classList.add("bg-green-500/20")
     setTimeout(() => this.element.classList.remove("bg-green-500/20"), 1500)
+    
+    // Dispatch toast notification
+    this.dispatchToast("Card updated successfully", "success")
   }
 
   showError(message) {
@@ -126,5 +129,15 @@ export default class extends Controller {
     this.element.classList.add("bg-red-500/20")
     console.error(message)
     setTimeout(() => this.element.classList.remove("bg-red-500/20"), 1500)
+    
+    // Dispatch toast notification
+    this.dispatchToast(message || "Failed to update card", "error")
+  }
+
+  dispatchToast(message, type) {
+    const event = new CustomEvent("toast:show", {
+      detail: { message, type, duration: 4000 }
+    })
+    document.dispatchEvent(event)
   }
 }
