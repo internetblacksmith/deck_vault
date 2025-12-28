@@ -1,0 +1,7 @@
+# Development stack with Redis
+# Usage: docker-compose up redis &
+#        bin/dev --redis
+
+web: bin/rails server
+css: bin/rails tailwindcss:watch
+sidekiq: bundle exec sidekiq -c 5 -v

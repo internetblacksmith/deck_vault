@@ -1,2 +1,54 @@
-#!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+#!/usr/bin/env sh
+
+if ! gem list foreman -i --silent; then
+  echo "Installing foreman..."
+  gem install foreman
+fi
+
+# Default to port 3000 if not specified
+export PORT="${PORT:-3000}"
+
+# Let the debug gem allow remote connections,
+# but avoid loading until `debugger` is called
+export RUBY_DEBUG_OPEN="true"
+export RUBY_DEBUG_LAZY="true"
+
+# Determine which Procfile to use
+PROCFILE="Procfile.dev"
+
+# Check for command line arguments
+case "$1" in
+  --full)
+    # Full stack: Redis + Rails + CSS + Sidekiq
+    PROCFILE="Procfile.dev.full"
+    shift
+    ;;
+  --redis)
+    # With Redis in Docker
+    PROCFILE="Procfile.dev.redis"
+    shift
+    ;;
+  --sidekiq)
+    # With Sidekiq worker
+    PROCFILE="Procfile.dev"
+    shift
+    ;;
+  --help)
+    echo "Usage: bin/dev [OPTION]"
+    echo ""
+    echo "Options:"
+    echo "  (default)      Rails + CSS watcher"
+    echo "  --sidekiq      Rails + CSS + Sidekiq"
+    echo "  --redis        Rails + CSS + Sidekiq + Redis (Docker)"
+    echo "  --full         Rails + CSS + Sidekiq + Redis (Docker)"
+    echo "  --help         Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  bin/dev              # Simple setup (Rails + CSS)"
+    echo "  bin/dev --sidekiq    # Full app services (except Redis)"
+    echo "  bin/dev --redis      # Full setup with Docker Redis"
+    exit 0
+    ;;
+esac
+
+exec foreman start -f "$PROCFILE" "$@"

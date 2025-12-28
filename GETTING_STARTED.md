@@ -26,21 +26,33 @@ bin/rails db:create db:migrate
 
 ### 3. Start the Server
 
-#### Option A: Simple (Development)
-```bash
-bin/rails server
-```
-
-#### Option B: With CSS Auto-Rebuild (Recommended)
-To automatically rebuild Tailwind CSS when you make style changes:
-
+#### Option A: Simple (Rails + CSS only)
 ```bash
 bin/dev
 ```
+Runs Rails server with automatic Tailwind CSS rebuilding.
 
-This runs both the Rails server and Tailwind CSS watcher using foreman.
+#### Option B: Full App (Rails + CSS + Sidekiq)
+```bash
+bin/dev --sidekiq
+```
+Includes background job processing. Make sure Redis is running:
+```bash
+docker-compose up -d redis
+```
+
+#### Option C: Complete (Rails + CSS + Sidekiq + Redis)
+```bash
+# Terminal 1: Start Redis
+docker-compose up redis
+
+# Terminal 2: Start all services
+bin/dev --redis
+```
 
 The app will be available at `http://localhost:3000`
+
+**Recommended for development:** Use `bin/dev --sidekiq` with Redis running separately for the full app experience.
 
 ### 4. Create Your Account
 
