@@ -20,7 +20,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-slate-50 text-slate-900 min-h-screen">
+  <body class="bg-slate-50 text-slate-900 min-h-screen" data-auth-page="<%= current_user ? 'false' : 'true' %>">
     <% if current_user %>
       <!-- Dashboard Layout for Authenticated Users -->
       <div class="flex h-screen">
