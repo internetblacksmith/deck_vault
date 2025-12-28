@@ -1,118 +1,127 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <!-- Header with Back Button -->
-  <div class="mb-8">
-    <%= link_to "← Back to Collection", card_sets_path, class: "text-purple-400 hover:text-purple-300 transition flex items-center gap-2 mb-6" %>
-    
-    <div class="flex justify-between items-start gap-8">
-      <div class="flex-1">
-        <h1 class="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-2">
-          <%= @card_set.name %>
-        </h1>
-        <div class="flex items-center gap-6 text-purple-300">
-          <p class="text-lg">
-            <span class="font-semibold text-white"><%= @card_set.code.upcase %></span> 
-          </p>
-          <% if @card_set.released_at %>
-            <p class="text-sm">
-              Released <%= @card_set.released_at.strftime("%b %d, %Y") %>
-            </p>
-          <% end %>
-        </div>
-      </div>
+<% content_for :page_title, @card_set.name %>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-2 gap-4">
-        <div class="glass rounded-lg p-4 border border-purple-500/20">
-          <p class="text-purple-300 text-sm">Total Cards</p>
-          <p class="text-3xl font-bold"><%= @card_set.card_count %></p>
-        </div>
-        <div class="glass rounded-lg p-4 border border-purple-500/20">
-          <p class="text-purple-300 text-sm">Downloaded</p>
-          <p class="text-3xl font-bold"><%= @cards.count %></p>
-        </div>
-        <% owned = @cards.joins(:collection_card).count %>
-        <div class="glass rounded-lg p-4 border border-purple-500/20">
-          <p class="text-purple-300 text-sm">Owned</p>
-          <p class="text-3xl font-bold text-green-400"><%= owned %></p>
-        </div>
-        <div class="glass rounded-lg p-4 border border-purple-500/20">
-          <p class="text-purple-300 text-sm">Completion</p>
-          <p class="text-3xl font-bold text-blue-400"><%= @card_set.download_progress_percentage %>%</p>
-        </div>
+<div class="space-y-6">
+  <!-- Back Button -->
+  <a href="<%= card_sets_path %>" class="inline-flex items-center text-blue-600 hover:text-blue-700 transition">
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+    </svg>
+    Back to Sets
+  </a>
+
+  <!-- Set Header -->
+  <div class="bg-white rounded-lg border border-slate-200 p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900"><%= @card_set.name %></h2>
+        <p class="text-slate-600 mt-1">
+          <span class="font-mono bg-slate-100 px-2 py-1 rounded text-sm"><%= @card_set.code.upcase %></span>
+          <% if @card_set.released_at %>
+            <span class="ml-3 text-sm">Released <%= @card_set.released_at.strftime("%b %d, %Y") %></span>
+          <% end %>
+        </p>
       </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
+      <%= render "card_sets/progress_bar", card_set: @card_set %>
+    <% end %>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+      <p class="text-slate-600 text-sm">Total Cards</p>
+      <p class="text-2xl font-bold text-slate-900 mt-1"><%= @card_set.card_count %></p>
+    </div>
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+      <p class="text-slate-600 text-sm">Downloaded</p>
+      <p class="text-2xl font-bold text-slate-900 mt-1"><%= @cards.count %></p>
+    </div>
+    <% owned = @cards.joins(:collection_card).count %>
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+      <p class="text-slate-600 text-sm">Owned</p>
+      <p class="text-2xl font-bold text-green-600 mt-1"><%= owned %></p>
+    </div>
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+      <p class="text-slate-600 text-sm">Completion</p>
+      <p class="text-2xl font-bold text-blue-600 mt-1"><%= @card_set.download_progress_percentage %>%</p>
     </div>
   </div>
 
-   <!-- Download Progress -->
-   <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
-     <%= render "card_sets/progress_bar", card_set: @card_set %>
-   <% end %>
-
   <!-- View Type Selector -->
-   <div class="flex gap-3 mb-8">
-     <% ["table", "grid", "binder"].each do |view| %>
-       <% button_class = @view_type == view ? 'gradient-primary text-white shadow-lg shadow-purple-500/50' : 'glass border border-purple-500/20 text-purple-300 hover:border-purple-500/40' %>
-       <%= link_to view.capitalize, card_set_path(@card_set, view_type: view), 
-           class: "px-6 py-2 rounded-lg font-semibold transition-all duration-200 #{button_class}" %>
-     <% end %>
-   </div>
+  <div class="flex gap-3">
+    <% ["table", "grid", "binder"].each do |view| %>
+      <% is_active = @view_type == view %>
+      <a href="<%= card_set_path(@card_set, view_type: view) %>" 
+         class="<%= is_active ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' %> px-4 py-2 rounded-lg font-medium transition">
+        <%= case view
+            when 'table' then '📋 Table'
+            when 'grid' then '🔲 Grid'
+            when 'binder' then '📑 Binder'
+            end %>
+      </a>
+    <% end %>
+  </div>
 
-   <!-- Table View -->
-   <% if @view_type == "table" %>
-     <div class="glass rounded-lg border border-purple-500/20 overflow-hidden">
-       <table class="w-full">
-         <thead class="bg-purple-900/50 border-b border-purple-500/20 sticky top-0">
-           <tr>
-             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Card Name</th>
-             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Type</th>
-             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Rarity</th>
-             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Qty</th>
-             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Page</th>
-             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Notes</th>
-           </tr>
-         </thead>
-         <tbody class="divide-y divide-purple-500/20">
-           <% @cards.each do |card| %>
-             <%= turbo_frame_tag "card-row-#{card.id}" do %>
-               <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: @card_set %>
-             <% end %>
-           <% end %>
-         </tbody>
-       </table>
-     </div>
+  <!-- Content Area -->
+  <% if @view_type == "table" %>
+    <!-- Table View -->
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-slate-100 border-b border-slate-200 sticky top-0">
+          <tr>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Card Name</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Type</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Rarity</th>
+            <th class="px-6 py-3 text-center text-sm font-semibold text-slate-900">Qty</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Page</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Notes</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          <% @cards.each do |card| %>
+            <%= turbo_frame_tag "card-row-#{card.id}" do %>
+              <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: @card_set %>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
 
-   <!-- Grid View -->
-   <% elsif @view_type == "grid" %>
-     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-       <% @cards.each do |card| %>
-         <%= render "card_sets/grid_card", card: card %>
-       <% end %>
-     </div>
+  <% elsif @view_type == "grid" %>
+    <!-- Grid View -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <% @cards.each do |card| %>
+        <%= render "card_sets/grid_card", card: card %>
+      <% end %>
+    </div>
 
-   <!-- Binder Pages View -->
-   <% elsif @view_type == "binder" %>
-     <div class="space-y-8">
-       <% grouped_cards = @cards.includes(:collection_card).group_by { |c| c.collection_card&.page_number || 0 }.sort %>
-       <% grouped_cards.each do |page, cards| %>
-         <%= turbo_frame_tag "binder-page-#{page}" do %>
-           <div class="glass rounded-lg border border-purple-500/20 p-6">
-             <h3 class="text-2xl font-bold mb-6">
-               <% if page == 0 %>
-                 <span class="text-yellow-400">⚠️ Not Yet Placed</span>
-               <% else %>
-                 <span class="text-purple-300">Page <%= page %></span>
-               <% end %>
-               <span class="text-sm font-normal text-purple-400 ml-3">(<%= cards.count %> cards)</span>
-             </h3>
-             <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-               <% cards.each do |card| %>
-                 <%= render "card_sets/binder_card", card: card %>
-               <% end %>
-             </div>
-           </div>
-         <% end %>
-       <% end %>
-     </div>
+  <% elsif @view_type == "binder" %>
+    <!-- Binder Pages View -->
+    <div class="space-y-6">
+      <% grouped_cards = @cards.includes(:collection_card).group_by { |c| c.collection_card&.page_number || 0 }.sort %>
+      <% grouped_cards.each do |page, cards| %>
+        <%= turbo_frame_tag "binder-page-#{page}" do %>
+          <div class="bg-white rounded-lg border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-900 mb-4">
+              <% if page == 0 %>
+                <span class="text-yellow-600">⚠️ Not Yet Placed</span>
+              <% else %>
+                <span>Page <%= page %></span>
+              <% end %>
+              <span class="text-sm font-normal text-slate-600 ml-2">(<%= cards.count %> cards)</span>
+            </h3>
+            <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+              <% cards.each do |card| %>
+                <%= render "card_sets/binder_card", card: card %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
   <% end %>
 </div>
 
@@ -121,22 +130,20 @@
      data-set-progress-set-id-value="<%= @card_set.id %>"
      data-set-progress-is-downloading-value="<%= @card_set.downloading? || @card_set.pending? %>"></div>
 
-
-
 <style>
   .rarity-common {
-    @apply bg-gray-500/30 text-gray-300;
+    @apply bg-slate-100 text-slate-700;
   }
 
   .rarity-uncommon {
-    @apply bg-blue-500/30 text-blue-300;
+    @apply bg-blue-100 text-blue-700;
   }
 
   .rarity-rare {
-    @apply bg-yellow-500/30 text-yellow-300;
+    @apply bg-yellow-100 text-yellow-700;
   }
 
   .rarity-mythic {
-    @apply bg-orange-500/30 text-orange-300;
+    @apply bg-orange-100 text-orange-700;
   }
 </style>

@@ -20,44 +20,106 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-white text-gray-900 min-h-screen">
-    <!-- Navigation -->
-    <nav class="border-b border-gray-200 sticky top-0 z-50 glass bg-gray-50/50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 gradient-accent rounded-lg flex items-center justify-center">
-              <span class="text-lg font-bold">⚔️</span>
-            </div>
-            <div>
-              <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                <%= link_to "MTG Collector", card_sets_path, class: "hover:opacity-80 transition" %>
-              </h1>
-              <p class="text-xs text-purple-300">Manage Your Collection</p>
+  <body class="bg-slate-50 text-slate-900 min-h-screen">
+    <% if current_user %>
+      <!-- Dashboard Layout for Authenticated Users -->
+      <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+          <!-- Logo -->
+          <div class="p-6 border-b border-slate-200">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-lg font-bold text-white">⚔️</span>
+              </div>
+              <div>
+                <h1 class="text-lg font-bold text-slate-900">MTG Collector</h1>
+                <p class="text-xs text-slate-500">Collection Manager</p>
+              </div>
             </div>
           </div>
-           <div class="flex items-center space-x-4">
+
+          <!-- Navigation Menu -->
+          <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="<%= card_sets_path %>" 
+               class="flex items-center space-x-3 px-4 py-3 rounded-lg <%= current_page?(card_sets_path) ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-100' %> transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <span>Sets</span>
+            </a>
+          </nav>
+
+          <!-- User Section -->
+          <div class="p-4 border-t border-slate-200 space-y-3">
+            <div class="px-4 py-2 text-sm">
+              <p class="text-slate-600 text-xs uppercase tracking-wide">Logged in as</p>
+              <p class="font-semibold text-slate-900 truncate"><%= current_user.email %></p>
+            </div>
+            
+            <div class="flex items-center space-x-2">
               <button data-controller="dark-mode" data-action="dark-mode#toggle" 
                       data-dark-mode-target="toggle"
-                      class="text-xl hover:scale-110 transition-transform duration-200 p-2 rounded-lg hover:bg-purple-500/20"
+                      class="flex-1 px-4 py-2 text-center rounded-lg text-slate-600 hover:bg-slate-100 transition text-sm font-medium"
                       aria-label="Toggle dark mode">
-                🌙
+                <span class="dark-mode-icon">🌙</span>
               </button>
-              <% if current_user %>
-                <span class="text-sm text-purple-300"><%= current_user.email %></span>
-                <%= button_to "Logout", logout_path, method: :delete, class: "text-sm text-purple-300 hover:text-purple-100 transition" %>
-              <% else %>
-                <%= link_to "Login", login_path, class: "text-sm text-purple-300 hover:text-purple-100 transition" %>
-              <% end %>
+              <%= button_to "Logout", logout_path, method: :delete, 
+                  class: "flex-1 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition text-sm font-medium" %>
             </div>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto flex flex-col">
+          <!-- Top Header -->
+          <header class="bg-white border-b border-slate-200 px-8 py-4 sticky top-0 z-40">
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-bold text-slate-900">
+                <% if content_for?(:page_title) %>
+                  <%= yield :page_title %>
+                <% else %>
+                  Dashboard
+                <% end %>
+              </h2>
+            </div>
+          </header>
+
+          <!-- Content Area -->
+          <div class="flex-1 overflow-auto p-8">
+            <%= render "shared/toast" %>
+            <%= yield %>
+          </div>
+        </main>
+      </div>
+    <% else %>
+      <!-- Login/Signup Layout for Unauthenticated Users -->
+      <div class="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-md">
+          <!-- Logo -->
+          <div class="text-center mb-8">
+            <div class="flex justify-center mb-4">
+              <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center shadow-lg">
+                <span class="text-3xl font-bold">⚔️</span>
+              </div>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2">MTG Collector</h1>
+            <p class="text-blue-100">Manage your Magic: The Gathering collection</p>
+          </div>
+
+          <!-- Content -->
+          <div class="bg-white rounded-lg shadow-xl p-8">
+            <%= render "shared/toast" %>
+            <%= yield %>
+          </div>
+
+          <!-- Footer -->
+          <div class="text-center mt-6 text-blue-100 text-sm">
+            <p>© 2025 MTG Collector. All rights reserved.</p>
+          </div>
         </div>
       </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="min-h-screen">
-      <%= yield %>
-    </main>
+    <% end %>
 
     <!-- Toast Notifications -->
     <%= render "shared/toast" %>

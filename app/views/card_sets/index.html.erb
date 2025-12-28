@@ -1,124 +1,145 @@
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" data-controller="collection-progress">
-  <!-- Header -->
-  <div class="mb-12">
-    <h1 class="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-2">
-      Build Your Collection
-    </h1>
-    <p class="text-purple-300 text-lg">Download Magic sets and track your cards in one place</p>
+<% content_for :page_title, "My Sets" %>
+
+<div class="space-y-8" data-controller="collection-progress">
+  <!-- Stats Overview -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-slate-600 text-sm font-medium">Total Sets</p>
+          <p class="text-3xl font-bold text-slate-900 mt-2"><%= @downloaded_sets.count %></p>
+        </div>
+        <div class="text-4xl">📚</div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-slate-600 text-sm font-medium">Total Cards</p>
+          <p class="text-3xl font-bold text-slate-900 mt-2"><%= @downloaded_sets.sum(&:cards_count) %></p>
+        </div>
+        <div class="text-4xl">🎴</div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-slate-600 text-sm font-medium">Cards Owned</p>
+          <p class="text-3xl font-bold text-slate-900 mt-2"><%= @downloaded_sets.sum(&:owned_cards_count) %></p>
+        </div>
+        <div class="text-4xl">✅</div>
+      </div>
+    </div>
   </div>
 
+  <!-- Main Content Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Available Sets Section -->
     <div class="lg:col-span-2">
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold mb-6 flex items-center">
-          <span class="w-1 h-8 bg-gradient-accent rounded mr-3"></span>
-          Available Sets
-        </h2>
-        
+      <div class="bg-white rounded-lg border border-slate-200">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-slate-900">Available Sets</h3>
+          <span class="text-sm text-slate-500"><%= @available_sets.count %> sets</span>
+        </div>
+
         <% if @available_sets.any? %>
-           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-2">
-             <% @available_sets.each do |set| %>
-               <% downloaded = @downloaded_sets_map[set[:code]] %>
-              <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 p-4 glass hover:shadow-lg hover:shadow-purple-500/20">
-                <div class="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-                
-                <div class="relative z-10">
-                  <div class="flex justify-between items-start mb-3">
-                    <div class="flex-1">
-                      <h3 class="font-bold text-white text-sm group-hover:text-purple-300 transition">
-                        <%= set[:name] %>
-                      </h3>
-                      <p class="text-xs text-purple-300 mt-1">
-                        <%= set[:code].upcase %> • <%= set[:card_count] %> cards
-                      </p>
-                    </div>
-                    <% if downloaded %>
-                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300">
-                        ✓ Downloaded
-                      </span>
-                    <% end %>
+          <div class="divide-y divide-slate-200 max-h-96 overflow-y-auto">
+            <% @available_sets.each do |set| %>
+              <% downloaded = @downloaded_sets_map[set[:code]] %>
+              <div class="p-4 hover:bg-slate-50 transition">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-slate-900"><%= set[:name] %></h4>
+                    <p class="text-sm text-slate-600 mt-1">
+                      <span class="font-mono bg-slate-100 px-2 py-1 rounded text-xs"><%= set[:code].upcase %></span>
+                      <span class="ml-2"><%= set[:card_count] %> cards</span>
+                    </p>
                   </div>
-                  
-                  <% unless downloaded %>
+
+                  <% if downloaded %>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                      ✓ Downloaded
+                    </span>
+                  <% else %>
                     <%= button_to "Download", download_set_card_sets_path(set_code: set[:code]), 
                         method: :post, 
-                        class: "w-full mt-3 px-3 py-2 text-sm font-semibold rounded-lg gradient-accent text-white hover:shadow-lg transition-all duration-200 group-hover:scale-105 transform" %>
+                        class: "px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition" %>
                   <% end %>
                 </div>
               </div>
             <% end %>
           </div>
         <% else %>
-          <div class="text-center py-12">
-            <p class="text-purple-300 text-lg animate-pulse">Loading available sets...</p>
+          <div class="p-12 text-center">
+            <p class="text-slate-500">Loading available sets...</p>
           </div>
         <% end %>
       </div>
     </div>
 
     <!-- My Collection Section -->
-    <div class="lg:col-span-1">
-      <div>
-        <h2 class="text-2xl font-bold mb-6 flex items-center">
-          <span class="w-1 h-8 bg-gradient-primary rounded mr-3"></span>
-          My Collection
-        </h2>
-        
+    <div>
+      <div class="bg-white rounded-lg border border-slate-200">
+        <div class="px-6 py-4 border-b border-slate-200">
+          <h3 class="text-lg font-semibold text-slate-900">My Collection</h3>
+        </div>
+
         <% if @downloaded_sets.any? %>
-          <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+          <div class="divide-y divide-slate-200 max-h-96 overflow-y-auto">
             <% @downloaded_sets.each do |set| %>
-              <div class="group rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 p-4 glass">
-                <div class="flex justify-between items-start mb-2">
+              <div class="p-4 hover:bg-slate-50 transition">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-white group-hover:text-purple-300 transition">
-                      <%= link_to set.name, card_set_path(set), class: "hover:underline" %>
-                    </h3>
-                    <div class="text-xs text-purple-300 mt-1">
-                       <p><%= set.cards_count %> / <%= set.card_count %> cards</p>
-                       <% owned = set.owned_cards_count %>
-                       <% if owned > 0 %>
-                         <p class="text-green-300 font-semibold">Owned: <%= owned %></p>
-                       <% end %>
-                     </div>
+                    <h4 class="font-semibold text-slate-900">
+                      <%= link_to set.name, card_set_path(set), class: "hover:text-blue-600 transition" %>
+                    </h4>
+                    <p class="text-xs text-slate-600 mt-1">
+                      <%= set.cards_count %>/<%= set.card_count %> cards
+                      <% if set.owned_cards_count > 0 %>
+                        <span class="block mt-1 text-green-600 font-semibold">Owned: <%= set.owned_cards_count %></span>
+                      <% end %>
+                    </p>
                   </div>
                 </div>
-                
-                <!-- Progress Bar with Real-time Updates -->
+
+                <!-- Progress Bar -->
                 <% if set.downloading? || set.pending? %>
-                  <div class="mt-3 space-y-1">
-                    <div class="flex justify-between text-xs">
-                      <span class="text-blue-300 font-semibold animate-pulse">
+                  <div class="mt-3 space-y-2">
+                    <div class="flex justify-between text-xs text-slate-600">
+                      <span class="font-semibold">
                         <% if set.downloading? %>
                           ⚙️ Downloading...
                         <% else %>
                           ⏳ Pending
                         <% end %>
                       </span>
-                      <span class="text-purple-300"><%= set.images_downloaded %>/<%= set.card_count %></span>
+                      <span><%= set.images_downloaded %>/<%= set.card_count %></span>
                     </div>
-                    <div class="w-full bg-purple-900/50 rounded-full h-2 overflow-hidden border border-purple-500/20">
-                      <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-500" 
+                    <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div class="bg-blue-600 h-full rounded-full transition-all duration-500" 
                            style="width: <%= set.download_progress_percentage %>%; min-width: 2px;"
                            data-set-id="<%= set.id %>"></div>
                     </div>
                   </div>
                 <% elsif set.completed? %>
-                  <div class="mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300">
-                    ✓ All images ready
+                  <div class="mt-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                      ✓ Ready
+                    </span>
                   </div>
                 <% end %>
               </div>
             <% end %>
           </div>
         <% else %>
-          <div class="text-center py-12 border border-dashed border-purple-500/20 rounded-lg">
-            <p class="text-purple-300 text-sm">👇 Download a set to get started</p>
+          <div class="p-8 text-center">
+            <p class="text-slate-600 text-sm">No sets yet</p>
+            <p class="text-slate-500 text-xs mt-2">Download a set from the left</p>
           </div>
         <% end %>
       </div>
     </div>
   </div>
 </div>
-
-

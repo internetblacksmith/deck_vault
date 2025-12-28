@@ -1,12 +1,12 @@
 <%= turbo_frame_tag "binder-card-#{card.id}" do %>
   <% cache ["binder_card", card, card.collection_card] do %>
-    <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>" data-controller="card-update">
+    <div class="group relative overflow-hidden rounded-lg border border-slate-200 hover:border-slate-300 transition-all hover:shadow-md" data-card-id="<%= card.id %>" data-controller="card-update">
       <% if card.image_path %>
-        <img src="/<%= card.image_path %>" alt="<%= card.name %> card artwork" class="w-full h-auto group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
+        <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-105 transition-transform duration-300" onerror="this.style.display='none'">
       <% elsif card.image_uris %>
         <% image_data = JSON.parse(card.image_uris) %>
         <% if image_data['normal'] %>
-          <img src="<%= image_data['normal'] %>" alt="<%= card.name %> card artwork" class="w-full h-auto group-hover:scale-110 transition-transform duration-300">
+          <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-105 transition-transform duration-300">
         <% end %>
       <% end %>
       
