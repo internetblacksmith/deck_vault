@@ -43,37 +43,10 @@
     </div>
   </div>
 
-  <!-- Download Progress -->
-  <% if @card_set.download_status != "completed" && @card_set.download_status != "failed" %>
-    <div class="glass rounded-lg border border-purple-500/20 p-6 mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <p class="text-lg font-semibold">
-          <% if @card_set.downloading? %>
-            <span class="text-blue-400 flex items-center gap-2">
-              <span class="animate-spin">⚙️</span> Downloading Images...
-            </span>
-          <% else %>
-            <span class="text-yellow-400 flex items-center gap-2">
-              <span>⏳</span> Pending Download
-            </span>
-          <% end %>
-        </p>
-        <p class="text-purple-300"><%= @card_set.images_downloaded %> / <%= @card_set.card_count %> images</p>
-      </div>
-      <div class="w-full bg-purple-900/50 rounded-full h-3 overflow-hidden border border-purple-500/20">
-        <div class="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500" 
-             style="width: <%= @card_set.download_progress_percentage %>%; min-width: 2px;"
-             id="progress-bar"></div>
-      </div>
-      <p class="text-sm text-purple-300 mt-3"><%= @card_set.download_progress_percentage %>% complete</p>
-    </div>
-  <% elsif @card_set.completed? %>
-    <div class="glass rounded-lg border border-green-500/20 bg-green-500/10 p-6 mb-8">
-      <p class="text-green-400 font-semibold flex items-center gap-2">
-        <span>✓</span> All images downloaded and ready to view
-      </p>
-    </div>
-  <% end %>
+   <!-- Download Progress -->
+   <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
+     <%= render "card_sets/progress_bar", card_set: @card_set %>
+   <% end %>
 
   <!-- View Type Selector -->
    <div class="flex gap-3 mb-8">
@@ -84,57 +57,29 @@
      <% end %>
    </div>
 
-  <!-- Table View -->
-  <% if @view_type == "table" %>
-    <div class="glass rounded-lg border border-purple-500/20 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-purple-900/50 border-b border-purple-500/20 sticky top-0">
-          <tr>
-            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Card Name</th>
-            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Type</th>
-            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Rarity</th>
-            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Qty</th>
-            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Page</th>
-            <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Notes</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-purple-500/20">
-          <% @cards.each do |card| %>
-            <tr class="hover:bg-purple-500/10 transition" data-card-id="<%= card.id %>">
-              <td class="px-6 py-4">
-                <div>
-                  <p class="font-semibold text-white"><%= card.name %></p>
-                  <p class="text-xs text-purple-400"><%= card.collector_number %></p>
-                </div>
-              </td>
-              <td class="px-6 py-4 text-sm text-purple-300"><%= card.type_line %></td>
-              <td class="px-6 py-4">
-                <span class="px-3 py-1 rounded-full text-xs font-semibold <%= rarity_class(card.rarity) %>">
-                  <%= card.rarity&.upcase || "N/A" %>
-                </span>
-              </td>
-              <td class="px-6 py-4">
-                <input type="number" min="0" class="quantity-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center" 
-                       value="<%= card.collection_card&.quantity || 0 %>" 
-                       data-card-id="<%= card.id %>">
-              </td>
-              <td class="px-6 py-4">
-                <input type="number" min="1" max="200" class="page-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center" 
-                       value="<%= card.collection_card&.page_number || '' %>" 
-                       placeholder="—"
-                       data-card-id="<%= card.id %>">
-              </td>
-              <td class="px-6 py-4">
-                <input type="text" class="notes-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-full text-sm" 
-                       value="<%= card.collection_card&.notes || '' %>" 
-                       placeholder="Add notes..."
-                       data-card-id="<%= card.id %>">
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+   <!-- Table View -->
+   <% if @view_type == "table" %>
+     <div class="glass rounded-lg border border-purple-500/20 overflow-hidden">
+       <table class="w-full">
+         <thead class="bg-purple-900/50 border-b border-purple-500/20 sticky top-0">
+           <tr>
+             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Card Name</th>
+             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Type</th>
+             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Rarity</th>
+             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Qty</th>
+             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Page</th>
+             <th class="px-6 py-4 text-left font-semibold text-purple-300 text-sm">Notes</th>
+           </tr>
+         </thead>
+         <tbody class="divide-y divide-purple-500/20">
+           <% @cards.each do |card| %>
+             <%= turbo_frame_tag "card-row-#{card.id}" do %>
+               <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: @card_set %>
+             <% end %>
+           <% end %>
+         </tbody>
+       </table>
+     </div>
 
   <!-- Grid View -->
   <% elsif @view_type == "grid" %>
@@ -220,7 +165,9 @@
      data-set-progress-is-downloading-value="<%= @card_set.downloading? || @card_set.pending? %>"></div>
 
 <script>
-  // Save card updates
+  import * as Turbo from "@rails/turbo"
+
+  // Save card updates using Turbo
   document.addEventListener('DOMContentLoaded', function() {
     const saveCard = async (cardId, field, value) => {
       const row = document.querySelector(`[data-card-id="${cardId}"]`)
@@ -243,12 +190,16 @@
           })
         })
 
-        if (response.ok) {
-          row.classList.add('bg-green-500/20')
-          setTimeout(() => row.classList.remove('bg-green-500/20'), 1500)
+        // Turbo will automatically handle the turbo_stream response
+        // No need for manual DOM manipulation
+        if (!response.ok) {
+          row.classList.add('bg-red-500/20')
+          setTimeout(() => row.classList.remove('bg-red-500/20'), 1500)
         }
       } catch (error) {
         console.error('Error saving card:', error)
+        row.classList.add('bg-red-500/20')
+        setTimeout(() => row.classList.remove('bg-red-500/20'), 1500)
       }
     }
 

@@ -3,6 +3,9 @@ class CardSet < ApplicationRecord
   validates :code, :name, presence: true
   validates :code, uniqueness: true
 
+  # Enable Turbo Streams broadcasting for this model
+  broadcasts_to ->(card_set) { "card_set_#{card_set.id}_progress" }
+
   enum :download_status, { pending: "pending", downloading: "downloading", completed: "completed", failed: "failed" }
 
   def download_progress_percentage

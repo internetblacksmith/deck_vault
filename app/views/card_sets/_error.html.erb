@@ -1,0 +1,12 @@
+<div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg text-sm">
+  <p class="font-semibold">Error saving card</p>
+  <% if errors.is_a?(String) %>
+    <p><%= errors %></p>
+  <% elsif errors.respond_to?(:full_messages) %>
+    <ul class="list-disc list-inside mt-1">
+      <% errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>
