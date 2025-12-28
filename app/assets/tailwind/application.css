@@ -35,104 +35,132 @@
   animation: fadeOut 0.3s ease-out;
 }
 
-/* Custom utilities */
-.glass {
-  backdrop-filter: blur(24px);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.gradient-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.gradient-accent {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-/* Dark mode - Pure CSS implementation (no Tailwind @apply) */
+/* Dark mode - Pure CSS implementation */
 html.dark {
   color-scheme: dark;
 }
 
 html.dark body {
-  background: linear-gradient(to bottom right, rgb(5, 5, 15), rgb(15, 23, 42), rgb(5, 5, 15));
-  color: rgb(255, 255, 255);
+  background-color: rgb(15, 23, 42);
+  color: rgb(226, 232, 240);
 }
 
-html.dark nav {
-  background: rgba(3, 7, 18, 0.5);
+html.dark .bg-white {
+  background-color: rgb(30, 41, 59);
 }
 
-html.dark footer {
-  background: rgb(3, 7, 18);
+html.dark .bg-slate-50 {
+  background-color: rgb(15, 23, 42);
 }
 
-html.dark .glass {
-  background: rgba(0, 0, 0, 0.3);
+html.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.1);
 }
 
-html.dark .border-gray-200 {
-  border-color: rgba(172, 75, 255, 0.2);
+html.dark .text-slate-900 {
+  color: rgb(226, 232, 240);
 }
 
-html.dark .text-gray-600,
-html.dark .text-gray-900 {
-  color: rgb(255, 255, 255);
+html.dark .text-slate-600 {
+  color: rgb(148, 163, 184);
 }
 
-html.dark .text-gray-700 {
-  color: rgb(196, 181, 253);
+html.dark .text-slate-500 {
+  color: rgb(100, 116, 139);
 }
 
-html.dark .bg-gray-50 {
-  background-color: rgb(3, 7, 18);
+html.dark .border-slate-200 {
+  border-color: rgb(30, 41, 59);
 }
 
-html.dark .bg-gray-50\/50 {
-  background-color: rgba(3, 7, 18, 0.5);
-}
-
-html.dark main {
-  background: inherit;
-}
-
-html.dark a {
-  color: rgb(196, 181, 253);
-}
-
-html.dark a:hover {
-  color: rgb(217, 70, 239);
+html.dark .border-slate-300 {
+  border-color: rgb(51, 65, 85);
 }
 
 html.dark input,
 html.dark textarea,
 html.dark select {
-  background-color: rgb(20, 30, 50);
-  color: rgb(255, 255, 255);
-  border-color: rgba(172, 75, 255, 0.3);
+  background-color: rgb(30, 41, 59);
+  color: rgb(226, 232, 240);
+  border-color: rgb(51, 65, 85);
 }
 
-html.dark button,
-html.dark [role="button"] {
-  color: rgb(255, 255, 255);
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
+  border-color: rgb(59, 130, 246);
 }
 
-html.dark .bg-white {
-  background-color: rgb(15, 23, 42);
+html.dark .bg-slate-100 {
+  background-color: rgb(30, 41, 59);
 }
 
-html.dark .text-white {
-  color: rgb(255, 255, 255);
+html.dark .hover\:bg-slate-100:hover {
+  background-color: rgb(51, 65, 85);
+}
+
+html.dark .hover\:bg-slate-200:hover {
+  background-color: rgb(51, 65, 85);
 }
 
 html.dark .bg-red-50 {
-  background-color: rgba(139, 0, 0, 0.2);
+  background-color: rgba(220, 38, 38, 0.1);
 }
 
-html.dark .bg-green-500\/20 {
-  background-color: rgba(0, 199, 88, 0.2);
+html.dark .border-red-200 {
+  border-color: rgba(220, 38, 38, 0.3);
 }
 
-html.dark .bg-blue-500\/20 {
-  background-color: rgba(48, 128, 255, 0.2);
+html.dark .text-red-800 {
+  color: rgb(254, 202, 202);
+}
+
+html.dark .text-red-700 {
+  color: rgb(254, 202, 202);
+}
+
+html.dark .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+html.dark .bg-blue-600 {
+  background-color: rgb(37, 99, 235);
+}
+
+html.dark .hover\:bg-blue-700:hover {
+  background-color: rgb(29, 78, 216);
+}
+
+html.dark button {
+  color: inherit;
+}
+
+html.dark a {
+  color: rgb(59, 130, 246);
+}
+
+html.dark a:hover {
+  color: rgb(96, 165, 250);
+}
+
+html.dark .text-blue-600 {
+  color: rgb(96, 165, 250);
+}
+
+html.dark .hover\:text-blue-700:hover {
+  color: rgb(147, 197, 253);
+}
+
+/* Dashboard Layout Adjustments */
+html.dark aside {
+  background-color: rgb(30, 41, 59);
+}
+
+html.dark header {
+  background-color: rgb(30, 41, 59);
+}
+
+html.dark .bg-blue-50.text-blue-600 {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: rgb(59, 130, 246);
 }

@@ -1,32 +1,35 @@
 <% cache ["card_row", card, card.collection_card] do %>
-  <tr class="hover:bg-purple-500/10 transition" data-card-id="<%= card.id %>" data-controller="card-update">
+  <tr class="hover:bg-slate-50 transition" data-card-id="<%= card.id %>" data-controller="card-update">
     <td class="px-6 py-4">
       <div>
-        <p class="font-semibold text-white"><%= card.name %></p>
-        <p class="text-xs text-purple-400"><%= card.collector_number %></p>
+        <p class="font-semibold text-slate-900"><%= card.name %></p>
+        <p class="text-xs text-slate-500"><%= card.collector_number %></p>
       </div>
     </td>
-    <td class="px-6 py-4 text-sm text-purple-300"><%= card.type_line %></td>
+    <td class="px-6 py-4 text-sm text-slate-600"><%= card.type_line %></td>
     <td class="px-6 py-4">
-      <span class="px-3 py-1 rounded-full text-xs font-semibold <%= rarity_class(card.rarity) %>">
+      <span class="px-3 py-1 rounded text-xs font-semibold <%= rarity_class(card.rarity) %>">
         <%= card.rarity&.upcase || "N/A" %>
       </span>
     </td>
-    <td class="px-6 py-4">
-      <input type="number" min="0" data-card-update-target="quantity" class="quantity-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center transition-all" 
+    <td class="px-6 py-4 text-center">
+      <input type="number" min="0" data-card-update-target="quantity" 
+             class="quantity-input bg-slate-100 border border-slate-300 text-slate-900 px-3 py-1 rounded w-16 text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
              value="<%= card.collection_card&.quantity || 0 %>" 
              data-card-id="<%= card.id %>"
              aria-label="Quantity for <%= card.name %>">
     </td>
     <td class="px-6 py-4">
-      <input type="number" min="1" max="200" data-card-update-target="pageNumber" class="page-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-16 text-center transition-all" 
+      <input type="number" min="1" max="200" data-card-update-target="pageNumber" 
+             class="page-input bg-slate-100 border border-slate-300 text-slate-900 px-3 py-1 rounded w-20 text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
              value="<%= card.collection_card&.page_number || '' %>" 
              placeholder="—"
              data-card-id="<%= card.id %>"
              aria-label="Binder page number for <%= card.name %>">
     </td>
     <td class="px-6 py-4">
-      <input type="text" data-card-update-target="notes" class="notes-input bg-purple-900/50 border border-purple-500/20 text-white px-3 py-1 rounded w-full text-sm transition-all" 
+      <input type="text" data-card-update-target="notes" 
+             class="notes-input bg-slate-100 border border-slate-300 text-slate-900 px-3 py-1 rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
              value="<%= card.collection_card&.notes || '' %>" 
              placeholder="Add notes..."
              data-card-id="<%= card.id %>"

@@ -1,29 +1,31 @@
 <%= turbo_frame_tag "grid-card-#{card.id}" do %>
   <% cache ["grid_card", card, card.collection_card] do %>
-    <div class="group relative overflow-hidden rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 glass p-2 hover:shadow-lg hover:shadow-purple-500/20" data-card-id="<%= card.id %>" data-controller="card-update">
+    <div class="group relative rounded-lg bg-white border border-slate-200 overflow-hidden hover:shadow-lg transition-all" data-card-id="<%= card.id %>" data-controller="card-update">
       <!-- Card Image -->
-      <div class="relative overflow-hidden rounded mb-2">
+      <div class="relative overflow-hidden bg-slate-100">
         <% if card.image_path %>
-          <img src="/<%= card.image_path %>" alt="<%= card.name %> card artwork" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300" onerror="this.style.display='none'">
+          <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.style.display='none'">
         <% elsif card.image_uris %>
           <% image_data = JSON.parse(card.image_uris) %>
           <% if image_data['normal'] %>
-            <img src="<%= image_data['normal'] %>" alt="<%= card.name %> card artwork" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+            <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
           <% end %>
         <% end %>
       </div>
 
       <!-- Card Info -->
-      <div class="space-y-2">
-        <p class="font-bold text-sm text-white truncate group-hover:text-purple-300 transition"><%= card.name %></p>
-        <p class="text-xs text-purple-400"><%= card.collector_number %></p>
+      <div class="p-3 space-y-2">
+        <p class="font-bold text-sm text-slate-900 truncate group-hover:text-blue-600 transition"><%= card.name %></p>
+        <p class="text-xs text-slate-500"><%= card.collector_number %></p>
         
         <div class="space-y-1">
-          <input type="number" min="0" data-card-update-target="quantity" class="quantity-input w-full bg-purple-900/50 border border-purple-500/20 text-white px-2 py-1 text-xs rounded text-center transition-all" 
+          <input type="number" min="0" data-card-update-target="quantity" 
+                 class="quantity-input w-full bg-slate-100 border border-slate-300 text-slate-900 px-2 py-1 text-xs rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
                  value="<%= card.collection_card&.quantity || 0 %>" 
                  placeholder="Qty"
                  data-card-id="<%= card.id %>">
-          <input type="number" min="1" max="200" data-card-update-target="pageNumber" class="page-input w-full bg-purple-900/50 border border-purple-500/20 text-white px-2 py-1 text-xs rounded text-center transition-all" 
+          <input type="number" min="1" max="200" data-card-update-target="pageNumber" 
+                 class="page-input w-full bg-slate-100 border border-slate-300 text-slate-900 px-2 py-1 text-xs rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
                  value="<%= card.collection_card&.page_number || '' %>" 
                  placeholder="Page #"
                  data-card-id="<%= card.id %>">
