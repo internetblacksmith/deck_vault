@@ -1,5 +1,11 @@
 class ScryfallService
   BASE_URL = "https://api.scryfall.com".freeze
+  IMAGES_DIR = Rails.root.join("storage/card_images").freeze
+
+  # Ensure images directory exists
+  def self.ensure_images_dir
+    FileUtils.mkdir_p(IMAGES_DIR) unless File.exist?(IMAGES_DIR)
+  end
 
   # Fetch all Magic: The Gathering sets
   def self.fetch_sets
@@ -46,6 +52,8 @@ class ScryfallService
 
   # Format card data for database
   def self.format_card(card_data)
+    image_path = download_card_image(card_data)
+
     {
       name: card_data["name"],
       mana_cost: card_data["mana_cost"],
@@ -54,8 +62,44 @@ class ScryfallService
       rarity: card_data["rarity"],
       scryfall_id: card_data["id"],
       image_uris: card_data["image_uris"].to_json,
-      collector_number: card_data["collector_number"]
+      collector_number: card_data["collector_number"],
+      image_path: image_path
     }
+  end
+
+  # Download card image and return local path
+  def self.download_card_image(card_data)
+    ensure_images_dir
+
+    image_uris = card_data["image_uris"]
+    return nil unless image_uris && image_uris["normal"]
+
+    image_url = image_uris["normal"]
+    scryfall_id = card_data["id"]
+
+    # Create filename from scryfall ID and card name
+    filename = "#{scryfall_id}.jpg"
+    filepath = IMAGES_DIR.join(filename)
+
+    # Skip if already downloaded
+    return "card_images/#{filename}" if File.exist?(filepath)
+
+    begin
+      # Download image
+      response = HTTParty.get(image_url, timeout: 30)
+
+      if response.success?
+        File.open(filepath, "wb") { |f| f.write(response.body) }
+        Rails.logger.info("Downloaded card image: #{filename}")
+        "card_images/#{filename}"
+      else
+        Rails.logger.warn("Failed to download image from #{image_url}")
+        nil
+      end
+    rescue StandardError => e
+      Rails.logger.error("Error downloading card image #{filename}: #{e.message}")
+      nil
+    end
   end
 
   # Download and save a set to the database
