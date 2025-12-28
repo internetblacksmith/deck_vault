@@ -164,53 +164,7 @@
      data-set-progress-set-id-value="<%= @card_set.id %>"
      data-set-progress-is-downloading-value="<%= @card_set.downloading? || @card_set.pending? %>"></div>
 
-<script>
-  import * as Turbo from "@rails/turbo"
 
-  // Save card updates using Turbo
-  document.addEventListener('DOMContentLoaded', function() {
-    const saveCard = async (cardId, field, value) => {
-      const row = document.querySelector(`[data-card-id="${cardId}"]`)
-      const quantity = row.querySelector('.quantity-input')?.value || 0
-      const page_number = row.querySelector('.page-input')?.value || null
-      const notes = row.querySelector('.notes-input')?.value || ''
-
-      try {
-        const response = await fetch(`<%= card_set_path(@card_set) %>/update_card`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-          },
-          body: JSON.stringify({
-            card_id: cardId,
-            quantity: quantity,
-            page_number: page_number,
-            notes: notes
-          })
-        })
-
-        // Turbo will automatically handle the turbo_stream response
-        // No need for manual DOM manipulation
-        if (!response.ok) {
-          row.classList.add('bg-red-500/20')
-          setTimeout(() => row.classList.remove('bg-red-500/20'), 1500)
-        }
-      } catch (error) {
-        console.error('Error saving card:', error)
-        row.classList.add('bg-red-500/20')
-        setTimeout(() => row.classList.remove('bg-red-500/20'), 1500)
-      }
-    }
-
-    document.querySelectorAll('.quantity-input, .page-input, .notes-input').forEach(input => {
-      input.addEventListener('change', (e) => {
-        const cardId = e.target.dataset.cardId
-        saveCard(cardId, e.target.classList[0], e.target.value)
-      })
-    })
-  })
-</script>
 
 <style>
   .rarity-common {
