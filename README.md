@@ -5,7 +5,8 @@ A Rails web application for managing your Magic: The Gathering card collection. 
 ## Features
 
 - **Download Sets**: Fetch complete card lists from Scryfall API for any Magic set
-- **Local Image Downloads**: Automatically download and cache all card images locally for offline access
+- **Background Image Downloads**: Uses Sidekiq to download images asynchronously without blocking requests
+- **Local Image Caching**: Automatically download and cache all card images locally for offline access
 - **Collection Tracking**: Mark cards as owned and track quantity of copies
 - **Binder Management**: Organize cards by binder page number for easy physical organization
 - **Multiple Views**:
@@ -20,6 +21,8 @@ A Rails web application for managing your Magic: The Gathering card collection. 
 - Ruby 3.4+
 - Rails 8.1+
 - SQLite3
+- Redis (for background image downloads)
+- Sidekiq (included in Gemfile)
 
 ## Setup
 
@@ -39,12 +42,45 @@ bundle install
 bin/rails db:create db:migrate
 ```
 
-4. Start the development server:
+4. Start Redis (required for background jobs):
+```bash
+redis-server
+# Or in another terminal for development:
+redis-cli
+```
+
+5. Start the development server:
 ```bash
 bin/rails server
 ```
 
-5. Open your browser and navigate to `http://localhost:3000`
+6. In another terminal, start Sidekiq worker:
+```bash
+bundle exec sidekiq -c 5 -v
+```
+
+7. Open your browser and navigate to `http://localhost:3000`
+
+## Development Setup
+
+For development, you need three terminals running:
+
+**Terminal 1: Rails Server**
+```bash
+bin/rails server
+```
+
+**Terminal 2: Sidekiq Worker**
+```bash
+bundle exec sidekiq -c 5 -v
+```
+
+**Terminal 3: Redis** (if not running as service)
+```bash
+redis-server
+```
+
+See [SIDEKIQ_SETUP.md](SIDEKIQ_SETUP.md) for detailed Sidekiq configuration and troubleshooting.
 
 ## Usage
 
