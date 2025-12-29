@@ -19,67 +19,67 @@ RSpec.describe 'Authentication', type: :request do
   end
 
   describe 'POST /login' do
-    let(:user) { create(:user, email: 'test@example.com', password: 'password123', password_confirmation: 'password123') }
+    let(:user) { create(:user, username: 'testuser', password: 'password123', password_confirmation: 'password123') }
 
     context 'with valid credentials' do
       it 'creates a session' do
-        post login_path, params: { email: user.email, password: 'password123' }
+        post login_path, params: { username: user.username, password: 'password123' }
         expect(session[:user_id]).to eq(user.id)
       end
 
       it 'redirects to home' do
-        post login_path, params: { email: user.email, password: 'password123' }
+        post login_path, params: { username: user.username, password: 'password123' }
         expect(response).to redirect_to(root_path)
       end
 
       it 'shows success message' do
-        post login_path, params: { email: user.email, password: 'password123' }
+        post login_path, params: { username: user.username, password: 'password123' }
         follow_redirect!
         expect(flash[:notice]).to include('Logged in successfully')
       end
     end
 
-    context 'with invalid email' do
+    context 'with invalid username' do
       it 'does not create a session' do
-        post login_path, params: { email: 'wrong@example.com', password: 'password123' }
+        post login_path, params: { username: 'wronguser', password: 'password123' }
         expect(session[:user_id]).to be_nil
       end
 
       it 'redirects to login' do
-        post login_path, params: { email: 'wrong@example.com', password: 'password123' }
+        post login_path, params: { username: 'wronguser', password: 'password123' }
         expect(response).to redirect_to(login_path)
       end
 
       it 'shows error message' do
-        post login_path, params: { email: 'wrong@example.com', password: 'password123' }
+        post login_path, params: { username: 'wronguser', password: 'password123' }
         follow_redirect!
-        expect(flash[:alert]).to include('Invalid email or password')
+        expect(flash[:alert]).to include('Invalid username or password')
       end
     end
 
     context 'with invalid password' do
       it 'does not create a session' do
-        post login_path, params: { email: user.email, password: 'wrongpassword' }
+        post login_path, params: { username: user.username, password: 'wrongpassword' }
         expect(session[:user_id]).to be_nil
       end
 
       it 'shows error message' do
-        post login_path, params: { email: user.email, password: 'wrongpassword' }
+        post login_path, params: { username: user.username, password: 'wrongpassword' }
         follow_redirect!
-        expect(flash[:alert]).to include('Invalid email or password')
+        expect(flash[:alert]).to include('Invalid username or password')
       end
     end
 
-    context 'with missing email' do
+    context 'with missing username' do
       it 'does not create a session' do
-        post login_path, params: { email: '', password: 'password123' }
+        post login_path, params: { username: '', password: 'password123' }
         expect(session[:user_id]).to be_nil
       end
     end
 
     context 'with missing password' do
       it 'does not create a session' do
-        post login_path, params: { email: user.email, password: '' }
+        post login_path, params: { username: user.username, password: '' }
         expect(session[:user_id]).to be_nil
       end
     end
@@ -107,7 +107,7 @@ RSpec.describe 'Authentication', type: :request do
       let(:valid_params) do
         {
           user: {
-            email: 'newuser@example.com',
+            username: 'newuser',
             password: 'SecurePassword123!',
             password_confirmation: 'SecurePassword123!'
           }
@@ -136,19 +136,19 @@ RSpec.describe 'Authentication', type: :request do
         expect(flash[:notice]).to include('Account created successfully')
       end
 
-      it 'stores email correctly' do
+      it 'stores username correctly' do
         post sign_up_path, params: valid_params
-        user = User.find_by(email: 'newuser@example.com')
+        user = User.find_by(username: 'newuser')
         expect(user).to be_present
         expect(user.authenticate('SecurePassword123!')).to be_truthy
       end
     end
 
-    context 'with invalid email' do
+    context 'with invalid username' do
       let(:invalid_params) do
         {
           user: {
-            email: 'not-an-email',
+            username: 'a@b',
             password: 'SecurePassword123!',
             password_confirmation: 'SecurePassword123!'
           }
@@ -172,15 +172,15 @@ RSpec.describe 'Authentication', type: :request do
       end
     end
 
-    context 'with duplicate email' do
+    context 'with duplicate username' do
       before do
-        create(:user, email: 'existing@example.com')
+        create(:user, username: 'existinguser')
       end
 
       let(:duplicate_params) do
         {
           user: {
-            email: 'existing@example.com',
+            username: 'existinguser',
             password: 'SecurePassword123!',
             password_confirmation: 'SecurePassword123!'
           }
@@ -203,7 +203,7 @@ RSpec.describe 'Authentication', type: :request do
       let(:mismatch_params) do
         {
           user: {
-            email: 'newuser@example.com',
+            username: 'newuser',
             password: 'SecurePassword123!',
             password_confirmation: 'DifferentPassword123!'
           }
@@ -226,7 +226,7 @@ RSpec.describe 'Authentication', type: :request do
       let(:no_password_params) do
         {
           user: {
-            email: 'newuser@example.com',
+            username: 'newuser',
             password: '',
             password_confirmation: ''
           }
@@ -246,7 +246,7 @@ RSpec.describe 'Authentication', type: :request do
 
     context 'when user is logged in' do
       before do
-        post login_path, params: { email: user.email, password: 'SecurePassword123!' }
+        post login_path, params: { username: user.username, password: 'SecurePassword123!' }
       end
 
       it 'clears the session' do
@@ -285,7 +285,7 @@ RSpec.describe 'Authentication', type: :request do
 
     context 'when logged in' do
       before do
-        post login_path, params: { email: user.email, password: 'SecurePassword123!' }
+        post login_path, params: { username: user.username, password: 'SecurePassword123!' }
       end
 
       it 'allows access to root' do
@@ -304,7 +304,7 @@ RSpec.describe 'Authentication', type: :request do
     let(:user) { create(:user) }
 
     it 'maintains session across requests' do
-      post login_path, params: { email: user.email, password: 'SecurePassword123!' }
+      post login_path, params: { username: user.username, password: 'SecurePassword123!' }
       session_id = session[:user_id]
 
       get root_path
@@ -312,7 +312,7 @@ RSpec.describe 'Authentication', type: :request do
     end
 
     it 'uses same session after logout' do
-      post login_path, params: { email: user.email, password: 'SecurePassword123!' }
+      post login_path, params: { username: user.username, password: 'SecurePassword123!' }
       original_session = session[:user_id]
 
       delete logout_path
@@ -334,14 +334,14 @@ RSpec.describe 'Authentication', type: :request do
 
     it 'allows POST to login without authentication' do
       user = create(:user)
-      post login_path, params: { email: user.email, password: 'SecurePassword123!' }
+      post login_path, params: { username: user.username, password: 'SecurePassword123!' }
       expect(response).to redirect_to(root_path)
     end
 
     it 'allows POST to signup without authentication' do
       post sign_up_path, params: {
         user: {
-          email: 'new@example.com',
+          username: 'newuser',
           password: 'SecurePassword123!',
           password_confirmation: 'SecurePassword123!'
         }

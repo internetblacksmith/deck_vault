@@ -1,53 +1,26 @@
-<% content_for :page_title, "Sign In" %>
+<div style="max-width:360px;margin:80px auto;">
+  <h1 style="font-size:24px;font-weight:600;margin-bottom:8px;color:#fff;">Sign in</h1>
+  <p style="color:#888;margin-bottom:24px;">Welcome back to MTG Collector</p>
 
-<div class="space-y-6">
-  <div>
-    <h3 class="text-lg font-semibold text-slate-900">Welcome back</h3>
-    <p class="mt-1 text-sm text-slate-600">Sign in to your account to manage your collection</p>
-  </div>
-
-  <form class="space-y-4" action="<%= login_path %>" method="post">
+  <form action="<%= login_path %>" method="post">
     <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
 
-    <!-- Email Field -->
-    <div>
-      <label for="email" class="block text-sm font-medium text-slate-700 mb-2">Email address</label>
-      <input 
-        id="email" 
-        name="email" 
-        type="email" 
-        autocomplete="email" 
-        required 
-        placeholder="you@example.com"
-        class="w-full px-4 py-2 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+    <div style="margin-bottom:16px;">
+      <label style="display:block;color:#aaa;font-size:14px;margin-bottom:6px;">Username</label>
+      <input type="text" name="username" required autofocus style="width:100%;background:#222;color:#eee;border:1px solid #444;padding:10px 12px;border-radius:4px;">
     </div>
 
-    <!-- Password Field -->
-    <div>
-      <label for="password" class="block text-sm font-medium text-slate-700 mb-2">Password</label>
-      <input 
-        id="password" 
-        name="password" 
-        type="password" 
-        autocomplete="current-password" 
-        required 
-        placeholder="••••••••"
-        class="w-full px-4 py-2 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+    <div style="margin-bottom:24px;">
+      <label style="display:block;color:#aaa;font-size:14px;margin-bottom:6px;">Password</label>
+      <input type="password" name="password" required style="width:100%;background:#222;color:#eee;border:1px solid #444;padding:10px 12px;border-radius:4px;">
     </div>
 
-    <!-- Submit Button -->
-    <button 
-      type="submit" 
-      class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
+    <button type="submit" style="width:100%;background:#29f;color:#fff;border:none;padding:12px;border-radius:4px;font-weight:500;cursor:pointer;">
       Sign in
     </button>
   </form>
 
-  <!-- Sign Up Link -->
-  <div class="text-center">
-    <p class="text-sm text-slate-600">
-      Don't have an account?
-      <%= link_to "Create one", sign_up_path, class: "font-semibold text-blue-600 hover:text-blue-700" %>
-    </p>
-  </div>
+  <p style="text-align:center;margin-top:24px;color:#888;">
+    No account? <a href="<%= sign_up_path %>" style="color:#6cf;">Sign up</a>
+  </p>
 </div>
