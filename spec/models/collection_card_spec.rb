@@ -116,6 +116,7 @@ RSpec.describe CollectionCard, type: :model do
 
     it { is_expected.to respond_to(:card_id) }
     it { is_expected.to respond_to(:quantity) }
+    it { is_expected.to respond_to(:foil_quantity) }
     it { is_expected.to respond_to(:page_number) }
     it { is_expected.to respond_to(:notes) }
   end
@@ -204,6 +205,23 @@ RSpec.describe CollectionCard, type: :model do
 
       it 'has page_number of 200' do
         expect(subject.page_number).to eq(200)
+      end
+    end
+
+    context 'with :with_foils trait' do
+      subject { build(:collection_card, :with_foils) }
+
+      it 'has foil_quantity of 2' do
+        expect(subject.foil_quantity).to eq(2)
+      end
+    end
+
+    context 'with :foil_only trait' do
+      subject { build(:collection_card, :foil_only) }
+
+      it 'has quantity of 0 and foil_quantity of 1' do
+        expect(subject.quantity).to eq(0)
+        expect(subject.foil_quantity).to eq(1)
       end
     end
   end

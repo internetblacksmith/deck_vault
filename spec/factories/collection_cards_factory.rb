@@ -2,11 +2,21 @@ FactoryBot.define do
   factory :collection_card do
     association :card, factory: :card
     quantity { 1 }
+    foil_quantity { 0 }
     page_number { 1 }
     notes { nil }
 
     trait :multiple_copies do
       quantity { 4 }
+    end
+
+    trait :with_foils do
+      foil_quantity { 2 }
+    end
+
+    trait :foil_only do
+      quantity { 0 }
+      foil_quantity { 1 }
     end
 
     trait :without_quantity do
