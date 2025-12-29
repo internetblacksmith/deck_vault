@@ -15,6 +15,24 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
+    <% if current_user %>
+      <%# For authenticated users, apply dark mode preference before CSS loads %>
+      <script>
+        (function() {
+          var darkMode = localStorage.getItem('darkMode');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (darkMode === 'true' || (darkMode === null && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        })();
+      </script>
+    <% else %>
+      <%# For auth pages, ensure dark mode is never applied %>
+      <script>
+        document.documentElement.classList.remove('dark');
+      </script>
+    <% end %>
+
     <link rel="stylesheet" href="/assets/tailwind.css" data-turbo-track="reload">
     <%= javascript_importmap_tags %>
   </head>
