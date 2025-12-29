@@ -1,28 +1,42 @@
+<%
+  quantity = card.collection_card&.quantity.to_i
+  foil_quantity = card.collection_card&.foil_quantity.to_i
+  is_owned = quantity > 0 || foil_quantity > 0
+  total_owned = quantity + foil_quantity
+%>
 <%= turbo_frame_tag "binder-card-#{card.id}" do %>
-  <% cache ["binder_card", card, card.collection_card] do %>
-    <div class="group relative overflow-hidden rounded-lg border border-slate-200 hover:border-slate-300 transition-all hover:shadow-md" data-card-id="<%= card.id %>" data-controller="card-update">
-      <% if card.image_path %>
-        <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-105 transition-transform duration-300" onerror="this.style.display='none'">
-      <% elsif card.image_uris %>
-        <% image_data = JSON.parse(card.image_uris) %>
-        <% if image_data['normal'] %>
-          <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-auto group-hover:scale-105 transition-transform duration-300">
+  <div data-card-id="<%= card.id %>" 
+       data-controller="card-update" 
+       style="position:relative;border-radius:4px;overflow:hidden;background:#222;<%= 'opacity:0.35;' unless is_owned %>"
+       title="<%= card.name %> (#<%= card.collector_number %>)<%= " - Regular: #{quantity}, Foil: #{foil_quantity}" if is_owned %>">
+    <% if card.image_path.present? %>
+      <img src="/<%= card.image_path %>" alt="<%= card.name %>" style="width:100%;height:auto;display:block;<%= 'filter:grayscale(100%);' unless is_owned %>" onerror="this.src='/card_placeholder.webp'">
+    <% else %>
+      <img src="/card_placeholder.webp" alt="<%= card.name %>" style="width:100%;height:auto;display:block;<%= 'filter:grayscale(100%);' unless is_owned %>">
+    <% end %>
+    
+    <% if is_owned %>
+      <div style="position:absolute;top:4px;right:4px;display:flex;gap:2px;">
+        <% if quantity > 0 %>
+          <div style="background:rgba(0,0,0,0.8);color:#4f8;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;">
+            x<%= quantity %>
+          </div>
         <% end %>
-      <% end %>
-      
-      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
-        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
-          <p class="text-white font-bold text-xs mb-1"><%= card.name %></p>
-          <% if card.collection_card&.quantity && card.collection_card.quantity > 0 %>
-            <p class="text-green-400 text-xs font-semibold">Qty: <%= card.collection_card.quantity %></p>
-          <% end %>
-        </div>
+        <% if foil_quantity > 0 %>
+          <div style="background:linear-gradient(135deg, rgba(80,60,120,0.9) 0%, rgba(40,30,80,0.9) 100%);color:#c9f;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;">
+            x<%= foil_quantity %>
+          </div>
+        <% end %>
       </div>
-
-      <!-- Hidden inputs for form submission -->
-      <input type="hidden" data-card-update-target="quantity" value="<%= card.collection_card&.quantity || 0 %>" data-card-id="<%= card.id %>">
-      <input type="hidden" data-card-update-target="pageNumber" value="<%= card.collection_card&.page_number || '' %>" data-card-id="<%= card.id %>">
-      <input type="hidden" data-card-update-target="notes" value="<%= card.collection_card&.notes || '' %>" data-card-id="<%= card.id %>">
+    <% end %>
+    
+    <!-- Card number badge -->
+    <div style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.8);color:<%= is_owned ? '#fff' : '#666' %>;padding:2px 6px;border-radius:3px;font-size:10px;">
+      #<%= card.collector_number %>
     </div>
-  <% end %>
+
+    <input type="hidden" data-card-update-target="quantity" value="<%= quantity %>" data-card-id="<%= card.id %>">
+    <input type="hidden" data-card-update-target="foilQuantity" value="<%= foil_quantity %>" data-card-id="<%= card.id %>">
+    <input type="hidden" data-card-update-target="notes" value="<%= card.collection_card&.notes || '' %>" data-card-id="<%= card.id %>">
+  </div>
 <% end %>
