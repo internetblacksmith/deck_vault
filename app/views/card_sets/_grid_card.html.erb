@@ -1,36 +1,45 @@
 <%= turbo_frame_tag "grid-card-#{card.id}" do %>
-  <% cache ["grid_card", card, card.collection_card] do %>
-    <div class="group relative rounded-lg bg-white border border-slate-200 overflow-hidden hover:shadow-lg transition-all" data-card-id="<%= card.id %>" data-controller="card-update">
-      <!-- Card Image -->
-      <div class="relative overflow-hidden bg-slate-100">
-        <% if card.image_path %>
-          <img src="/<%= card.image_path %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.style.display='none'">
-        <% elsif card.image_uris %>
-          <% image_data = JSON.parse(card.image_uris) %>
-          <% if image_data['normal'] %>
-            <img src="<%= image_data['normal'] %>" alt="<%= card.name %>" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
-          <% end %>
-        <% end %>
-      </div>
-
-      <!-- Card Info -->
-      <div class="p-3 space-y-2">
-        <p class="font-bold text-sm text-slate-900 truncate group-hover:text-blue-600 transition"><%= card.name %></p>
-        <p class="text-xs text-slate-500"><%= card.collector_number %></p>
-        
-        <div class="space-y-1">
-          <input type="number" min="0" data-card-update-target="quantity" 
-                 class="quantity-input w-full bg-slate-100 border border-slate-300 text-slate-900 px-2 py-1 text-xs rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
+  <div data-card-id="<%= card.id %>" 
+       data-controller="card-update" 
+       data-card-sort-target="item"
+       data-sort-name="<%= card.name.downcase %>"
+       data-sort-number="<%= sortable_collector_number(card.collector_number) %>"
+       data-sort-rarity="<%= rarity_sort_value(card.rarity) %>"
+       data-sort-color="<%= color_sort_value(card.mana_cost) %>"
+       data-sort-mana="<%= mana_value(card.mana_cost) %>"
+       data-sort-type="<%= card.type_line&.downcase || '' %>"
+       style="background:#1a1a1a;border-radius:6px;overflow:hidden;">
+    <% if card.image_path.present? %>
+      <img src="/<%= card.image_path %>" alt="<%= card.name %>" style="width:100%;height:auto;" onerror="this.src='/card_placeholder.webp'">
+    <% else %>
+      <img src="/card_placeholder.webp" alt="<%= card.name %>" style="width:100%;height:auto;">
+    <% end %>
+    
+    <div style="padding:12px;">
+      <div style="color:#fff;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= card.name %></div>
+      <div style="color:#666;font-size:12px;margin-top:2px;"><%= formatted_collector_number(card.collector_number, card.card_set.code) %></div>
+      
+      <div style="display:flex;gap:4px;margin-top:10px;">
+        <div style="width:50%;min-width:0;">
+          <label style="display:block;color:#888;font-size:10px;margin-bottom:2px;">Qty</label>
+          <input type="number" min="0" 
+                 data-card-update-target="quantity" 
+                 data-card-id="<%= card.id %>"
                  value="<%= card.collection_card&.quantity || 0 %>" 
-                 placeholder="Qty"
-                 data-card-id="<%= card.id %>">
-          <input type="number" min="1" max="200" data-card-update-target="pageNumber" 
-                 class="page-input w-full bg-slate-100 border border-slate-300 text-slate-900 px-2 py-1 text-xs rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                 value="<%= card.collection_card&.page_number || '' %>" 
-                 placeholder="Page #"
-                 data-card-id="<%= card.id %>">
+                 title="Regular quantity"
+                 style="width:100%;background:#222;color:#eee;border:1px solid #444;padding:6px 2px;border-radius:3px;text-align:center;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div style="width:50%;min-width:0;">
+          <label style="display:block;color:#a8f;font-size:10px;margin-bottom:2px;">Foil</label>
+          <input type="number" min="0" 
+                 data-card-update-target="foilQuantity" 
+                 data-card-id="<%= card.id %>"
+                 value="<%= card.collection_card&.foil_quantity || 0 %>" 
+                 title="Foil quantity"
+                 style="width:100%;background:linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);color:#eee;border:1px solid #555;padding:6px 2px;border-radius:3px;text-align:center;font-size:13px;box-sizing:border-box;">
         </div>
       </div>
+      <input type="hidden" data-card-update-target="notes" value="<%= card.collection_card&.notes || '' %>" data-card-id="<%= card.id %>">
     </div>
-  <% end %>
+  </div>
 <% end %>
