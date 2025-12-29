@@ -8,9 +8,16 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy", as: "logout"
 
-  resources :card_sets, only: [ :index, :show ] do
-    post :download_set, on: :collection
-    patch :update_card, on: :member
+  resources :card_sets, only: [ :index, :show, :destroy ] do
+    collection do
+      post :download_set
+      get :available_sets
+    end
+    member do
+      patch :update_card
+      post :retry_images
+      patch :update_binder_settings
+    end
   end
 
   # Serve card images
