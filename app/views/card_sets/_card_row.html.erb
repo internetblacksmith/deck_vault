@@ -1,39 +1,43 @@
-<% cache ["card_row", card, card.collection_card] do %>
-  <tr class="hover:bg-slate-50 transition" data-card-id="<%= card.id %>" data-controller="card-update">
-    <td class="px-6 py-4">
-      <div>
-        <p class="font-semibold text-slate-900"><%= card.name %></p>
-        <p class="text-xs text-slate-500"><%= card.collector_number %></p>
-      </div>
+<tr data-card-id="<%= card.id %>" 
+    data-controller="card-update" 
+    data-card-sort-target="item"
+    data-sort-name="<%= card.name.downcase %>"
+    data-sort-number="<%= sortable_collector_number(card.collector_number) %>"
+    data-sort-rarity="<%= rarity_sort_value(card.rarity) %>"
+    data-sort-color="<%= color_sort_value(card.mana_cost) %>"
+    data-sort-mana="<%= mana_value(card.mana_cost) %>"
+    data-sort-type="<%= card.type_line&.downcase || '' %>"
+    style="border-bottom:1px solid #333;">
+    <td style="padding:12px 16px;">
+      <div style="color:#fff;font-weight:500;"><%= card.name %></div>
+      <div style="color:#666;font-size:12px;"><%= formatted_collector_number(card.collector_number, card.card_set.code) %></div>
     </td>
-    <td class="px-6 py-4 text-sm text-slate-600"><%= card.type_line %></td>
-    <td class="px-6 py-4">
-      <span class="px-3 py-1 rounded text-xs font-semibold <%= rarity_class(card.rarity) %>">
-        <%= card.rarity&.upcase || "N/A" %>
-      </span>
+    <td style="padding:12px 16px;color:#888;font-size:14px;"><%= card.type_line %></td>
+    <td style="padding:12px 16px;">
+      <% rarity_colors = { 'common' => '#888', 'uncommon' => '#6cf', 'rare' => '#fa0', 'mythic' => '#f64' } %>
+      <span style="color:<%= rarity_colors[card.rarity] || '#888' %>;font-size:13px;"><%= card.rarity&.capitalize %></span>
     </td>
-    <td class="px-6 py-4 text-center">
-      <input type="number" min="0" data-card-update-target="quantity" 
-             class="quantity-input bg-slate-100 border border-slate-300 text-slate-900 px-3 py-1 rounded w-16 text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
+    <td style="padding:12px 16px;text-align:center;">
+      <input type="number" min="0" 
+             data-card-update-target="quantity" 
+             data-card-id="<%= card.id %>"
              value="<%= card.collection_card&.quantity || 0 %>" 
-             data-card-id="<%= card.id %>"
-             aria-label="Quantity for <%= card.name %>">
+             style="width:50px;background:#222;color:#eee;border:1px solid #444;padding:4px 8px;border-radius:3px;text-align:center;">
     </td>
-    <td class="px-6 py-4">
-      <input type="number" min="1" max="200" data-card-update-target="pageNumber" 
-             class="page-input bg-slate-100 border border-slate-300 text-slate-900 px-3 py-1 rounded w-20 text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
-             value="<%= card.collection_card&.page_number || '' %>" 
-             placeholder="—"
+    <td style="padding:12px 16px;text-align:center;">
+      <input type="number" min="0" 
+             data-card-update-target="foilQuantity" 
              data-card-id="<%= card.id %>"
-             aria-label="Binder page number for <%= card.name %>">
+             value="<%= card.collection_card&.foil_quantity || 0 %>" 
+             style="width:50px;background:#222;color:#eee;border:1px solid #555;padding:4px 8px;border-radius:3px;text-align:center;background:linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);"
+             title="Foil quantity">
     </td>
-    <td class="px-6 py-4">
-      <input type="text" data-card-update-target="notes" 
-             class="notes-input bg-slate-100 border border-slate-300 text-slate-900 px-3 py-1 rounded w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+    <td style="padding:12px 16px;">
+      <input type="text" 
+             data-card-update-target="notes" 
+             data-card-id="<%= card.id %>"
              value="<%= card.collection_card&.notes || '' %>" 
-             placeholder="Add notes..."
-             data-card-id="<%= card.id %>"
-             aria-label="Notes for <%= card.name %>">
+             placeholder="Notes..."
+             style="width:100%;background:#222;color:#eee;border:1px solid #444;padding:4px 8px;border-radius:3px;">
     </td>
   </tr>
-<% end %>
