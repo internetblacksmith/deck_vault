@@ -1,12 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["quantity", "pageNumber", "notes"]
+  static targets = ["quantity", "foilQuantity", "notes"]
 
   connect() {
     // Add event listeners to all input fields for change events
     this.quantityTarget.addEventListener("change", () => this.submit())
-    this.pageNumberTarget.addEventListener("change", () => this.submit())
+    if (this.hasFoilQuantityTarget) {
+      this.foilQuantityTarget.addEventListener("change", () => this.submit())
+    }
     this.notesTarget.addEventListener("change", () => this.submit())
     
     // Listen for Turbo Frame load events
@@ -17,7 +19,7 @@ export default class extends Controller {
   async submit() {
     const cardId = this.element.dataset.cardId
     const quantity = this.quantityTarget.value || 0
-    const pageNumber = this.pageNumberTarget.value || null
+    const foilQuantity = this.hasFoilQuantityTarget ? (this.foilQuantityTarget.value || 0) : 0
     const notes = this.notesTarget.value || ""
 
     // Show loading state
@@ -38,7 +40,7 @@ export default class extends Controller {
         body: JSON.stringify({
           card_id: cardId,
           quantity: quantity,
-          page_number: pageNumber,
+          foil_quantity: foilQuantity,
           notes: notes
         })
       })
