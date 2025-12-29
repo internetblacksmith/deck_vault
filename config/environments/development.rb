@@ -57,6 +57,10 @@ Rails.application.configure do
   # Highlight code that triggered database queries in logs.
   config.active_record.verbose_query_logs = true
 
+  # N+1 query detection - raises error when lazy loading associations
+  # Forces use of eager loading (includes/preload) to avoid N+1 queries
+  config.active_record.strict_loading_by_default = true
+
   # Append comments with runtime information tags to SQL queries in logs.
   config.active_record.query_log_tags_enabled = true
 
