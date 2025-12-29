@@ -1,145 +1,756 @@
-<% content_for :page_title, "My Sets" %>
-
-<div class="space-y-8" data-controller="collection-progress">
-  <!-- Stats Overview -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div class="bg-white rounded-lg border border-slate-200 p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-slate-600 text-sm font-medium">Total Sets</p>
-          <p class="text-3xl font-bold text-slate-900 mt-2"><%= @downloaded_sets.count %></p>
-        </div>
-        <div class="text-4xl">📚</div>
-      </div>
+<div data-controller="collection-progress set-filter" data-set-filter-url-value="<%= available_sets_card_sets_path %>">
+  <!-- Stats Row -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Sets</div>
+      <div class="stat-value"><%= @downloaded_sets.count %></div>
     </div>
-
-    <div class="bg-white rounded-lg border border-slate-200 p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-slate-600 text-sm font-medium">Total Cards</p>
-          <p class="text-3xl font-bold text-slate-900 mt-2"><%= @downloaded_sets.sum(&:cards_count) %></p>
-        </div>
-        <div class="text-4xl">🎴</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Cards</div>
+      <div class="stat-value"><%= @downloaded_sets.sum(&:cards_count) %></div>
     </div>
-
-    <div class="bg-white rounded-lg border border-slate-200 p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-slate-600 text-sm font-medium">Cards Owned</p>
-          <p class="text-3xl font-bold text-slate-900 mt-2"><%= @downloaded_sets.sum(&:owned_cards_count) %></p>
-        </div>
-        <div class="text-4xl">✅</div>
-      </div>
+    <div class="stat-card">
+      <div class="stat-label">Owned</div>
+      <div class="stat-value stat-value--green"><%= @downloaded_sets.sum(&:owned_cards_count) %></div>
     </div>
   </div>
 
-  <!-- Main Content Grid -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Available Sets Section -->
-    <div class="lg:col-span-2">
-      <div class="bg-white rounded-lg border border-slate-200">
-        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-slate-900">Available Sets</h3>
-          <span class="text-sm text-slate-500"><%= @available_sets.count %> sets</span>
+  <div class="main-grid">
+    <!-- Available Sets -->
+    <div class="sets-section">
+      <div class="section-header">
+        <h2 class="section-title">Available Sets</h2>
+        <div class="set-count" data-set-filter-target="count">Loading...</div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs" data-set-filter-target="tabs">
+        <button 
+          data-action="click->set-filter#filterByStatus"
+          data-status="downloaded"
+          data-set-filter-target="tab"
+          class="filter-tab filter-tab--active">
+          Downloaded
+        </button>
+        <button 
+          data-action="click->set-filter#filterByStatus"
+          data-status="available"
+          data-set-filter-target="tab"
+          class="filter-tab">
+          Available
+        </button>
+        <button 
+          data-action="click->set-filter#filterByStatus"
+          data-status="all"
+          data-set-filter-target="tab"
+          class="filter-tab">
+          All
+        </button>
+      </div>
+
+      <!-- Search and Sort Controls -->
+      <div class="search-controls">
+        <input 
+          type="text" 
+          placeholder="Search sets..." 
+          data-set-filter-target="search"
+          data-action="input->set-filter#filter"
+          class="search-input">
+        <select 
+          data-set-filter-target="sort"
+          data-action="change->set-filter#sort"
+          class="sort-select">
+          <option value="name-asc">Name A-Z</option>
+          <option value="name-desc">Name Z-A</option>
+          <option value="date-desc" selected>Newest First</option>
+          <option value="date-asc">Oldest First</option>
+          <option value="cards-desc">Most Cards</option>
+          <option value="cards-asc">Least Cards</option>
+          <option value="type-asc">Set Type A-Z</option>
+          <option value="type-desc">Set Type Z-A</option>
+        </select>
+        <select
+          data-set-filter-target="typeFilter"
+          data-action="change->set-filter#filterByType"
+          class="sort-select">
+          <option value="">All Types</option>
+          <option value="core">Core Sets</option>
+          <option value="expansion">Expansions</option>
+          <option value="masters">Masters</option>
+          <option value="draft_innovation">Draft Innovation</option>
+          <option value="commander">Commander</option>
+          <option value="planechase">Planechase</option>
+          <option value="archenemy">Archenemy</option>
+          <option value="box">Box Sets</option>
+          <option value="duel_deck">Duel Decks</option>
+          <option value="starter">Starter Sets</option>
+          <option value="promo">Promos</option>
+          <option value="funny">Funny/Un-Sets</option>
+          <option value="memorabilia">Memorabilia</option>
+        </select>
+      </div>
+
+      <div class="sets-list" data-set-filter-target="list">
+        <!-- Loader - shown while fetching sets -->
+        <div data-set-filter-target="loader" class="loader">
+          <div class="loader-text">Loading sets from Scryfall...</div>
+          <div class="loader-spinner"></div>
         </div>
-
-        <% if @available_sets.any? %>
-          <div class="divide-y divide-slate-200 max-h-96 overflow-y-auto">
-            <% @available_sets.each do |set| %>
-              <% downloaded = @downloaded_sets_map[set[:code]] %>
-              <div class="p-4 hover:bg-slate-50 transition">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <h4 class="font-semibold text-slate-900"><%= set[:name] %></h4>
-                    <p class="text-sm text-slate-600 mt-1">
-                      <span class="font-mono bg-slate-100 px-2 py-1 rounded text-xs"><%= set[:code].upcase %></span>
-                      <span class="ml-2"><%= set[:card_count] %> cards</span>
-                    </p>
-                  </div>
-
-                  <% if downloaded %>
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                      ✓ Downloaded
-                    </span>
-                  <% else %>
-                    <%= button_to "Download", download_set_card_sets_path(set_code: set[:code]), 
-                        method: :post, 
-                        class: "px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition" %>
-                  <% end %>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="p-12 text-center">
-            <p class="text-slate-500">Loading available sets...</p>
-          </div>
-        <% end %>
       </div>
     </div>
 
-    <!-- My Collection Section -->
-    <div>
-      <div class="bg-white rounded-lg border border-slate-200">
-        <div class="px-6 py-4 border-b border-slate-200">
-          <h3 class="text-lg font-semibold text-slate-900">My Collection</h3>
-        </div>
-
+    <!-- My Collection -->
+    <div class="collection-section">
+      <h2 class="section-title">My Collection</h2>
+      <div class="collection-list">
         <% if @downloaded_sets.any? %>
-          <div class="divide-y divide-slate-200 max-h-96 overflow-y-auto">
-            <% @downloaded_sets.each do |set| %>
-              <div class="p-4 hover:bg-slate-50 transition">
-                <div class="flex items-start justify-between mb-2">
-                  <div class="flex-1">
-                    <h4 class="font-semibold text-slate-900">
-                      <%= link_to set.name, card_set_path(set), class: "hover:text-blue-600 transition" %>
-                    </h4>
-                    <p class="text-xs text-slate-600 mt-1">
-                      <%= set.cards_count %>/<%= set.card_count %> cards
-                      <% if set.owned_cards_count > 0 %>
-                        <span class="block mt-1 text-green-600 font-semibold">Owned: <%= set.owned_cards_count %></span>
-                      <% end %>
-                    </p>
+          <% @downloaded_sets.each do |set| %>
+            <div class="collection-item">
+              <div class="collection-item-header">
+                <div class="collection-item-info">
+                  <a href="<%= card_set_path(set) %>" class="collection-item-name"><%= set.name %></a>
+                  <div class="collection-item-count">
+                    <%= set.owned_cards_count %>/<%= set.cards_count %> owned
                   </div>
                 </div>
-
-                <!-- Progress Bar -->
-                <% if set.downloading? || set.pending? %>
-                  <div class="mt-3 space-y-2">
-                    <div class="flex justify-between text-xs text-slate-600">
-                      <span class="font-semibold">
-                        <% if set.downloading? %>
-                          ⚙️ Downloading...
-                        <% else %>
-                          ⏳ Pending
-                        <% end %>
-                      </span>
-                      <span><%= set.images_downloaded %>/<%= set.card_count %></span>
-                    </div>
-                    <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                      <div class="bg-blue-600 h-full rounded-full transition-all duration-500" 
-                           style="width: <%= set.download_progress_percentage %>%; min-width: 2px;"
-                           data-set-id="<%= set.id %>"></div>
-                    </div>
-                  </div>
-                <% elsif set.completed? %>
-                  <div class="mt-2">
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                      ✓ Ready
-                    </span>
-                  </div>
+                <% unless set.downloading? || set.pending? %>
+                  <%= button_to card_set_path(set), method: :delete, data: { turbo_confirm: "Delete #{set.name}? This will remove all cards and images." }, class: "delete-btn" do %>
+                    <span class="delete-text">Delete</span>
+                  <% end %>
                 <% end %>
               </div>
-            <% end %>
-          </div>
+              <% if set.downloading? || set.pending? %>
+                <div class="progress-container">
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width:<%= set.download_progress_percentage %>%;"></div>
+                  </div>
+                  <div class="progress-text"><%= set.download_progress_percentage %>%</div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
         <% else %>
-          <div class="p-8 text-center">
-            <p class="text-slate-600 text-sm">No sets yet</p>
-            <p class="text-slate-500 text-xs mt-2">Download a set from the left</p>
-          </div>
+          <div class="empty-state">No sets downloaded yet</div>
         <% end %>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  
+  .stat-card {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 6px;
+  }
+  
+  .stat-label {
+    color: #888;
+    font-size: 14px;
+  }
+  
+  .stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+  }
+  
+  .stat-value--green {
+    color: #4f8;
+  }
+
+  /* Main Grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+  }
+
+  /* Section Styles */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 16px 0;
+  }
+  
+  .section-header .section-title {
+    margin: 0;
+  }
+  
+  .set-count {
+    color: #888;
+    font-size: 13px;
+  }
+
+  /* Filter Tabs */
+  .filter-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .filter-tab {
+    background: #333;
+    color: #888;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  
+  .filter-tab--active {
+    background: #29f;
+    color: #fff;
+  }
+
+  /* Search Controls */
+  .search-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .search-input {
+    flex: 1;
+    background: #222;
+    color: #eee;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 4px;
+    min-width: 0;
+  }
+  
+  .sort-select {
+    background: #222;
+    color: #eee;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Sets List */
+  .sets-list {
+    background: #1a1a1a;
+    border-radius: 6px;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  /* Loader */
+  .loader {
+    padding: 48px;
+    text-align: center;
+  }
+  
+  .loader-text {
+    color: #888;
+    margin-bottom: 12px;
+  }
+  
+  .loader-spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #333;
+    border-top-color: #29f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Collection */
+  .collection-list {
+    background: #1a1a1a;
+    border-radius: 6px;
+  }
+  
+  .collection-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+  }
+  
+  .collection-item:last-child {
+    border-bottom: none;
+  }
+  
+  .collection-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .collection-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .collection-item-name {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .collection-item-count {
+    color: #666;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  
+  .delete-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    flex-shrink: 0;
+  }
+  
+  .delete-text {
+    color: #a55;
+    font-size: 12px;
+  }
+
+  /* Progress */
+  .progress-container {
+    margin-top: 8px;
+  }
+  
+  .progress-bar {
+    background: #333;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    background: #29f;
+    height: 100%;
+  }
+  
+  .progress-text {
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* Empty State */
+  .empty-state {
+    padding: 32px;
+    text-align: center;
+    color: #666;
+  }
+
+  /* Set Items (dynamically rendered) */
+  .set-item {
+    border-bottom: 1px solid #333;
+  }
+  
+  .set-item:last-of-type {
+    border-bottom: none;
+  }
+  
+  .set-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  
+  .set-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .set-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .set-item-name {
+    color: #fff;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .set-item-meta {
+    color: #666;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .set-item-related {
+    color: #888;
+  }
+  
+  .set-item-date {
+    color: #555;
+    margin-left: 8px;
+  }
+  
+  .set-item-type {
+    color: #7b8;
+  }
+  
+  .set-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  
+  .collapse-btn {
+    background: #333;
+    border: none;
+    color: #888;
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .action-link {
+    text-decoration: none;
+    font-size: 13px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  .action-link--view {
+    color: #4f8;
+  }
+  
+  .action-link--delete {
+    color: #a55;
+  }
+  
+  .action-link--small {
+    font-size: 12px;
+  }
+  
+  .download-btn {
+    background: #29f;
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  
+  .download-btn--small {
+    background: #444;
+    color: #ccc;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  
+  /* Children container */
+  .children-container {
+    background: #151515;
+    padding-left: 24px;
+    display: none;
+  }
+  
+  .child-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 1px solid #252525;
+    gap: 12px;
+  }
+  
+  .child-item-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .child-item-name {
+    color: #ccc;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .child-item-meta {
+    color: #555;
+    font-size: 12px;
+  }
+  
+  .child-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* Responsive - Tablet */
+  @media (max-width: 900px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    
+    .collection-section {
+      order: -1;
+    }
+    
+    .sets-list {
+      max-height: 400px;
+    }
+  }
+
+  /* Responsive - Mobile */
+  @media (max-width: 600px) {
+    .stats-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      padding: 12px 8px;
+      text-align: center;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+    }
+    
+    .search-controls {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .sort-select {
+      width: 100%;
+    }
+    
+    .filter-tabs {
+      gap: 4px;
+    }
+    
+    .filter-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 12px;
+    }
+    
+    .section-header {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    
+    .section-title {
+      font-size: 15px;
+    }
+    
+    .set-count {
+      font-size: 12px;
+    }
+    
+    .sets-list {
+      max-height: 350px;
+    }
+    
+    .search-input {
+      padding: 10px 12px;
+      font-size: 16px; /* Prevents iOS zoom */
+    }
+    
+    .sort-select {
+      padding: 10px 12px;
+      font-size: 16px;
+    }
+    
+    /* Set items mobile */
+    .set-item-row {
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      gap: 8px;
+    }
+    
+    .set-item-left {
+      width: 100%;
+    }
+    
+    .set-item-name {
+      font-size: 14px;
+    }
+    
+    .set-item-meta {
+      font-size: 12px;
+    }
+    
+    .set-item-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    
+    .set-item-date {
+      display: none;
+    }
+    
+    .set-item-related {
+      display: none;
+    }
+    
+    .collapse-btn {
+      width: 22px;
+      height: 22px;
+    }
+    
+    .children-container {
+      padding-left: 8px;
+    }
+    
+    .child-item {
+      flex-wrap: wrap;
+      padding: 8px 10px;
+      gap: 6px;
+    }
+    
+    .child-item-info {
+      width: 100%;
+    }
+    
+    .child-item-name {
+      font-size: 13px;
+    }
+    
+    .child-item-meta {
+      font-size: 11px;
+    }
+    
+    .child-item-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    
+    .download-btn {
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    
+    .download-btn--small {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    
+    .action-link {
+      font-size: 12px;
+    }
+    
+    .action-link--small {
+      font-size: 11px;
+    }
+    
+    /* Collection mobile */
+    .collection-item {
+      padding: 10px 12px;
+    }
+    
+    .collection-item-name {
+      font-size: 14px;
+    }
+    
+    .collection-item-count {
+      font-size: 12px;
+    }
+    
+    .empty-state {
+      padding: 24px 16px;
+      font-size: 13px;
+    }
+    
+    .loader {
+      padding: 32px 16px;
+    }
+    
+    .loader-text {
+      font-size: 13px;
+    }
+  }
+  
+  /* Extra small screens (iPhone SE, etc) */
+  @media (max-width: 380px) {
+    .stat-card {
+      padding: 10px 6px;
+    }
+    
+    .stat-label {
+      font-size: 10px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+    }
+    
+    .filter-tab {
+      padding: 8px 2px;
+      font-size: 11px;
+    }
+    
+    .set-item-row {
+      padding: 8px 10px;
+    }
+    
+    .set-item-name {
+      font-size: 13px;
+    }
+    
+    .download-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+  }
+</style>
