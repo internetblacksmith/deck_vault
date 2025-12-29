@@ -10,16 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_204516) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_29_222020) do
   create_table "card_sets", force: :cascade do |t|
+    t.integer "binder_columns", default: 3
+    t.integer "binder_rows", default: 3
+    t.string "binder_sort_direction", default: "asc"
+    t.string "binder_sort_field", default: "number"
     t.integer "card_count"
     t.string "code"
     t.datetime "created_at", null: false
     t.string "download_status", default: "pending"
     t.integer "images_downloaded", default: 0
     t.string "name"
+    t.string "parent_set_code"
     t.date "released_at"
     t.string "scryfall_uri"
+    t.string "set_type"
     t.datetime "updated_at", null: false
   end
 
@@ -42,6 +48,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_204516) do
   create_table "collection_cards", force: :cascade do |t|
     t.integer "card_id", null: false
     t.datetime "created_at", null: false
+    t.integer "foil_quantity"
     t.text "notes"
     t.integer "page_number"
     t.integer "quantity"
@@ -51,9 +58,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_204516) do
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "email"
     t.string "password_digest"
     t.datetime "updated_at", null: false
+    t.string "username"
   end
 
   add_foreign_key "cards", "card_sets"
