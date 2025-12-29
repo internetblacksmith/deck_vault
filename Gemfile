@@ -61,7 +61,7 @@ gem "dotenv-rails", "3.2.0", groups: [:development, :test]
 
 group :development, :test do
    # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-   gem "debug", "1.11.1", platforms: %i[ mri windows ], require: "debug/prelude"
+   gem "debug", "1.11.1", platforms: %i[ mri windows ], require: false
 
    # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
    gem "bundler-audit", "0.9.3", require: false
