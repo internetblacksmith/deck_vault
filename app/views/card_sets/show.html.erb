@@ -1,86 +1,92 @@
-<% content_for :page_title, @card_set.name %>
+<%= turbo_stream_from "card_set_#{@card_set.id}_progress" %>
 
-<div class="space-y-6">
-  <!-- Back Button -->
-  <a href="<%= card_sets_path %>" class="inline-flex items-center text-blue-600 hover:text-blue-700 transition">
-    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-    </svg>
-    Back to Sets
-  </a>
-
-  <!-- Set Header -->
-  <div class="bg-white rounded-lg border border-slate-200 p-6">
-    <div class="flex items-start justify-between mb-4">
-      <div>
-        <h2 class="text-2xl font-bold text-slate-900"><%= @card_set.name %></h2>
-        <p class="text-slate-600 mt-1">
-          <span class="font-mono bg-slate-100 px-2 py-1 rounded text-sm"><%= @card_set.code.upcase %></span>
-          <% if @card_set.released_at %>
-            <span class="ml-3 text-sm">Released <%= @card_set.released_at.strftime("%b %d, %Y") %></span>
-          <% end %>
-        </p>
-      </div>
+<div>
+  <!-- Header -->
+  <div style="margin-bottom:24px;">
+    <a href="<%= card_sets_path %>" style="color:#888;font-size:14px;text-decoration:none;">&larr; Back to Sets</a>
+    <h1 style="font-size:28px;font-weight:600;color:#fff;margin-top:8px;"><%= @card_set.name %></h1>
+    <div style="color:#666;margin-top:4px;">
+      <%= @card_set.code.upcase %>
+      <% if @card_set.released_at %>
+        &middot; <%= @card_set.released_at.strftime("%B %Y") %>
+      <% end %>
     </div>
+  </div>
 
-    <!-- Progress Bar -->
+  <!-- Stats -->
+  <%
+    total_cards = @cards.count
+    # Count cards that have either regular or foil copies
+    owned_cards = @cards.joins(:collection_card).where("collection_cards.quantity > 0 OR collection_cards.foil_quantity > 0").count
+    collection_completion = total_cards > 0 ? (owned_cards.to_f / total_cards * 100).round(1) : 0
+  %>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0;">
+    <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+      <div style="color:#888;font-size:13px;">Cards in Set</div>
+      <div style="font-size:24px;font-weight:600;color:#fff;"><%= total_cards %></div>
+    </div>
+    <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+      <div style="color:#888;font-size:13px;">Owned</div>
+      <div style="font-size:24px;font-weight:600;color:#4f8;"><%= owned_cards %></div>
+    </div>
+    <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+      <div style="color:#888;font-size:13px;">Collection</div>
+      <div style="font-size:24px;font-weight:600;color:#6cf;"><%= collection_completion %>%</div>
+    </div>
     <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
-      <%= render "card_sets/progress_bar", card_set: @card_set %>
+      <%= render "card_sets/images_stats_card", card_set: @card_set, total_cards: total_cards %>
     <% end %>
   </div>
 
-  <!-- Stats Grid -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-      <p class="text-slate-600 text-sm">Total Cards</p>
-      <p class="text-2xl font-bold text-slate-900 mt-1"><%= @card_set.card_count %></p>
+  <% if @view_type != "binder" %>
+  <div data-controller="card-sort" data-card-sort-view-value="<%= @view_type %>">
+  <% end %>
+  
+  <!-- View Toggle and Sort Controls -->
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+    <div style="display:flex;gap:8px;">
+      <% ["table", "grid", "binder"].each do |view| %>
+        <a href="<%= card_set_path(@card_set, view_type: view) %>" 
+           style="padding:8px 16px;border-radius:4px;text-decoration:none;font-size:14px;<%= @view_type == view ? 'background:#29f;color:#fff;' : 'background:#333;color:#ccc;' %>">
+          <%= view.capitalize %>
+        </a>
+      <% end %>
     </div>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-      <p class="text-slate-600 text-sm">Downloaded</p>
-      <p class="text-2xl font-bold text-slate-900 mt-1"><%= @cards.count %></p>
-    </div>
-    <% owned = @cards.joins(:collection_card).count %>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-      <p class="text-slate-600 text-sm">Owned</p>
-      <p class="text-2xl font-bold text-green-600 mt-1"><%= owned %></p>
-    </div>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-      <p class="text-slate-600 text-sm">Completion</p>
-      <p class="text-2xl font-bold text-blue-600 mt-1"><%= @card_set.download_progress_percentage %>%</p>
-    </div>
-  </div>
-
-  <!-- View Type Selector -->
-  <div class="flex gap-3">
-    <% ["table", "grid", "binder"].each do |view| %>
-      <% is_active = @view_type == view %>
-      <a href="<%= card_set_path(@card_set, view_type: view) %>" 
-         class="<%= is_active ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' %> px-4 py-2 rounded-lg font-medium transition">
-        <%= case view
-            when 'table' then '📋 Table'
-            when 'grid' then '🔲 Grid'
-            when 'binder' then '📑 Binder'
-            end %>
-      </a>
+    
+    <% if @view_type != "binder" %>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="color:#888;font-size:13px;">Sort by:</span>
+        <select data-card-sort-target="sortField" data-action="change->card-sort#sort" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
+          <option value="number">Set/Number</option>
+          <option value="name">Name</option>
+          <option value="rarity">Rarity</option>
+          <option value="color">Color</option>
+          <option value="mana">Mana Value</option>
+          <option value="type">Type</option>
+        </select>
+        <select data-card-sort-target="sortDirection" data-action="change->card-sort#sort" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
+          <option value="asc">Asc</option>
+          <option value="desc">Desc</option>
+        </select>
+      </div>
     <% end %>
   </div>
 
-  <!-- Content Area -->
+  <!-- Content -->
   <% if @view_type == "table" %>
-    <!-- Table View -->
-    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-slate-100 border-b border-slate-200 sticky top-0">
-          <tr>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Card Name</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Type</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Rarity</th>
-            <th class="px-6 py-3 text-center text-sm font-semibold text-slate-900">Qty</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Page</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Notes</th>
+    <div style="background:#1a1a1a;border-radius:6px;overflow:hidden;">
+      <table style="width:100%;">
+        <thead>
+          <tr style="border-bottom:1px solid #333;">
+            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Name</th>
+            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Type</th>
+            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Rarity</th>
+            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Qty</th>
+            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Foil</th>
+            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Notes</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200">
+        <tbody data-card-sort-target="container">
           <% @cards.each do |card| %>
             <%= turbo_frame_tag "card-row-#{card.id}" do %>
               <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: @card_set %>
@@ -89,61 +95,190 @@
         </tbody>
       </table>
     </div>
+  </div>
 
   <% elsif @view_type == "grid" %>
-    <!-- Grid View -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div data-card-sort-target="container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
       <% @cards.each do |card| %>
         <%= render "card_sets/grid_card", card: card %>
       <% end %>
     </div>
+  </div>
 
   <% elsif @view_type == "binder" %>
-    <!-- Binder Pages View -->
-    <div class="space-y-6">
-      <% grouped_cards = @cards.includes(:collection_card).group_by { |c| c.collection_card&.page_number || 0 }.sort %>
-      <% grouped_cards.each do |page, cards| %>
-        <%= turbo_frame_tag "binder-page-#{page}" do %>
-          <div class="bg-white rounded-lg border border-slate-200 p-6">
-            <h3 class="font-bold text-slate-900 mb-4">
-              <% if page == 0 %>
-                <span class="text-yellow-600">⚠️ Not Yet Placed</span>
-              <% else %>
-                <span>Page <%= page %></span>
+    <%
+      # Get binder settings with defaults
+      binder_rows = @card_set.binder_rows || 3
+      binder_columns = @card_set.binder_columns || 3
+      cards_per_page = binder_rows * binder_columns
+      sort_field = @card_set.binder_sort_field || "number"
+      sort_direction = @card_set.binder_sort_direction || "asc"
+      
+      # Sort cards based on binder settings
+      sorted_cards = @cards.includes(:collection_card).sort_by do |card|
+        sort_value = case sort_field
+          when "number" then sortable_collector_number(card.collector_number)
+          when "name" then card.name.downcase
+          when "rarity" then rarity_sort_value(card.rarity)
+          when "color" then color_sort_value(card.mana_cost)
+          when "mana" then mana_value(card.mana_cost)
+          when "type" then card.type_line&.downcase || ""
+          else sortable_collector_number(card.collector_number)
+        end
+        sort_value
+      end
+      sorted_cards = sorted_cards.reverse if sort_direction == "desc"
+      
+      # Group cards into pages, then pair pages into spreads (left + right)
+      binder_pages = sorted_cards.each_slice(cards_per_page).to_a
+      # Pair pages: [page1, page2], [page3, page4], etc.
+      binder_spreads = binder_pages.each_slice(2).to_a
+      total_spreads = binder_spreads.count
+    %>
+    
+    <!-- Binder Configuration -->
+    <div data-controller="binder-settings" 
+         data-binder-settings-url-value="<%= update_binder_settings_card_set_path(@card_set) %>"
+         style="margin-bottom:24px;">
+      
+      <!-- Info Bar with Settings Button -->
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="color:#888;font-size:13px;">
+          <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= cards_per_page %> cards/page &middot; <%= binder_pages.count %> pages
+        </div>
+        <button data-action="click->binder-settings#toggle" 
+                style="background:#333;color:#ccc;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px;">
+          Settings
+        </button>
+      </div>
+      
+      <!-- Settings Panel (hidden by default) -->
+      <div data-binder-settings-target="panel" 
+           style="display:none;background:#1a1a1a;border-radius:6px;padding:16px;margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h4 style="color:#fff;font-size:14px;font-weight:500;margin:0;">Binder Settings</h4>
+          <button data-action="click->binder-settings#toggle" 
+                  style="background:transparent;border:none;color:#666;cursor:pointer;font-size:18px;line-height:1;">
+            &times;
+          </button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="color:#888;font-size:13px;">Rows:</span>
+            <select data-binder-settings-target="rows" data-action="change->binder-settings#save" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;border-radius:4px;cursor:pointer;">
+              <% (1..6).each do |n| %>
+                <option value="<%= n %>" <%= n == binder_rows ? 'selected' : '' %>><%= n %></option>
               <% end %>
-              <span class="text-sm font-normal text-slate-600 ml-2">(<%= cards.count %> cards)</span>
-            </h3>
-            <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-              <% cards.each do |card| %>
-                <%= render "card_sets/binder_card", card: card %>
-              <% end %>
-            </div>
+            </select>
           </div>
-        <% end %>
+          
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="color:#888;font-size:13px;">Columns:</span>
+            <select data-binder-settings-target="columns" data-action="change->binder-settings#save" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;border-radius:4px;cursor:pointer;">
+              <% (1..6).each do |n| %>
+                <option value="<%= n %>" <%= n == binder_columns ? 'selected' : '' %>><%= n %></option>
+              <% end %>
+            </select>
+          </div>
+          
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="color:#888;font-size:13px;">Sort by:</span>
+            <select data-binder-settings-target="sortField" data-action="change->binder-settings#save" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;border-radius:4px;cursor:pointer;">
+              <option value="number" <%= sort_field == "number" ? 'selected' : '' %>>Set/Number</option>
+              <option value="name" <%= sort_field == "name" ? 'selected' : '' %>>Name</option>
+              <option value="rarity" <%= sort_field == "rarity" ? 'selected' : '' %>>Rarity</option>
+              <option value="color" <%= sort_field == "color" ? 'selected' : '' %>>Color</option>
+              <option value="mana" <%= sort_field == "mana" ? 'selected' : '' %>>Mana Value</option>
+              <option value="type" <%= sort_field == "type" ? 'selected' : '' %>>Type</option>
+            </select>
+            <select data-binder-settings-target="sortDirection" data-action="change->binder-settings#save" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;border-radius:4px;cursor:pointer;">
+              <option value="asc" <%= sort_direction == "asc" ? 'selected' : '' %>>Asc</option>
+              <option value="desc" <%= sort_direction == "desc" ? 'selected' : '' %>>Desc</option>
+            </select>
+          </div>
+        </div>
+        <p style="color:#666;font-size:12px;margin:12px 0 0 0;">
+          Changes are saved automatically and will reload the page.
+        </p>
+      </div>
+    </div>
+    
+    <!-- Binder View -->
+    <div data-controller="binder" 
+         data-binder-total-spreads-value="<%= total_spreads %>"
+         data-binder-cards-per-page-value="<%= cards_per_page %>"
+         data-action="keydown->binder#keydown"
+         tabindex="0"
+         style="outline:none;">
+      
+      <!-- Navigation -->
+      <div style="display:flex;justify-content:center;align-items:center;gap:16px;margin-bottom:20px;">
+        <button data-binder-target="prevBtn" data-action="click->binder#previousSpread"
+                style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">
+          &larr; Previous
+        </button>
+        <span data-binder-target="pageIndicator" style="color:#fff;font-size:16px;min-width:120px;text-align:center;">
+          Pages 1-2
+        </span>
+        <button data-binder-target="nextBtn" data-action="click->binder#nextSpread"
+                style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">
+          Next &rarr;
+        </button>
+      </div>
+      
+      <!-- Binder Spreads -->
+      <% binder_spreads.each_with_index do |spread, spread_index| %>
+        <div data-binder-target="spread" 
+             style="<%= spread_index == 0 ? 'display:flex;' : 'display:none;' %>gap:8px;perspective:2000px;">
+          
+          <% spread.each_with_index do |page_cards, page_in_spread| %>
+            <% page_num = spread_index * 2 + page_in_spread + 1 %>
+            <!-- Page <%= page_num %> (<%= page_in_spread == 0 ? 'Left' : 'Right' %>) -->
+            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;">
+              <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:<%= page_in_spread == 0 ? 'left' : 'right' %>;">
+                Page <%= page_num %>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;">
+                <% page_cards.each_with_index do |card, card_index| %>
+                  <%= render "card_sets/binder_card_flip", card: card, card_set: @card_set, position: card_index + 1 %>
+                <% end %>
+                <% # Fill empty slots if page is not full %>
+                <% (cards_per_page - page_cards.count).times do %>
+                  <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+          
+          <% # Add empty right page if spread has only one page %>
+          <% if spread.count == 1 %>
+            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;">
+              <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:right;">
+                Page <%= spread_index * 2 + 2 %>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;">
+                <% cards_per_page.times do %>
+                  <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
       <% end %>
+      
+      <!-- Page Jump -->
+      <div style="display:flex;justify-content:center;gap:4px;margin-top:20px;flex-wrap:wrap;">
+        <% binder_spreads.each_with_index do |_, spread_index| %>
+          <button data-action="click->binder#goToSpread" data-spread="<%= spread_index %>"
+                  style="background:#333;color:#888;border:none;width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:12px;">
+            <%= spread_index * 2 + 1 %>-<%= spread_index * 2 + 2 %>
+          </button>
+        <% end %>
+      </div>
     </div>
   <% end %>
 </div>
 
-<!-- ActionCable real-time progress updates -->
 <div data-controller="set-progress" 
      data-set-progress-set-id-value="<%= @card_set.id %>"
      data-set-progress-is-downloading-value="<%= @card_set.downloading? || @card_set.pending? %>"></div>
-
-<style>
-  .rarity-common {
-    @apply bg-slate-100 text-slate-700;
-  }
-
-  .rarity-uncommon {
-    @apply bg-blue-100 text-blue-700;
-  }
-
-  .rarity-rare {
-    @apply bg-yellow-100 text-yellow-700;
-  }
-
-  .rarity-mythic {
-    @apply bg-orange-100 text-orange-700;
-  }
-</style>
