@@ -1,4 +1,4 @@
-import consumer from "./consumer.js"
+import consumer from "channels/consumer"
 
 export function subscribeToSetProgress(setId, onUpdate) {
   const subscription = consumer.subscriptions.create(

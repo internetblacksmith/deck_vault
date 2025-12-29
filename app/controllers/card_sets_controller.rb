@@ -62,10 +62,10 @@ class CardSetsController < ApplicationController
       render turbo_stream: turbo_stream.replace("card-row-#{card.id}",
         partial: "card_sets/error", locals: { errors: collection_card.errors }), status: :unprocessable_entity
     end
-  rescue ActiveRecord::RecordNotFound
-    render turbo_stream: turbo_stream.replace("card-row-#{card.id}",
-      partial: "card_sets/error", locals: { errors: "Card not found" }), status: :not_found
-  end
+   rescue ActiveRecord::RecordNotFound
+     render turbo_stream: turbo_stream.replace("card-row-#{params[:card_id]}",
+       partial: "card_sets/error", locals: { errors: "Card not found" }), status: :not_found
+   end
 
    private
 

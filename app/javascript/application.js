@@ -3,17 +3,24 @@ import "@rails/actioncable"
 import { Turbo } from "@hotwired/turbo-rails"
 import * as Stimulus from "@hotwired/stimulus"
 
-// Import and register controllers
-import DarkModeController from "./controllers/dark_mode_controller.js"
-import SetProgressController from "./controllers/set_progress_controller.js"
-import CollectionProgressController from "./controllers/collection_progress_controller.js"
-
 // Create Stimulus application
 const application = Stimulus.Application.start()
 
-// Register controllers
-application.register("dark-mode", DarkModeController)
-application.register("set-progress", SetProgressController)
-application.register("collection-progress", CollectionProgressController)
-
+// Configure Stimulus development experience
+application.debug = false
 window.Stimulus = Stimulus
+
+// Auto-load controllers using Stimulus' built-in resolver
+const controllerDefinitions = [
+  ["card-update", () => import("controllers/card_update_controller")],
+  ["collection-progress", () => import("controllers/collection_progress_controller")],
+  ["dark-mode", () => import("controllers/dark_mode_controller")],
+  ["set-progress", () => import("controllers/set_progress_controller")],
+  ["toast-notification", () => import("controllers/toast_notification_controller")]
+]
+
+controllerDefinitions.forEach(([identifier, importFn]) => {
+  importFn().then(module => {
+    application.register(identifier, module.default)
+  })
+})
