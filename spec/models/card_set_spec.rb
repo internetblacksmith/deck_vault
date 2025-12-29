@@ -155,6 +155,8 @@ RSpec.describe CardSet, type: :model do
     context 'when cards are already loaded' do
       before do
         create_list(:card, 5, card_set: subject)
+        # Disable strict loading for this test since we're testing pre-loaded behavior
+        subject.strict_loading!(false)
         subject.reload
         subject.cards.load
       end
@@ -217,6 +219,8 @@ RSpec.describe CardSet, type: :model do
       before do
         create(:card, :with_collection_card, card_set: subject)
         create(:card, card_set: subject)
+        # Disable strict loading for this test since we're testing pre-loaded behavior
+        subject.strict_loading!(false)
         subject.reload
         subject.cards.load
       end
@@ -252,6 +256,29 @@ RSpec.describe CardSet, type: :model do
     end
   end
 
+  # Set Type and Parent
+  describe 'set_type and parent_set_code' do
+    it 'allows set_type to be set' do
+      card_set = create(:card_set, set_type: 'commander')
+      expect(card_set.set_type).to eq('commander')
+    end
+
+    it 'allows parent_set_code to be set' do
+      card_set = create(:card_set, parent_set_code: 'KHM')
+      expect(card_set.parent_set_code).to eq('KHM')
+    end
+
+    it 'allows set_type to be nil' do
+      card_set = create(:card_set, set_type: nil)
+      expect(card_set.set_type).to be_nil
+    end
+
+    it 'allows parent_set_code to be nil' do
+      card_set = create(:card_set, parent_set_code: nil)
+      expect(card_set.parent_set_code).to be_nil
+    end
+  end
+
   # Factory
   describe 'factory' do
     subject { build(:card_set) }
@@ -273,6 +300,32 @@ RSpec.describe CardSet, type: :model do
       set1 = create(:card_set)
       set2 = create(:card_set)
       expect(set2.code).not_to eq(set1.code)
+    end
+
+    it 'has default set_type as expansion' do
+      expect(subject.set_type).to eq('expansion')
+    end
+
+    describe 'traits' do
+      it 'creates a set with parent' do
+        card_set = build(:card_set, :with_parent)
+        expect(card_set.parent_set_code).to eq('PARENT')
+      end
+
+      it 'creates a core set' do
+        card_set = build(:card_set, :core_set)
+        expect(card_set.set_type).to eq('core')
+      end
+
+      it 'creates a commander set' do
+        card_set = build(:card_set, :commander)
+        expect(card_set.set_type).to eq('commander')
+      end
+
+      it 'creates a promo set' do
+        card_set = build(:card_set, :promo)
+        expect(card_set.set_type).to eq('promo')
+      end
     end
   end
 end
