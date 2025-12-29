@@ -38,12 +38,14 @@ class DownloadCardImagesJob < ApplicationJob
   private
 
   def broadcast_progress_update(card_set, images_count)
-    # Use Turbo Stream to update progress bar
+    total_cards = card_set.cards.count
+
+    # Use Turbo Stream to update images stats card
     Turbo::StreamsChannel.broadcast_update_to(
       "card_set_#{card_set.id}_progress",
       target: "progress-#{card_set.id}",
-      partial: "card_sets/progress_bar",
-      locals: { card_set: card_set }
+      partial: "card_sets/images_stats_card",
+      locals: { card_set: card_set, total_cards: total_cards }
     )
 
     # Also keep ActionCable broadcast for legacy support
@@ -60,12 +62,14 @@ class DownloadCardImagesJob < ApplicationJob
   end
 
   def broadcast_completion(card_set)
+    total_cards = card_set.cards.count
+
     # Broadcast Turbo Stream completion update
     Turbo::StreamsChannel.broadcast_update_to(
       "card_set_#{card_set.id}_progress",
       target: "progress-#{card_set.id}",
-      partial: "card_sets/progress_bar",
-      locals: { card_set: card_set }
+      partial: "card_sets/images_stats_card",
+      locals: { card_set: card_set, total_cards: total_cards }
     )
 
     # Also keep ActionCable broadcast for legacy support
