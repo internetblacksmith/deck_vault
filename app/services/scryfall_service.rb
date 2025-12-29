@@ -25,7 +25,7 @@ class ScryfallService
     has_more = true
 
     while has_more
-      response = HTTParty.get("#{BASE_URL}/cards/search", query: { q: "set:#{set_code}", page: page, unique: "cards" })
+      response = HTTParty.get("#{BASE_URL}/cards/search", query: { q: "set:#{set_code}", page: page })
       break unless response.success?
 
       cards.concat(response.parsed_response["data"].map { |card_data| format_card(card_data) })
@@ -46,11 +46,32 @@ class ScryfallService
       name: set_data["name"],
       released_at: set_data["released_at"],
       card_count: set_data["card_count"],
-      scryfall_uri: set_data["scryfall_uri"]
+      scryfall_uri: set_data["scryfall_uri"],
+      set_type: set_data["set_type"],
+      parent_set_code: set_data["parent_set_code"]
     }
   end
 
+  # Group sets by parent (main sets with their children)
+  def self.group_sets(sets)
+    # Separate parent sets and child sets
+    parent_sets = sets.select { |s| s[:parent_set_code].nil? }
+    child_sets = sets.select { |s| s[:parent_set_code].present? }
+
+    # Build lookup of children by parent code
+    children_by_parent = child_sets.group_by { |s| s[:parent_set_code] }
+
+    # Build grouped structure
+    parent_sets.map do |parent|
+      {
+        **parent,
+        children: children_by_parent[parent[:code]] || []
+      }
+    end
+  end
+
   # Format card data for database (without downloading image)
+  # Handles both normal cards and double-faced cards (DFCs)
   def self.format_card(card_data)
     {
       name: card_data["name"],
@@ -59,21 +80,38 @@ class ScryfallService
       oracle_text: card_data["oracle_text"],
       rarity: card_data["rarity"],
       scryfall_id: card_data["id"],
-      image_uris: card_data["image_uris"].to_json,
+      image_uris: extract_image_uris(card_data).to_json,
       collector_number: card_data["collector_number"],
       image_path: nil  # Will be set by background job
     }
   end
 
+  # Extract image_uris from card data, handling double-faced cards
+  # DFCs have image_uris in card_faces[0] instead of at the top level
+  def self.extract_image_uris(card_data)
+    # Normal cards have image_uris at top level
+    return card_data["image_uris"] if card_data["image_uris"].present?
+
+    # Double-faced cards have image_uris in card_faces
+    if card_data["card_faces"].present? && card_data["card_faces"][0]["image_uris"].present?
+      return card_data["card_faces"][0]["image_uris"]
+    end
+
+    # Fallback: no image available
+    nil
+  end
+
   # Download card image and return local path
+  # card_data comes from Card#to_image_hash (symbol keys) or raw Scryfall API (string keys)
   def self.download_card_image(card_data)
     ensure_images_dir
 
-    image_uris = card_data["image_uris"]
-    return nil unless image_uris && image_uris["normal"]
+    # Support both symbol and string keys
+    image_uris = card_data[:image_uris] || card_data["image_uris"]
+    return nil unless image_uris && (image_uris["normal"] || image_uris[:normal])
 
-    image_url = image_uris["normal"]
-    scryfall_id = card_data["id"]
+    image_url = image_uris["normal"] || image_uris[:normal]
+    scryfall_id = card_data[:id] || card_data["id"]
 
     # Create filename from scryfall ID and card name
     filename = "#{scryfall_id}.jpg"
@@ -108,6 +146,8 @@ class ScryfallService
       set.released_at = set_data["released_at"]
       set.card_count = set_data["card_count"]
       set.scryfall_uri = set_data["scryfall_uri"]
+      set.set_type = set_data["set_type"]
+      set.parent_set_code = set_data["parent_set_code"]
     end
 
     # Fetch and save cards for this set
