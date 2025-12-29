@@ -1,0 +1,43 @@
+<% 
+  # Calculate total_cards if not passed (e.g., from broadcasts_to)
+  total_cards = local_assigns[:total_cards] || card_set.cards.count
+  missing_images = card_set.cards.where(image_path: nil).count
+  actual_downloaded = card_set.cards.where.not(image_path: nil).count
+  all_done = missing_images == 0
+  has_active_jobs = begin
+    require 'sidekiq/api'
+    Sidekiq::Queue.new.size > 0
+  rescue
+    false
+  end
+  is_downloading = card_set.downloading? && has_active_jobs
+  progress_percent = total_cards > 0 ? (actual_downloaded.to_f / total_cards * 100).round : 0
+%>
+
+<div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+  <div style="color:#888;font-size:13px;">Images</div>
+  
+  <% if is_downloading %>
+    <%# Show progress bar while downloading %>
+    <div style="font-size:24px;font-weight:600;color:#6cf;margin-bottom:8px;">
+      <%= actual_downloaded %>/<%= total_cards %>
+    </div>
+    <div style="background:#333;height:4px;border-radius:2px;overflow:hidden;">
+      <div style="background:#29f;height:100%;width:<%= progress_percent %>%;transition:width 0.3s;"></div>
+    </div>
+    <div style="color:#666;font-size:11px;margin-top:4px;"><%= progress_percent %>%</div>
+  <% elsif missing_images > 0 %>
+    <%# Some images missing - show count with warning color and retry option %>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:24px;font-weight:600;color:#fa0;"><%= actual_downloaded %>/<%= total_cards %></span>
+    </div>
+    <%= button_to "Retry", retry_images_card_set_path(card_set), 
+        method: :post,
+        style: "background:#333;color:#fa0;border:1px solid #fa0;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-top:8px;" %>
+  <% else %>
+    <%# All done - just show count in green %>
+    <div style="font-size:24px;font-weight:600;color:#4f8;">
+      <%= actual_downloaded %>/<%= total_cards %>
+    </div>
+  <% end %>
+</div>
