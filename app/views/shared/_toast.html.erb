@@ -1,3 +1,10 @@
-<div id="toast-container" data-controller="toast-notification" class="fixed bottom-4 right-4 z-50 space-y-3">
-  <!-- Toasts will be appended here -->
+<%
+  messages = []
+  messages << { message: flash[:notice], type: "success" } if flash[:notice].present?
+  messages << { message: flash[:alert], type: "error" } if flash[:alert].present?
+%>
+<div id="toast-container" 
+     data-controller="toast-notification" 
+     data-toast-notification-messages-value="<%= messages.to_json %>"
+     style="position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;flex-direction:column;align-items:flex-end;">
 </div>
