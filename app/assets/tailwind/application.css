@@ -35,133 +35,177 @@
   animation: fadeOut 0.3s ease-out;
 }
 
-/* Dark mode - Pure CSS implementation */
-/* Only apply dark mode when body does NOT have data-auth-page="true" */
-html.dark:has(body:not([data-auth-page="true"])) {
+/* Dark mode - Only for dashboard (authenticated users) */
+html.dark {
   color-scheme: dark;
 }
 
-html.dark body:not([data-auth-page="true"]) {
+html.dark body {
   background-color: rgb(15, 23, 42);
   color: rgb(226, 232, 240);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-white {
+html.dark .bg-white {
   background-color: rgb(30, 41, 59);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-slate-50 {
+html.dark .bg-slate-50 {
   background-color: rgb(15, 23, 42);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-blue-50 {
-  background-color: rgba(59, 130, 246, 0.1);
+html.dark .bg-slate-100 {
+  background-color: rgb(30, 41, 59);
 }
 
-html.dark body:not([data-auth-page="true"]) .text-slate-900 {
-  color: rgb(226, 232, 240);
+html.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15);
 }
 
-html.dark body:not([data-auth-page="true"]) .text-slate-600 {
+html.dark .text-slate-900 {
+  color: rgb(241, 245, 249);
+}
+
+html.dark .text-slate-700 {
+  color: rgb(203, 213, 225);
+}
+
+html.dark .text-slate-600 {
   color: rgb(148, 163, 184);
 }
 
-html.dark body:not([data-auth-page="true"]) .text-slate-500 {
+html.dark .text-slate-500 {
   color: rgb(100, 116, 139);
 }
 
-html.dark body:not([data-auth-page="true"]) .border-slate-200 {
-  border-color: rgb(30, 41, 59);
-}
-
-html.dark body:not([data-auth-page="true"]) .border-slate-300 {
+html.dark .border-slate-200 {
   border-color: rgb(51, 65, 85);
 }
 
-html.dark body:not([data-auth-page="true"]) input,
-html.dark body:not([data-auth-page="true"]) textarea,
-html.dark body:not([data-auth-page="true"]) select {
+html.dark .border-slate-300 {
+  border-color: rgb(71, 85, 105);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
   background-color: rgb(30, 41, 59);
-  color: rgb(226, 232, 240);
-  border-color: rgb(51, 65, 85);
+  color: rgb(241, 245, 249);
+  border-color: rgb(71, 85, 105);
 }
 
-html.dark body:not([data-auth-page="true"]) input:focus,
-html.dark body:not([data-auth-page="true"]) textarea:focus,
-html.dark body:not([data-auth-page="true"]) select:focus {
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: rgb(100, 116, 139);
+}
+
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
   border-color: rgb(59, 130, 246);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-slate-100 {
-  background-color: rgb(30, 41, 59);
-}
-
-html.dark body:not([data-auth-page="true"]) .hover\:bg-slate-100:hover {
+html.dark .hover\:bg-slate-100:hover {
   background-color: rgb(51, 65, 85);
 }
 
-html.dark body:not([data-auth-page="true"]) .hover\:bg-slate-200:hover {
+html.dark .hover\:bg-slate-50:hover {
   background-color: rgb(51, 65, 85);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-red-50 {
-  background-color: rgba(220, 38, 38, 0.1);
+html.dark .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.15);
 }
 
-html.dark body:not([data-auth-page="true"]) .border-red-200 {
-  border-color: rgba(220, 38, 38, 0.3);
+html.dark .text-green-700 {
+  color: rgb(74, 222, 128);
 }
 
-html.dark body:not([data-auth-page="true"]) .text-red-800 {
-  color: rgb(254, 202, 202);
+html.dark .text-green-600 {
+  color: rgb(74, 222, 128);
 }
 
-html.dark body:not([data-auth-page="true"]) .text-red-700 {
-  color: rgb(254, 202, 202);
+html.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.15);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-green-50 {
-  background-color: rgba(34, 197, 94, 0.1);
+html.dark .border-red-200 {
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-blue-600 {
-  background-color: rgb(37, 99, 235);
+html.dark .text-red-700,
+html.dark .text-red-800 {
+  color: rgb(252, 165, 165);
 }
 
-html.dark body:not([data-auth-page="true"]) .hover\:bg-blue-700:hover {
-  background-color: rgb(29, 78, 216);
+html.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15);
 }
 
-html.dark body:not([data-auth-page="true"]) button {
-  color: inherit;
+html.dark .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
-html.dark body:not([data-auth-page="true"]) a {
-  color: rgb(59, 130, 246);
-}
-
-html.dark body:not([data-auth-page="true"]) a:hover {
+html.dark .text-blue-600 {
   color: rgb(96, 165, 250);
 }
 
-html.dark body:not([data-auth-page="true"]) .text-blue-600 {
+html.dark a {
   color: rgb(96, 165, 250);
 }
 
-html.dark body:not([data-auth-page="true"]) .hover\:text-blue-700:hover {
+html.dark a:hover {
   color: rgb(147, 197, 253);
 }
 
-/* Dashboard Layout Adjustments */
-html.dark body:not([data-auth-page="true"]) aside {
+html.dark .hover\:text-blue-600:hover {
+  color: rgb(96, 165, 250);
+}
+
+html.dark aside {
   background-color: rgb(30, 41, 59);
 }
 
-html.dark body:not([data-auth-page="true"]) header {
+html.dark header {
   background-color: rgb(30, 41, 59);
 }
 
-html.dark body:not([data-auth-page="true"]) .bg-blue-50.text-blue-600 {
-  background-color: rgba(59, 130, 246, 0.15);
-  color: rgb(59, 130, 246);
+/* Rarity badge colors for table view */
+.rarity-common {
+  background-color: rgb(241, 245, 249);
+  color: rgb(71, 85, 105);
+}
+
+.rarity-uncommon {
+  background-color: rgb(219, 234, 254);
+  color: rgb(29, 78, 216);
+}
+
+.rarity-rare {
+  background-color: rgb(254, 249, 195);
+  color: rgb(161, 98, 7);
+}
+
+.rarity-mythic {
+  background-color: rgb(255, 237, 213);
+  color: rgb(194, 65, 12);
+}
+
+html.dark .rarity-common {
+  background-color: rgb(51, 65, 85);
+  color: rgb(203, 213, 225);
+}
+
+html.dark .rarity-uncommon {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: rgb(147, 197, 253);
+}
+
+html.dark .rarity-rare {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: rgb(253, 224, 71);
+}
+
+html.dark .rarity-mythic {
+  background-color: rgba(249, 115, 22, 0.2);
+  color: rgb(251, 146, 60);
 }

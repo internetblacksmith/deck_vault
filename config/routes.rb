@@ -1,6 +1,13 @@
 Rails.application.routes.draw do
   root "card_sets#index"
 
+  # Authentication routes
+  get "sign_up", to: "registrations#new", as: "sign_up"
+  post "sign_up", to: "registrations#create"
+  get "login", to: "sessions#new", as: "login"
+  post "login", to: "sessions#create"
+  delete "logout", to: "sessions#destroy", as: "logout"
+
   resources :card_sets, only: [ :index, :show ] do
     post :download_set, on: :collection
     patch :update_card, on: :member

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_160520) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_28_204516) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "card_count"
     t.string "code"
@@ -47,6 +47,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_160520) do
     t.integer "quantity"
     t.datetime "updated_at", null: false
     t.index ["card_id"], name: "index_collection_cards_on_card_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "password_digest"
+    t.datetime "updated_at", null: false
   end
 
   add_foreign_key "cards", "card_sets"

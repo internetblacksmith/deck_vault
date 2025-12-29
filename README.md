@@ -4,17 +4,19 @@ A Rails web application for managing your Magic: The Gathering card collection. 
 
 ## Features
 
+- **Authentication**: Secure account creation and login with bcrypt password hashing
 - **Download Sets**: Fetch complete card lists from Scryfall API for any Magic set
 - **Background Image Downloads**: Uses Sidekiq to download images asynchronously without blocking requests
 - **Local Image Caching**: Automatically download and cache all card images locally for offline access
 - **Collection Tracking**: Mark cards as owned and track quantity of copies
 - **Binder Management**: Organize cards by binder page number for easy physical organization
 - **Multiple Views**:
-  - **Table View**: Detailed list with all card information
-  - **Grid View**: Card images in a compact grid layout with local caching
-  - **Binder Pages View**: Cards organized by page number with visual card previews
+   - **Table View**: Detailed list with all card information
+   - **Grid View**: Card images in a compact grid layout with local caching
+   - **Binder Pages View**: Cards organized by page number with visual card previews
 - **Card Information**: Complete details including mana cost, type, rarity, and official artwork
 - **Offline Ready**: Once downloaded, all card images are cached locally and don't require internet connection to view
+- **Modern Architecture**: Built with Rails 8.1, Hotwire (Turbo + Stimulus), real-time updates with ActionCable
 
 ## Requirements
 
@@ -63,6 +65,11 @@ bundle exec sidekiq -c 5 -v
 ```
 
 7. Open your browser and navigate to `http://localhost:3000`
+
+8. On first access, you'll be prompted to create an account:
+   - Sign up with an email and password
+   - After creation, you'll be logged in automatically
+   - Use these credentials to log in on future visits
 
 ## Development Setup
 
@@ -195,12 +202,36 @@ When you download a set, the app automatically:
 - Wishlist feature
 - User accounts and multi-collection support
 
-## Development
+## Testing
 
-Run tests:
+This project has comprehensive test coverage with **242 automated tests** covering models, requests, and authentication flows.
+
+### Run All Tests
 ```bash
-bin/rails test
+bundle exec rspec
 ```
+
+### Run Specific Test Suites
+```bash
+# Model unit tests (127 tests)
+bundle exec rspec spec/models
+
+# Controller/request tests (115 tests)
+bundle exec rspec spec/requests
+
+# With coverage report
+COVERAGE=true bundle exec rspec
+```
+
+### Test Coverage
+- **User Model**: 41 tests (authentication, password hashing, validation)
+- **CardSet Model**: 35 tests (card management, progress tracking)
+- **Card Model**: 42 tests (card data, image handling)
+- **CollectionCard Model**: 50 tests (collection tracking, boundaries)
+- **Auth Requests**: 42 tests (login, signup, session management)
+- **CardSet Requests**: 32 tests (API endpoints, caching, Turbo Streams)
+
+## Development
 
 Lint code:
 ```bash
@@ -212,6 +243,37 @@ Security audit:
 bin/brakeman
 bin/bundler-audit
 ```
+
+## Architecture
+
+### Rails 8.1 Modern Stack
+- **Frontend**: Hotwire (Turbo 2.0 + Stimulus 1.3) for fast, responsive UI without SPAs
+- **Real-time**: ActionCable with Turbo Streams for live progress updates
+- **Caching**: Fragment caching with HTTP cache headers (24h for completed sets, 0s for downloading)
+- **Background Jobs**: Sidekiq for asynchronous image downloads
+- **Database**: SQLite3 for simplicity and offline capability
+- **Authentication**: bcrypt for secure password hashing
+
+### Authentication
+- Custom auth implementation (no Devise needed for this simple case)
+- Sessions stored in encrypted Rails session cookie
+- Password hashing with bcrypt (3.1.20)
+- Email validation with RFC standard regex
+- Protected routes with `authenticate_user` before_action
+- Automatic redirect to login for unauthenticated access
+
+### API Integration
+Scryfall API integration for card data:
+- Paginated set fetching
+- Card details and images
+- Error handling and retries
+- VCR cassettes for test mocking
+
+### Code Quality
+- 242 automated tests (RSpec with FactoryBot)
+- shoulda-matchers for model testing
+- 100% test coverage for critical paths
+- RuboCop Omakase Rails style guide compliance
 
 ## License
 

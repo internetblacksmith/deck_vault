@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { subscribeToSetProgress } from "../channels/set_progress"
+import { subscribeToSetProgress } from "channels/set_progress"
 
 export default class extends Controller {
   connect() {
