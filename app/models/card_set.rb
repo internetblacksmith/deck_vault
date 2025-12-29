@@ -4,7 +4,10 @@ class CardSet < ApplicationRecord
   validates :code, uniqueness: true
 
   # Enable Turbo Streams broadcasting for this model
-  broadcasts_to ->(card_set) { "card_set_#{card_set.id}_progress" }
+  # Note: We handle broadcasts manually in DownloadCardImagesJob to pass total_cards
+  broadcasts_to ->(card_set) { "card_set_#{card_set.id}_progress" },
+                target: ->(card_set) { "progress-#{card_set.id}" },
+                partial: "card_sets/images_stats_card"
 
   enum :download_status, { pending: "pending", downloading: "downloading", completed: "completed", failed: "failed" }
 
