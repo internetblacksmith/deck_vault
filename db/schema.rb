@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_29_222020) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_01_180652) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "binder_columns", default: 3
     t.integer "binder_rows", default: 3
@@ -21,6 +21,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_29_222020) do
     t.datetime "created_at", null: false
     t.string "download_status", default: "pending"
     t.integer "images_downloaded", default: 0
+    t.boolean "include_subsets", default: false
     t.string "name"
     t.string "parent_set_code"
     t.date "released_at"
@@ -29,24 +30,27 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_29_222020) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "cards", force: :cascade do |t|
+  create_table "cards", id: :string, force: :cascade do |t|
+    t.string "back_image_path"
+    t.text "back_image_uris"
     t.integer "card_set_id", null: false
     t.string "collector_number"
     t.datetime "created_at", null: false
+    t.boolean "foil", default: true
     t.string "image_path"
     t.text "image_uris"
     t.string "mana_cost"
     t.string "name"
+    t.boolean "nonfoil", default: true
     t.text "oracle_text"
     t.string "rarity"
-    t.string "scryfall_id"
     t.string "type_line"
     t.datetime "updated_at", null: false
     t.index ["card_set_id"], name: "index_cards_on_card_set_id"
   end
 
   create_table "collection_cards", force: :cascade do |t|
-    t.integer "card_id", null: false
+    t.string "card_id"
     t.datetime "created_at", null: false
     t.integer "foil_quantity"
     t.text "notes"
