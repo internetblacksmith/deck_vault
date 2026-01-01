@@ -3,18 +3,32 @@ class DownloadCardImagesJob < ApplicationJob
   sidekiq_options retry: 3
 
   def perform(card_id)
-    card = Card.find(card_id)
+    # Eager load card_set to avoid strict_loading violation
+    card = Card.includes(:card_set).find(card_id)
     card_set = card.card_set
 
-    return if card.image_path.present? # Skip if already downloaded
+    # Download front image if not present
+    if card.image_path.blank?
+      image_path = ScryfallService.download_card_image(card.to_image_hash)
 
-    image_path = ScryfallService.download_card_image(card.to_image_hash)
+      if image_path
+        card.update(image_path: image_path)
+        Rails.logger.info("Downloaded front image for card #{card.name}")
+      else
+        Rails.logger.warn("Failed to download front image for card #{card.name}")
+      end
+    end
 
-    if image_path
-      card.update(image_path: image_path)
-      Rails.logger.info("Downloaded image for card #{card.name}")
-    else
-      Rails.logger.warn("Failed to download image for card #{card.name}")
+    # Download back image for double-faced cards if not present
+    if card.double_faced? && card.back_image_path.blank?
+      back_image_path = ScryfallService.download_card_image(card.to_back_image_hash, suffix: "_back")
+
+      if back_image_path
+        card.update(back_image_path: back_image_path)
+        Rails.logger.info("Downloaded back image for card #{card.name}")
+      else
+        Rails.logger.warn("Failed to download back image for card #{card.name}")
+      end
     end
 
     # Update progress
