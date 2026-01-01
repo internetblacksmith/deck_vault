@@ -22,7 +22,7 @@ docker-compose up -d redis
 
 ### Running Tests (RSpec)
 ```bash
-# Run all tests (242 tests: 127 model + 115 request)
+# Run all tests (298 tests: model + request specs)
 bundle exec rspec
 
 # Run specific test suites
@@ -41,6 +41,27 @@ bundle exec rspec spec/models/user_spec.rb
 
 # Run tests matching a pattern
 bundle exec rspec -e "validations"
+```
+
+### Running Tests (Cucumber - BDD Acceptance Tests)
+```bash
+# Run all Cucumber scenarios
+bundle exec cucumber
+
+# Run specific feature file
+bundle exec cucumber features/binder_view.feature
+
+# Run specific scenario by line number
+bundle exec cucumber features/binder_view.feature:17
+
+# Run with verbose output
+bundle exec cucumber --format pretty
+
+# Run only non-WIP scenarios (default)
+bundle exec cucumber --tags 'not @wip'
+
+# Run JavaScript scenarios (requires Chrome/Chromium)
+bundle exec cucumber --tags @javascript
 ```
 
 ### Code Quality
