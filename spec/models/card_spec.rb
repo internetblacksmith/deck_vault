@@ -12,30 +12,35 @@ RSpec.describe Card, type: :model do
     subject { build(:card) }
 
     it { is_expected.to validate_presence_of(:name) }
-    it { is_expected.to validate_presence_of(:scryfall_id) }
-    it { is_expected.to validate_uniqueness_of(:scryfall_id).case_insensitive }
+    it { is_expected.to validate_presence_of(:id) }
+    it { is_expected.to validate_uniqueness_of(:id).case_insensitive }
 
     context 'when name is missing' do
       before { subject.name = nil }
       it { is_expected.not_to be_valid }
     end
 
-    context 'when scryfall_id is missing' do
-      before { subject.scryfall_id = nil }
+    context 'when id is missing' do
+      before { subject.id = nil }
       it { is_expected.not_to be_valid }
     end
 
-    context 'when scryfall_id already exists' do
-      before do
-        create(:card, scryfall_id: '12345678-1234-1234-1234-123456789012')
-        subject.scryfall_id = '12345678-1234-1234-1234-123456789012'
-      end
+    context 'when id already exists' do
+      let!(:existing_card) { create(:card) }
 
-      it { is_expected.not_to be_valid }
+      it 'is not valid' do
+        duplicate = Card.new(
+          id: existing_card.id,
+          name: 'Duplicate Card',
+          card_set: existing_card.card_set
+        )
+        expect(duplicate).not_to be_valid
+        expect(duplicate.errors[:id]).to include('has already been taken')
+      end
     end
 
     context 'when all required fields are present' do
-      subject { build(:card, name: 'Lightning Bolt', scryfall_id: '12345678-1234-1234-1234-123456789012') }
+      subject { build(:card, name: 'Lightning Bolt', id: '12345678-1234-1234-1234-123456789012') }
       it { is_expected.to be_valid }
     end
 
@@ -55,9 +60,9 @@ RSpec.describe Card, type: :model do
     context 'when image_uris contains valid JSON' do
       subject { create(:card, image_uris: { normal: 'https://example.com/normal.jpg', small: 'https://example.com/small.jpg' }.to_json) }
 
-      it 'returns hash with scryfall_id, name, and image_uris' do
+      it 'returns hash with id, name, and image_uris' do
         result = subject.to_image_hash
-        expect(result[:id]).to eq(subject.scryfall_id)
+        expect(result[:id]).to eq(subject.id)
         expect(result[:name]).to eq(subject.name)
         expect(result[:image_uris]).to be_a(Hash)
       end
@@ -138,7 +143,8 @@ RSpec.describe Card, type: :model do
     subject { create(:card) }
 
     it { is_expected.to respond_to(:name) }
-    it { is_expected.to respond_to(:scryfall_id) }
+    it { is_expected.to respond_to(:id) }
+    it { is_expected.to respond_to(:scryfall_id) }  # alias for id
     it { is_expected.to respond_to(:card_set_id) }
     it { is_expected.to respond_to(:collector_number) }
     it { is_expected.to respond_to(:type_line) }
@@ -159,7 +165,7 @@ RSpec.describe Card, type: :model do
 
     it 'has required attributes' do
       expect(subject.name).to be_present
-      expect(subject.scryfall_id).to be_present
+      expect(subject.id).to be_present
     end
 
     it 'belongs to a card_set' do
@@ -190,10 +196,10 @@ RSpec.describe Card, type: :model do
       end
     end
 
-    it 'increments scryfall_id sequentially' do
+    it 'increments id sequentially' do
       card1 = create(:card)
       card2 = create(:card)
-      expect(card2.scryfall_id).not_to eq(card1.scryfall_id)
+      expect(card2.id).not_to eq(card1.id)
     end
   end
 
@@ -204,12 +210,128 @@ RSpec.describe Card, type: :model do
     it 'persists attributes to database' do
       reloaded = Card.find(subject.id)
       expect(reloaded.name).to eq(subject.name)
-      expect(reloaded.scryfall_id).to eq(subject.scryfall_id)
+      expect(reloaded.id).to eq(subject.id)
     end
 
     it 'enforces foreign key constraint' do
       subject.card_set_id = 999999
       expect { subject.save(validate: false) }.to raise_error(ActiveRecord::InvalidForeignKey)
+    end
+  end
+
+  # Double-faced card methods
+  describe '#double_faced?' do
+    context 'when card has back_image_uris' do
+      subject { create(:card, back_image_uris: { normal: 'https://example.com/back.jpg' }.to_json) }
+
+      it 'returns true' do
+        expect(subject.double_faced?).to be true
+      end
+    end
+
+    context 'when card has no back_image_uris' do
+      subject { create(:card, back_image_uris: nil) }
+
+      it 'returns false' do
+        expect(subject.double_faced?).to be false
+      end
+    end
+
+    context 'when back_image_uris is empty string' do
+      subject { create(:card, back_image_uris: '') }
+
+      it 'returns false' do
+        expect(subject.double_faced?).to be false
+      end
+    end
+  end
+
+  describe '#to_back_image_hash' do
+    context 'when card is double-faced' do
+      subject do
+        create(:card,
+          back_image_uris: { normal: 'https://example.com/back.jpg', small: 'https://example.com/back_small.jpg' }.to_json)
+      end
+
+      it 'returns hash with id, name, and back image_uris' do
+        result = subject.to_back_image_hash
+        expect(result[:id]).to eq(subject.id)
+        expect(result[:name]).to eq(subject.name)
+        expect(result[:image_uris]).to be_a(Hash)
+      end
+
+      it 'parses back image_uris JSON correctly' do
+        result = subject.to_back_image_hash
+        expect(result[:image_uris]['normal']).to eq('https://example.com/back.jpg')
+        expect(result[:image_uris]['small']).to eq('https://example.com/back_small.jpg')
+      end
+    end
+
+    context 'when card is not double-faced' do
+      subject { create(:card, back_image_uris: nil) }
+
+      it 'returns nil' do
+        expect(subject.to_back_image_hash).to be_nil
+      end
+    end
+  end
+
+  # Foil/Nonfoil attributes
+  describe 'foil and nonfoil attributes' do
+    describe '#foil' do
+      it 'defaults to true' do
+        card = create(:card)
+        expect(card.foil).to be true
+      end
+
+      it 'can be set to false' do
+        card = create(:card, foil: false)
+        expect(card.foil).to be false
+      end
+    end
+
+    describe '#nonfoil' do
+      it 'defaults to true' do
+        card = create(:card)
+        expect(card.nonfoil).to be true
+      end
+
+      it 'can be set to false' do
+        card = create(:card, nonfoil: false)
+        expect(card.nonfoil).to be false
+      end
+    end
+
+    context 'foil-only card' do
+      subject { create(:card, foil: true, nonfoil: false) }
+
+      it 'is foil but not nonfoil' do
+        expect(subject.foil).to be true
+        expect(subject.nonfoil).to be false
+      end
+    end
+
+    context 'nonfoil-only card' do
+      subject { create(:card, foil: false, nonfoil: true) }
+
+      it 'is nonfoil but not foil' do
+        expect(subject.foil).to be false
+        expect(subject.nonfoil).to be true
+      end
+    end
+  end
+
+  # Back image path attribute
+  describe 'back_image_path attribute' do
+    it { is_expected.to respond_to(:back_image_path) }
+    it { is_expected.to respond_to(:back_image_uris) }
+
+    context 'with back image downloaded' do
+      subject { create(:card, back_image_path: 'card_images/abc123_back.jpg') }
+
+      it 'stores the back image path' do
+        expect(subject.back_image_path).to eq('card_images/abc123_back.jpg')
+      end
     end
   end
 
