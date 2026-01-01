@@ -4,6 +4,38 @@ RSpec.describe CardSet, type: :model do
   # Associations
   describe 'associations' do
     it { is_expected.to have_many(:cards).dependent(:destroy) }
+    it { is_expected.to have_many(:child_sets).class_name('CardSet') }
+    it { is_expected.to belong_to(:parent_set).class_name('CardSet').optional }
+  end
+
+  describe 'parent/child relationships' do
+    let!(:parent_set) { create(:card_set, code: 'MAIN', name: 'Main Set') }
+    let!(:child_set1) { create(:card_set, code: 'PROMO', name: 'Promos', parent_set_code: 'MAIN') }
+    let!(:child_set2) { create(:card_set, code: 'TOKEN', name: 'Tokens', parent_set_code: 'MAIN') }
+
+    describe '#child_sets' do
+      it 'returns all sets with matching parent_set_code' do
+        expect(parent_set.child_sets).to include(child_set1, child_set2)
+      end
+
+      it 'returns empty array when no children exist' do
+        standalone = create(:card_set, code: 'SOLO', name: 'Solo Set')
+        expect(standalone.child_sets).to be_empty
+      end
+    end
+
+    describe '#parent_set' do
+      it 'returns the parent set based on parent_set_code' do
+        # Reload with parent association to avoid strict loading
+        child = CardSet.includes(:parent_set).find(child_set1.id)
+        expect(child.parent_set).to eq(parent_set)
+      end
+
+      it 'returns nil when no parent exists' do
+        parent = CardSet.includes(:parent_set).find(parent_set.id)
+        expect(parent.parent_set).to be_nil
+      end
+    end
   end
 
   # Validations

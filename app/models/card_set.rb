@@ -1,5 +1,10 @@
 class CardSet < ApplicationRecord
   has_many :cards, dependent: :destroy
+
+  # Parent/child set relationships
+  belongs_to :parent_set, class_name: "CardSet", primary_key: "code", foreign_key: "parent_set_code", optional: true
+  has_many :child_sets, class_name: "CardSet", primary_key: "code", foreign_key: "parent_set_code"
+
   validates :code, :name, presence: true
   validates :code, uniqueness: true
 
@@ -30,10 +35,12 @@ class CardSet < ApplicationRecord
   end
 
   def owned_cards_count
-    if cards.loaded?
-      cards.count { |c| c.collection_card.present? }
+    if cards.loaded? && cards.all? { |c| c.association(:collection_card).loaded? }
+      # Use in-memory count when both cards and collection_cards are preloaded
+      cards.count { |c| c.collection_card.present? && (c.collection_card.quantity.to_i > 0 || c.collection_card.foil_quantity.to_i > 0) }
     else
-      cards.joins(:collection_card).distinct.count
+      # Fall back to database query
+      cards.joins(:collection_card).where("collection_cards.quantity > 0 OR collection_cards.foil_quantity > 0").distinct.count
     end
   end
 end
