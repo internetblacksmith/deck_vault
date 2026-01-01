@@ -11,7 +11,8 @@ RSpec.describe CollectionCard, type: :model do
     subject { build(:collection_card) }
 
     it { is_expected.to validate_presence_of(:card_id) }
-    it { is_expected.to validate_uniqueness_of(:card_id) }
+    # card_id is a string (scryfall UUID), case insensitivity check is not applicable
+    it { is_expected.to validate_uniqueness_of(:card_id).case_insensitive }
 
     it { is_expected.to validate_numericality_of(:quantity).is_greater_than_or_equal_to(0).allow_nil }
     it { is_expected.to validate_numericality_of(:page_number).is_greater_than(0).is_less_than_or_equal_to(200).allow_nil }
