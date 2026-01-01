@@ -1,3 +1,19 @@
+<%
+  # Set defaults for position and cards_per_page if not provided (e.g., from update_card action)
+  position ||= defined?(local_assigns[:position]) ? local_assigns[:position] : nil
+  cards_per_page ||= defined?(local_assigns[:cards_per_page]) ? local_assigns[:cards_per_page] : nil
+  
+  # Calculate binder page if we have the needed data, otherwise use card_set defaults
+  if position.nil? || cards_per_page.nil?
+    binder_rows = card.card_set.binder_rows || 3
+    binder_columns = card.card_set.binder_columns || 3
+    cards_per_page = binder_rows * binder_columns
+    # Position not available, show "-"
+    binder_page_display = "-"
+  else
+    binder_page_display = calculate_binder_page(position, cards_per_page)
+  end
+%>
 <tr data-card-id="<%= card.id %>" 
     data-controller="card-update" 
     data-card-sort-target="item"
@@ -7,6 +23,10 @@
     data-sort-color="<%= color_sort_value(card.mana_cost) %>"
     data-sort-mana="<%= mana_value(card.mana_cost) %>"
     data-sort-type="<%= card.type_line&.downcase || '' %>"
+    data-owned="<%= (card.collection_card&.quantity.to_i > 0 || card.collection_card&.foil_quantity.to_i > 0).to_s %>"
+    data-is-foil="<%= card.foil?.to_s %>"
+    data-is-nonfoil="<%= card.nonfoil?.to_s %>"
+    data-search-text="<%= "#{card.name} #{card.type_line} #{card.collector_number}".downcase %>"
     style="border-bottom:1px solid #333;">
     <td style="padding:12px 16px;">
       <div style="color:#fff;font-weight:500;"><%= card.name %></div>
@@ -16,6 +36,9 @@
     <td style="padding:12px 16px;">
       <% rarity_colors = { 'common' => '#888', 'uncommon' => '#6cf', 'rare' => '#fa0', 'mythic' => '#f64' } %>
       <span style="color:<%= rarity_colors[card.rarity] || '#888' %>;font-size:13px;"><%= card.rarity&.capitalize %></span>
+    </td>
+    <td style="padding:12px 16px;text-align:center;color:#666;font-size:13px;">
+      <%= binder_page_display %>
     </td>
     <td style="padding:12px 16px;text-align:center;">
       <input type="number" min="0" 

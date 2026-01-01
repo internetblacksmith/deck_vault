@@ -1,6 +1,11 @@
+<%
+  is_dfc = card.double_faced?
+  front_image = card.image_path.present? ? "/#{card.image_path}" : '/card_placeholder.webp'
+  back_image = is_dfc && card.back_image_path.present? ? "/#{card.back_image_path}" : ''
+%>
 <%= turbo_frame_tag "grid-card-#{card.id}" do %>
   <div data-card-id="<%= card.id %>" 
-       data-controller="card-update" 
+       data-controller="card-update grid-card-flip" 
        data-card-sort-target="item"
        data-sort-name="<%= card.name.downcase %>"
        data-sort-number="<%= sortable_collector_number(card.collector_number) %>"
@@ -8,12 +13,32 @@
        data-sort-color="<%= color_sort_value(card.mana_cost) %>"
        data-sort-mana="<%= mana_value(card.mana_cost) %>"
        data-sort-type="<%= card.type_line&.downcase || '' %>"
+       data-owned="<%= (card.collection_card&.quantity.to_i > 0 || card.collection_card&.foil_quantity.to_i > 0).to_s %>"
+       data-is-foil="<%= card.foil?.to_s %>"
+       data-is-nonfoil="<%= card.nonfoil?.to_s %>"
+       data-search-text="<%= "#{card.name} #{card.type_line} #{card.collector_number}".downcase %>"
+       data-grid-card-flip-is-dfc-value="<%= is_dfc %>"
+       data-grid-card-flip-front-image-value="<%= front_image %>"
+       data-grid-card-flip-back-image-value="<%= back_image %>"
        style="background:#1a1a1a;border-radius:6px;overflow:hidden;">
-    <% if card.image_path.present? %>
-      <img src="/<%= card.image_path %>" alt="<%= card.name %>" style="width:100%;height:auto;" onerror="this.src='/card_placeholder.webp'">
-    <% else %>
-      <img src="/card_placeholder.webp" alt="<%= card.name %>" style="width:100%;height:auto;">
-    <% end %>
+    <div style="position:relative;">
+      <img data-grid-card-flip-target="cardImage"
+           src="<%= front_image %>" 
+           alt="<%= card.name %>" 
+           style="width:100%;height:auto;" 
+           onerror="this.src='/card_placeholder.webp'">
+      <% if is_dfc %>
+        <button data-action="click->grid-card-flip#flipCard"
+                data-grid-card-flip-target="flipButton"
+                style="position:absolute;top:6px;left:6px;width:28px;height:28px;border-radius:4px;background:rgba(0,0,0,0.75);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"
+                onmouseover="this.style.background='rgba(0,0,0,0.9)'"
+                onmouseout="this.style.background=this.dataset.showing === 'back' ? 'rgba(40,100,180,0.85)' : 'rgba(0,0,0,0.75)'"
+                title="Flip card"
+                data-showing="front">
+          &#8644;
+        </button>
+      <% end %>
+    </div>
     
     <div style="padding:12px;">
       <div style="color:#fff;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= card.name %></div>
