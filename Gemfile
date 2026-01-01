@@ -57,7 +57,7 @@ gem "redis", "5.4.1"
 gem "connection_pool", "2.5.5"
 
 # Environment variables
-gem "dotenv-rails", "3.2.0", groups: [:development, :test]
+gem "dotenv-rails", "3.2.0", groups: [ :development, :test ]
 
 group :development, :test do
    # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -76,7 +76,7 @@ group :development, :test do
   group :development do
     # Use console on exceptions pages [https://github.com/rails/web-console]
     gem "web-console", "4.2.1"
-    
+
     # Process manager for managing multiple services [https://github.com/ddollar/foreman]
     gem "foreman", "0.90.0"
   end
@@ -91,8 +91,12 @@ group :development, :test do
      gem "factory_bot_rails", "6.4.0"
      gem "faker", "3.2.3"
      gem "shoulda-matchers", "6.4.0"
-     
+
      # VCR - Record and replay HTTP interactions
      gem "vcr", "6.4.0"
      gem "webmock", "3.26.1"
+
+     # Cucumber - BDD acceptance testing
+     gem "cucumber-rails", "3.1.1", require: false
+     gem "database_cleaner-active_record", "2.2.1"
    end
