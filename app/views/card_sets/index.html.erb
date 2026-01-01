@@ -102,6 +102,29 @@
     <!-- My Collection -->
     <div class="collection-section">
       <h2 class="section-title">My Collection</h2>
+      
+      <!-- Backup/Restore Controls -->
+      <div class="backup-controls" data-controller="backup">
+        <div class="backup-buttons">
+          <a href="<%= export_collection_card_sets_path %>" class="backup-btn backup-btn--export">
+            Export Backup
+          </a>
+          <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--import">
+            Import Backup
+          </button>
+        </div>
+        <div data-backup-target="importPanel" class="import-panel" style="display:none;">
+          <%= form_tag import_collection_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
+            <input type="file" name="backup_file" accept=".json" class="import-file-input">
+            <div class="import-actions">
+              <%= submit_tag "Restore", class: "backup-btn backup-btn--restore" %>
+              <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--cancel">Cancel</button>
+            </div>
+            <p class="import-hint">Select a previously exported JSON backup file</p>
+          <% end %>
+        </div>
+      </div>
+      
       <div class="collection-list">
         <% if @downloaded_sets.any? %>
           <% @downloaded_sets.each do |set| %>
@@ -365,6 +388,88 @@
     padding: 32px;
     text-align: center;
     color: #666;
+  }
+
+  /* Backup Controls */
+  .backup-controls {
+    margin-bottom: 16px;
+  }
+  
+  .backup-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .backup-btn {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    display: inline-block;
+  }
+  
+  .backup-btn--export {
+    background: #2a4a2a;
+    color: #8c8;
+  }
+  
+  .backup-btn--export:hover {
+    background: #3a5a3a;
+  }
+  
+  .backup-btn--import {
+    background: #333;
+    color: #ccc;
+  }
+  
+  .backup-btn--import:hover {
+    background: #444;
+  }
+  
+  .backup-btn--restore {
+    background: #29f;
+    color: #fff;
+  }
+  
+  .backup-btn--cancel {
+    background: #333;
+    color: #888;
+  }
+  
+  .import-panel {
+    background: #1a1a1a;
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 8px;
+  }
+  
+  .import-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .import-file-input {
+    background: #222;
+    color: #eee;
+    border: 1px solid #444;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  
+  .import-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .import-hint {
+    color: #666;
+    font-size: 12px;
+    margin: 0;
   }
 
   /* Set Items (dynamically rendered) */

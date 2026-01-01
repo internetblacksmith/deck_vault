@@ -11,33 +11,76 @@
     false
   end
   is_downloading = card_set.downloading? && has_active_jobs
-  progress_percent = total_cards > 0 ? (actual_downloaded.to_f / total_cards * 100).round : 0
+  progress_percent = total_cards > 0 ? (actual_downloaded.to_f / total_cards * 100).round(1) : 0
+  pct_color = percentage_color(progress_percent)
+  compact = local_assigns[:compact] || false
+  as_td = local_assigns[:as_td] || false
 %>
 
-<div style="background:#1a1a1a;padding:16px;border-radius:6px;">
-  <div style="color:#888;font-size:13px;">Images</div>
-  
-  <% if is_downloading %>
-    <%# Show progress bar while downloading %>
-    <div style="font-size:24px;font-weight:600;color:#6cf;margin-bottom:8px;">
+<% if as_td %>
+  <!-- Table cell mode for stats table -->
+  <td style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+    <div style="font-size:18px;font-weight:600;color:#fff;"><%= actual_downloaded %>/<%= total_cards %></div>
+    <% if is_downloading %>
+      <div style="background:#333;height:3px;border-radius:2px;overflow:hidden;margin:4px 0;">
+        <div style="background:<%= pct_color %>;height:100%;width:<%= progress_percent %>%;transition:width 0.3s;"></div>
+      </div>
+      <div style="color:<%= pct_color %>;font-size:12px;"><%= progress_percent %>%</div>
+    <% elsif missing_images > 0 %>
+      <div style="color:<%= pct_color %>;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span><%= progress_percent %>%</span>
+        <%= button_to "Retry", retry_images_card_set_path(card_set), 
+            method: :post,
+            data: { turbo: false },
+            style: "background:transparent;color:#{pct_color};border:1px solid #{pct_color};padding:1px 6px;border-radius:3px;cursor:pointer;font-size:10px;" %>
+      </div>
+    <% else %>
+      <div style="color:<%= pct_color %>;font-size:12px;"><%= progress_percent %>%</div>
+    <% end %>
+  </td>
+<% elsif compact %>
+  <!-- Compact mode for grid layout -->
+  <div style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+    <div style="font-size:18px;font-weight:600;color:#fff;"><%= actual_downloaded %>/<%= total_cards %></div>
+    <% if is_downloading %>
+      <div style="background:#333;height:3px;border-radius:2px;overflow:hidden;margin:4px 0;">
+        <div style="background:<%= pct_color %>;height:100%;width:<%= progress_percent %>%;transition:width 0.3s;"></div>
+      </div>
+      <div style="color:<%= pct_color %>;font-size:12px;"><%= progress_percent %>%</div>
+    <% elsif missing_images > 0 %>
+      <div style="color:<%= pct_color %>;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span><%= progress_percent %>%</span>
+        <%= button_to "Retry", retry_images_card_set_path(card_set), 
+            method: :post,
+            data: { turbo: false },
+            style: "background:transparent;color:#{pct_color};border:1px solid #{pct_color};padding:1px 6px;border-radius:3px;cursor:pointer;font-size:10px;" %>
+      </div>
+    <% else %>
+      <div style="color:<%= pct_color %>;font-size:12px;"><%= progress_percent %>%</div>
+    <% end %>
+  </div>
+<% else %>
+  <!-- Standard mode for standalone card -->
+  <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+    <div style="color:#888;font-size:13px;">Images</div>
+    <div style="font-size:24px;font-weight:600;color:#fff;">
       <%= actual_downloaded %>/<%= total_cards %>
     </div>
-    <div style="background:#333;height:4px;border-radius:2px;overflow:hidden;">
-      <div style="background:#29f;height:100%;width:<%= progress_percent %>%;transition:width 0.3s;"></div>
-    </div>
-    <div style="color:#666;font-size:11px;margin-top:4px;"><%= progress_percent %>%</div>
-  <% elsif missing_images > 0 %>
-    <%# Some images missing - show count with warning color and retry option %>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span style="font-size:24px;font-weight:600;color:#fa0;"><%= actual_downloaded %>/<%= total_cards %></span>
-    </div>
-    <%= button_to "Retry", retry_images_card_set_path(card_set), 
-        method: :post,
-        style: "background:#333;color:#fa0;border:1px solid #fa0;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;margin-top:8px;" %>
-  <% else %>
-    <%# All done - just show count in green %>
-    <div style="font-size:24px;font-weight:600;color:#4f8;">
-      <%= actual_downloaded %>/<%= total_cards %>
-    </div>
-  <% end %>
-</div>
+    <% if is_downloading %>
+      <div style="background:#333;height:4px;border-radius:2px;overflow:hidden;margin-top:4px;">
+        <div style="background:<%= pct_color %>;height:100%;width:<%= progress_percent %>%;transition:width 0.3s;"></div>
+      </div>
+      <div style="color:<%= pct_color %>;font-size:13px;margin-top:4px;"><%= progress_percent %>%</div>
+    <% elsif missing_images > 0 %>
+      <div style="color:<%= pct_color %>;font-size:13px;margin-top:4px;display:flex;align-items:center;gap:8px;">
+        <span><%= progress_percent %>%</span>
+        <%= button_to "Retry", retry_images_card_set_path(card_set), 
+            method: :post,
+            data: { turbo: false },
+            style: "background:transparent;color:#{pct_color};border:1px solid #{pct_color};padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px;" %>
+      </div>
+    <% else %>
+      <div style="color:<%= pct_color %>;font-size:13px;margin-top:4px;"><%= progress_percent %>%</div>
+    <% end %>
+  </div>
+<% end %>
