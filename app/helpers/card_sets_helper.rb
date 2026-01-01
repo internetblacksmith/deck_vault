@@ -91,4 +91,35 @@ module CardSetsHelper
     # Format: SET + zero-padded number (3 digits) + suffix
     "#{set_code.upcase}#{format('%03d', num_part)}#{suffix}"
   end
+
+  # Calculate which binder page a card would be on based on its position
+  # Position is 1-indexed (first card is position 1)
+  def calculate_binder_page(position, cards_per_page)
+    return 1 if position <= 0 || cards_per_page <= 0
+
+    ((position - 1) / cards_per_page) + 1
+  end
+
+  # Returns a color for percentage values: red (0%) -> yellow (50%) -> green (100%)
+  def percentage_color(percent)
+    percent = percent.to_f.clamp(0, 100)
+
+    if percent < 50
+      # Red to Yellow: interpolate from #f44 (red) to #fa0 (yellow/orange)
+      # At 0%: red, at 50%: yellow
+      ratio = percent / 50.0
+      r = 255
+      g = (68 + (170 - 68) * ratio).round  # 68 -> 170
+      b = (68 - 68 * ratio).round           # 68 -> 0
+    else
+      # Yellow to Green: interpolate from #fa0 (yellow) to #4f8 (green)
+      # At 50%: yellow, at 100%: green
+      ratio = (percent - 50) / 50.0
+      r = (255 - (255 - 68) * ratio).round  # 255 -> 68
+      g = (170 + (255 - 170) * ratio).round # 170 -> 255
+      b = (0 + (136 - 0) * ratio).round     # 0 -> 136
+    end
+
+    format("#%02x%02x%02x", r, g, b)
+  end
 end
