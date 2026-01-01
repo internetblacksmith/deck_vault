@@ -12,11 +12,15 @@ Rails.application.routes.draw do
     collection do
       post :download_set
       get :available_sets
+      get :export_collection
+      post :import_collection
     end
     member do
       patch :update_card
       post :retry_images
+      post :refresh_cards
       patch :update_binder_settings
+      post :import_csv
     end
   end
 

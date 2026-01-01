@@ -35,6 +35,24 @@ RSpec.describe 'Card Sets', type: :request do
         expect(response.body).to include('Test Set 2')
       end
     end
+
+    context 'with sets containing cards and collection data' do
+      let!(:card_set) { create(:card_set, name: 'Set With Cards', code: 'SWC') }
+      let!(:card1) { create(:card, card_set: card_set, name: 'Card 1') }
+      let!(:card2) { create(:card, card_set: card_set, name: 'Card 2') }
+      let!(:collection_card) { create(:collection_card, card: card1, quantity: 2, foil_quantity: 0) }
+
+      it 'returns a successful response without strict_loading errors' do
+        get card_sets_path
+        expect(response).to be_successful
+      end
+
+      it 'displays owned cards count correctly' do
+        get card_sets_path
+        # The page should render without errors and show the owned count
+        expect(response.body).to include('Set With Cards')
+      end
+    end
   end
 
   describe 'GET /card_sets/available_sets' do
@@ -93,6 +111,216 @@ RSpec.describe 'Card Sets', type: :request do
           get card_set_path(card_set, view_type: view_type)
           expect(response).to be_successful
         end
+      end
+    end
+
+    context 'with child sets (related sets)' do
+      let!(:parent_set) { create(:card_set, code: 'MAIN', name: 'Main Set') }
+      let!(:child_set1) { create(:card_set, code: 'PROMO', name: 'Promo Cards', parent_set_code: 'MAIN', set_type: 'promo') }
+      let!(:child_set2) { create(:card_set, code: 'TOKEN', name: 'Tokens', parent_set_code: 'MAIN', set_type: 'token') }
+
+      it 'displays related sets section in table view' do
+        get card_set_path(parent_set, view_type: 'table')
+        expect(response.body).to include('Related Sets')
+      end
+
+      it 'displays related sets section in grid view' do
+        get card_set_path(parent_set, view_type: 'grid')
+        expect(response.body).to include('Related Sets')
+      end
+
+      it 'displays related sets section in binder view' do
+        get card_set_path(parent_set, view_type: 'binder')
+        expect(response.body).to include('Related Sets')
+      end
+
+      context 'with include_subsets parameter' do
+        let!(:parent_card) { create(:card, card_set: parent_set, name: 'Parent Card', collector_number: '1') }
+        let!(:child_card) { create(:card, card_set: child_set1, name: 'Child Card', collector_number: '1') }
+
+        it 'includes cards from child sets when include_subsets is true' do
+          get card_set_path(parent_set, view_type: 'table', include_subsets: 'true')
+          expect(response.body).to include('Parent Card')
+          expect(response.body).to include('Child Card')
+        end
+
+        it 'shows combined stats highlighted when include_subsets is true' do
+          get card_set_path(parent_set, view_type: 'table', include_subsets: 'true')
+          # Combined row should be highlighted when include_subsets is active
+          expect(response.body).to include('Combined *')
+          expect(response.body).to include('Currently showing combined view')
+          expect(response.body).to include('border-left:2px solid #4a4')
+        end
+
+        it 'does not include child set cards by default' do
+          get card_set_path(parent_set, view_type: 'table')
+          expect(response.body).to include('Parent Card')
+          expect(response.body).not_to include('Child Card')
+        end
+
+        it 'works with binder view' do
+          # Binder view uses saved DB setting, not URL parameter
+          parent_set.update!(include_subsets: true)
+          get card_set_path(parent_set, view_type: 'binder')
+          expect(response.body).to include('Parent Card')
+          expect(response.body).to include('Child Card')
+        end
+
+        it 'works with grid view' do
+          get card_set_path(parent_set, view_type: 'grid', include_subsets: 'true')
+          expect(response.body).to include('Parent Card')
+          expect(response.body).to include('Child Card')
+        end
+      end
+
+      it 'lists all child sets' do
+        get card_set_path(parent_set)
+        expect(response.body).to include('Promo Cards')
+        expect(response.body).to include('Tokens')
+      end
+    end
+
+    context 'without child sets' do
+      let(:standalone) { create(:card_set, code: 'SOLO', name: 'Solo Set', parent_set_code: nil) }
+
+      it 'does not show related sets section when no children exist' do
+        expect(standalone.child_sets.count).to eq(0)
+        get card_set_path(standalone)
+        expect(response.body).not_to include('Related Sets')
+      end
+    end
+
+    context 'stats table with Normal/Foil breakdown' do
+      let!(:parent_set) { create(:card_set, code: 'TEST', name: 'Test Set') }
+      let!(:child_set) { create(:card_set, code: 'TPROMO', name: 'Test Promos', parent_set_code: 'TEST', set_type: 'promo') }
+
+      let!(:both_card) { create(:card, card_set: parent_set, name: 'Both Card', foil: true, nonfoil: true) }
+      let!(:foil_only_card) { create(:card, card_set: parent_set, name: 'Foil Only', foil: true, nonfoil: false) }
+      let!(:nonfoil_only_card) { create(:card, card_set: parent_set, name: 'Nonfoil Only', foil: false, nonfoil: true) }
+      let!(:promo_card) { create(:card, card_set: child_set, name: 'Promo Card', foil: true, nonfoil: false) }
+
+      it 'displays stats table headers' do
+        get card_set_path(parent_set)
+        expect(response.body).to include('Total')
+        expect(response.body).to include('Normal')
+        expect(response.body).to include('Foil')
+        expect(response.body).to include('Images')
+      end
+
+      it 'displays Main Set row' do
+        get card_set_path(parent_set)
+        expect(response.body).to include('Main Set')
+      end
+
+      it 'displays Related row with child set count' do
+        get card_set_path(parent_set)
+        expect(response.body).to include('Related')
+        expect(response.body).to include('(1)')
+      end
+
+      it 'displays Combined row' do
+        get card_set_path(parent_set)
+        expect(response.body).to include('Combined')
+      end
+
+      it 'shows correct Normal total (only nonfoil-available cards)' do
+        get card_set_path(parent_set)
+        # Main set has 2 cards with nonfoil: true (both_card and nonfoil_only_card)
+        # The page should show 0/2 for Normal since none are owned
+        expect(response.body).to include('0/2')
+      end
+
+      it 'shows correct Foil total (only foil-available cards)' do
+        get card_set_path(parent_set)
+        # Main set has 2 cards with foil: true (both_card and foil_only_card)
+        # The page should show 0/2 for Foil since none are owned
+        expect(response.body).to include('0/2')
+      end
+    end
+
+    context 'binder view with double-faced cards' do
+      let!(:dfc_set) { create(:card_set, code: 'DFC', name: 'DFC Set') }
+      let!(:normal_card) { create(:card, card_set: dfc_set, name: 'Normal Card') }
+      let!(:dfc_card) { create(:card, :double_faced, card_set: dfc_set, name: 'DFC Front // DFC Back') }
+
+      it 'shows flip button for double-faced cards' do
+        get card_set_path(dfc_set, view_type: 'binder')
+        # DFC card should have flip button
+        expect(response.body).to include('data-action="click->binder-card#flipCard"')
+      end
+
+      it 'shows edit button for all cards' do
+        get card_set_path(dfc_set, view_type: 'binder')
+        # All cards should have edit button
+        expect(response.body).to include('data-action="click->binder-card#toggleEditor"')
+      end
+
+      it 'includes DFC data attributes for double-faced cards' do
+        get card_set_path(dfc_set, view_type: 'binder')
+        expect(response.body).to include('data-binder-card-is-dfc-value="true"')
+      end
+
+      it 'does not include DFC data attributes for normal cards' do
+        get card_set_path(dfc_set, view_type: 'binder')
+        expect(response.body).to include('data-binder-card-is-dfc-value="false"')
+      end
+    end
+
+    context 'grid view with double-faced cards' do
+      let!(:dfc_set) { create(:card_set, code: 'GDC', name: 'Grid DFC Set') }
+      let!(:normal_card) { create(:card, card_set: dfc_set, name: 'Normal Grid Card') }
+      let!(:dfc_card) { create(:card, :double_faced, card_set: dfc_set, name: 'Grid DFC Card') }
+
+      it 'shows flip button for double-faced cards in grid view' do
+        get card_set_path(dfc_set, view_type: 'grid')
+        expect(response.body).to include('data-action="click->grid-card-flip#flipCard"')
+      end
+
+      it 'includes DFC data attributes for double-faced cards in grid view' do
+        get card_set_path(dfc_set, view_type: 'grid')
+        expect(response.body).to include('data-grid-card-flip-is-dfc-value="true"')
+      end
+
+      it 'includes back image data attribute for DFC in grid view' do
+        get card_set_path(dfc_set, view_type: 'grid')
+        expect(response.body).to include('data-grid-card-flip-back-image-value')
+      end
+
+      it 'does not show flip button for normal cards in grid view' do
+        get card_set_path(dfc_set, view_type: 'grid')
+        # Normal card should not have the flip button
+        expect(response.body).to include('data-grid-card-flip-is-dfc-value="false"')
+      end
+    end
+
+    context 'foil filter options' do
+      let!(:filter_set) { create(:card_set, code: 'FLT', name: 'Filter Test Set') }
+      let!(:foil_only_card) { create(:card, :foil_only, card_set: filter_set, name: 'Foil Only Card') }
+      let!(:nonfoil_only_card) { create(:card, :nonfoil_only, card_set: filter_set, name: 'Nonfoil Only Card') }
+      let!(:both_card) { create(:card, card_set: filter_set, name: 'Both Available Card', foil: true, nonfoil: true) }
+
+      it 'includes foil filter options in grid view' do
+        get card_set_path(filter_set, view_type: 'grid')
+        expect(response.body).to include('Foil Only')
+        expect(response.body).to include('Nonfoil Only')
+      end
+
+      it 'includes foil filter options in table view' do
+        get card_set_path(filter_set, view_type: 'table')
+        expect(response.body).to include('Foil Only')
+        expect(response.body).to include('Nonfoil Only')
+      end
+
+      it 'includes foil data attributes on grid cards' do
+        get card_set_path(filter_set, view_type: 'grid')
+        expect(response.body).to include('data-is-foil="true"')
+        expect(response.body).to include('data-is-nonfoil="true"')
+      end
+
+      it 'includes foil data attributes on table rows' do
+        get card_set_path(filter_set, view_type: 'table')
+        expect(response.body).to include('data-is-foil="true"')
+        expect(response.body).to include('data-is-nonfoil="true"')
       end
     end
   end
@@ -275,8 +503,8 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       context 'with associated cards' do
-        let!(:card1) { create(:card, card_set: card_set, scryfall_id: 'del-card-1') }
-        let!(:card2) { create(:card, card_set: card_set, scryfall_id: 'del-card-2') }
+        let!(:card1) { create(:card, card_set: card_set, id: 'del-card-1') }
+        let!(:card2) { create(:card, card_set: card_set, id: 'del-card-2') }
 
         it 'destroys associated cards' do
           expect {
@@ -296,7 +524,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       context 'with image files' do
-        let!(:card) { create(:card, card_set: card_set, image_path: 'card_images/test_delete.jpg', scryfall_id: 'del-card-img') }
+        let!(:card) { create(:card, card_set: card_set, image_path: 'card_images/test_delete.jpg', id: 'del-card-img') }
 
         before do
           # Create a test image file
@@ -333,7 +561,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'when all images are downloaded' do
       before do
-        create(:card, card_set: card_set, image_path: 'card_images/test.jpg', scryfall_id: 'retry-1')
+        create(:card, card_set: card_set, image_path: 'card_images/test.jpg', id: 'retry-1')
       end
 
       it 'returns success message' do
@@ -352,8 +580,8 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'when images are missing' do
       before do
-        create(:card, card_set: card_set, image_path: nil, scryfall_id: 'retry-2')
-        create(:card, card_set: card_set, image_path: nil, scryfall_id: 'retry-3')
+        create(:card, card_set: card_set, image_path: nil, id: 'retry-2')
+        create(:card, card_set: card_set, image_path: nil, id: 'retry-3')
 
         # Stub Scryfall API response
         stub_request(:get, %r{api.scryfall.com/cards/})
@@ -453,6 +681,247 @@ RSpec.describe 'Card Sets', type: :request do
     context 'when set does not exist' do
       it 'returns 404 error' do
         patch update_binder_settings_card_set_path(9999, format: :json), params: { binder_rows: 4 }
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
+  describe 'GET /card_sets/export_collection' do
+    context 'with collection cards' do
+      let!(:card_set) { create(:card_set) }
+      let!(:card1) { create(:card, card_set: card_set) }
+      let!(:card2) { create(:card, card_set: card_set) }
+      let!(:collection_card1) { create(:collection_card, card: card1, quantity: 2, foil_quantity: 1) }
+      let!(:collection_card2) { create(:collection_card, card: card2, quantity: 0, foil_quantity: 3) }
+
+      it 'returns JSON file' do
+        get export_collection_card_sets_path
+        expect(response).to be_successful
+        expect(response.content_type).to include('application/json')
+      end
+
+      it 'includes collection data' do
+        get export_collection_card_sets_path
+        json = JSON.parse(response.body)
+        expect(json['version']).to eq(1)
+        expect(json['collection'].size).to eq(2)
+      end
+
+      it 'includes card_id, quantity, and foil_quantity' do
+        get export_collection_card_sets_path
+        json = JSON.parse(response.body)
+        card_data = json['collection'].find { |c| c['card_id'] == card1.id }
+        expect(card_data['quantity']).to eq(2)
+        expect(card_data['foil_quantity']).to eq(1)
+      end
+
+      it 'sets attachment disposition' do
+        get export_collection_card_sets_path
+        expect(response.headers['Content-Disposition']).to include('attachment')
+        expect(response.headers['Content-Disposition']).to include('.json')
+      end
+    end
+
+    context 'with no collection cards' do
+      it 'returns empty collection' do
+        get export_collection_card_sets_path
+        json = JSON.parse(response.body)
+        expect(json['collection']).to eq([])
+        expect(json['total_cards']).to eq(0)
+      end
+    end
+
+    context 'with zero quantity cards' do
+      let!(:card_set) { create(:card_set) }
+      let!(:card) { create(:card, card_set: card_set) }
+      let!(:collection_card) { create(:collection_card, card: card, quantity: 0, foil_quantity: 0) }
+
+      it 'excludes cards with zero quantities' do
+        get export_collection_card_sets_path
+        json = JSON.parse(response.body)
+        expect(json['collection']).to eq([])
+      end
+    end
+  end
+
+  describe 'POST /card_sets/import_collection' do
+    let!(:card_set) { create(:card_set) }
+    let!(:card1) { create(:card, card_set: card_set) }
+    let!(:card2) { create(:card, card_set: card_set) }
+
+    def upload_backup(data)
+      file = Tempfile.new([ 'backup', '.json' ], binmode: true)
+      file.write(data.is_a?(String) ? data : data.to_json)
+      file.flush
+      file.rewind
+      Rack::Test::UploadedFile.new(file.path, 'application/json')
+    end
+
+    context 'with valid backup file' do
+      it 'restores collection cards' do
+        backup_data = {
+          version: 1,
+          collection: [
+            { card_id: card1.id, quantity: 3, foil_quantity: 1 },
+            { card_id: card2.id, quantity: 0, foil_quantity: 2 }
+          ]
+        }
+
+        expect {
+          post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+        }.to change(CollectionCard, :count).by(2)
+      end
+
+      it 'sets correct quantities' do
+        backup_data = {
+          version: 1,
+          collection: [
+            { card_id: card1.id, quantity: 3, foil_quantity: 1 }
+          ]
+        }
+
+        post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+
+        collection_card = CollectionCard.find_by(card_id: card1.id)
+        expect(collection_card.quantity).to eq(3)
+        expect(collection_card.foil_quantity).to eq(1)
+      end
+
+      it 'redirects to index with success message' do
+        backup_data = {
+          version: 1,
+          collection: [
+            { card_id: card1.id, quantity: 3, foil_quantity: 1 },
+            { card_id: card2.id, quantity: 0, foil_quantity: 2 }
+          ]
+        }
+
+        post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+
+        expect(response).to redirect_to(card_sets_path)
+        expect(flash[:notice]).to include('Restored 2 cards')
+      end
+    end
+
+    context 'with cards not in database' do
+      it 'skips non-existent cards' do
+        backup_data = {
+          version: 1,
+          collection: [
+            { card_id: card1.id, quantity: 1, foil_quantity: 0 },
+            { card_id: 'non-existent-card-id', quantity: 2, foil_quantity: 1 }
+          ]
+        }
+
+        expect {
+          post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+        }.to change(CollectionCard, :count).by(1)
+      end
+
+      it 'shows skipped count in flash' do
+        backup_data = {
+          version: 1,
+          collection: [
+            { card_id: card1.id, quantity: 1, foil_quantity: 0 },
+            { card_id: 'non-existent-card-id', quantity: 2, foil_quantity: 1 }
+          ]
+        }
+
+        post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+
+        expect(flash[:notice]).to include('skipped 1')
+      end
+    end
+
+    context 'with invalid JSON' do
+      it 'shows error in flash' do
+        post import_collection_card_sets_path, params: { backup_file: upload_backup('invalid json') }
+
+        expect(response).to redirect_to(card_sets_path)
+        expect(flash[:alert]).to include('Invalid JSON file')
+      end
+    end
+
+    context 'without file' do
+      it 'shows error in flash' do
+        post import_collection_card_sets_path
+
+        expect(response).to redirect_to(card_sets_path)
+        expect(flash[:alert]).to include('Please select a backup file')
+      end
+    end
+
+    context 'updating existing collection cards' do
+      let!(:existing_collection) { create(:collection_card, card: card1, quantity: 1, foil_quantity: 0) }
+
+      it 'updates existing collection card' do
+        backup_data = {
+          version: 1,
+          collection: [
+            { card_id: card1.id, quantity: 5, foil_quantity: 2 }
+          ]
+        }
+
+        expect {
+          post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+        }.not_to change(CollectionCard, :count)
+
+        existing_collection.reload
+        expect(existing_collection.quantity).to eq(5)
+        expect(existing_collection.foil_quantity).to eq(2)
+      end
+    end
+  end
+
+  describe 'POST /card_sets/:id/refresh_cards' do
+    let(:card_set) { create(:card_set, code: 'TST') }
+
+    context 'when refresh succeeds' do
+      before do
+        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 5, updated: 10 })
+      end
+
+      it 'redirects with success message' do
+        post refresh_cards_card_set_path(card_set)
+        expect(response).to redirect_to(card_set_path(card_set))
+        follow_redirect!
+        expect(response.body).to include('5 new cards added')
+      end
+
+      it 'returns JSON response when requested' do
+        post refresh_cards_card_set_path(card_set, format: :json)
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['added']).to eq(5)
+        expect(json['updated']).to eq(10)
+      end
+    end
+
+    context 'when refresh fails' do
+      before do
+        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 0, updated: 0, error: 'API error' })
+      end
+
+      it 'redirects with error message' do
+        post refresh_cards_card_set_path(card_set)
+        expect(response).to redirect_to(card_set_path(card_set))
+        follow_redirect!
+        expect(response.body).to include('Refresh failed')
+      end
+
+      it 'returns error JSON when requested' do
+        post refresh_cards_card_set_path(card_set, format: :json)
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be false
+        expect(json['error']).to eq('API error')
+      end
+    end
+
+    context 'when set does not exist' do
+      it 'returns 404 error' do
+        post refresh_cards_card_set_path(9999)
         expect(response).to have_http_status(:not_found)
       end
     end
