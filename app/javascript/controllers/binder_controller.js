@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["spread", "pageIndicator", "prevBtn", "nextBtn"]
+  static targets = ["spread", "pageIndicator", "prevBtn", "nextBtn", "pageIndicatorDot"]
   static values = { 
     currentSpread: { type: Number, default: 0 },
     totalSpreads: Number,
@@ -27,9 +27,9 @@ export default class extends Controller {
   }
 
   goToSpread(event) {
-    const spread = parseInt(event.currentTarget.dataset.spread)
-    if (spread >= 0 && spread < this.totalSpreadsValue) {
-      this.currentSpreadValue = spread
+    const spreadIndex = parseInt(event.currentTarget.dataset.spreadIndex)
+    if (spreadIndex >= 0 && spreadIndex < this.totalSpreadsValue) {
+      this.currentSpreadValue = spreadIndex
       this.showCurrentSpread()
     }
   }
@@ -43,10 +43,17 @@ export default class extends Controller {
   }
 
   updateNavigation() {
-    // Update page indicator
-    const leftPage = this.currentSpreadValue * 2 + 1
-    const rightPage = leftPage + 1
-    this.pageIndicatorTarget.textContent = `Pages ${leftPage}-${rightPage}`
+    // Update page indicator text
+    // Spread 0 = Cover (page 0) + Page 1
+    // Spread 1 = Pages 2-3
+    // Spread 2 = Pages 4-5, etc.
+    if (this.currentSpreadValue === 0) {
+      this.pageIndicatorTarget.textContent = "Cover"
+    } else {
+      const leftPage = (this.currentSpreadValue - 1) * 2 + 2
+      const rightPage = leftPage + 1
+      this.pageIndicatorTarget.textContent = `Pages ${leftPage}-${rightPage}`
+    }
 
     // Update button states
     this.prevBtnTarget.disabled = this.currentSpreadValue === 0
@@ -55,6 +62,26 @@ export default class extends Controller {
     // Style disabled buttons
     this.prevBtnTarget.style.opacity = this.prevBtnTarget.disabled ? "0.3" : "1"
     this.nextBtnTarget.style.opacity = this.nextBtnTarget.disabled ? "0.3" : "1"
+
+    // Update page indicator buttons - highlight the current spread's buttons
+    if (this.hasPageIndicatorDotTarget) {
+      this.pageIndicatorDotTargets.forEach(dot => {
+        const dotSpreadIndex = parseInt(dot.dataset.spreadIndex)
+        const isActive = dotSpreadIndex === this.currentSpreadValue
+        
+        // Add/remove active styling
+        if (isActive) {
+          dot.style.transform = "scale(1.1)"
+          dot.style.boxShadow = "0 0 8px rgba(255,255,255,0.4)"
+          dot.style.outline = "2px solid rgba(255,255,255,0.6)"
+          dot.style.outlineOffset = "1px"
+        } else {
+          dot.style.transform = "scale(1)"
+          dot.style.boxShadow = "none"
+          dot.style.outline = "none"
+        }
+      })
+    }
   }
 
   // Keyboard navigation

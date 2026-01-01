@@ -97,4 +97,41 @@ RSpec.describe CardSetsHelper, type: :helper do
       expect(helper.rarity_sort_value("special")).to eq(0)
     end
   end
+
+  describe '#percentage_color' do
+    it 'returns red-ish color for 0%' do
+      color = helper.percentage_color(0)
+      expect(color).to eq("#ff4444")
+    end
+
+    it 'returns yellow-ish color for 50%' do
+      color = helper.percentage_color(50)
+      expect(color).to eq("#ffaa00")
+    end
+
+    it 'returns green-ish color for 100%' do
+      color = helper.percentage_color(100)
+      expect(color).to eq("#44ff88")
+    end
+
+    it 'interpolates colors between 0% and 50%' do
+      color = helper.percentage_color(25)
+      # Should be between red and yellow
+      expect(color).to match(/^#[0-9a-f]{6}$/)
+    end
+
+    it 'interpolates colors between 50% and 100%' do
+      color = helper.percentage_color(75)
+      # Should be between yellow and green
+      expect(color).to match(/^#[0-9a-f]{6}$/)
+    end
+
+    it 'clamps values below 0 to 0' do
+      expect(helper.percentage_color(-10)).to eq(helper.percentage_color(0))
+    end
+
+    it 'clamps values above 100 to 100' do
+      expect(helper.percentage_color(150)).to eq(helper.percentage_color(100))
+    end
+  end
 end

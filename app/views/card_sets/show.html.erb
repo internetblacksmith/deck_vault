@@ -3,106 +3,510 @@
 <div>
   <!-- Header -->
   <div style="margin-bottom:24px;">
-    <a href="<%= card_sets_path %>" style="color:#888;font-size:14px;text-decoration:none;">&larr; Back to Sets</a>
-    <h1 style="font-size:28px;font-weight:600;color:#fff;margin-top:8px;"><%= @card_set.name %></h1>
-    <div style="color:#666;margin-top:4px;">
-      <%= @card_set.code.upcase %>
-      <% if @card_set.released_at %>
-        &middot; <%= @card_set.released_at.strftime("%B %Y") %>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <a href="<%= card_sets_path %>" style="color:#888;font-size:14px;text-decoration:none;">&larr; Back to Sets</a>
+        <h1 style="font-size:28px;font-weight:600;color:#fff;margin-top:8px;"><%= @card_set.name %></h1>
+        <div style="color:#666;margin-top:4px;">
+          <%= @card_set.code.upcase %>
+          <% if @card_set.released_at %>
+            &middot; <%= @card_set.released_at.strftime("%B %Y") %>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Refresh Button -->
+      <%= button_to refresh_cards_card_set_path(@card_set), 
+          method: :post,
+          style: "background:#333;color:#ccc;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;",
+          title: "Refresh cards from Scryfall (adds new cards without losing collection data)",
+          data: { turbo_confirm: "Refresh cards from Scryfall? This will add any new cards and update existing card data. Your collection quantities will be preserved." } do %>
+        <span style="font-size:16px;">&#8635;</span> Refresh
       <% end %>
     </div>
   </div>
 
   <!-- Stats -->
   <%
-    total_cards = @cards.count
-    # Count cards that have either regular or foil copies
-    owned_cards = @cards.joins(:collection_card).where("collection_cards.quantity > 0 OR collection_cards.foil_quantity > 0").count
-    collection_completion = total_cards > 0 ? (owned_cards.to_f / total_cards * 100).round(1) : 0
+    # Force load cards with associations first to avoid strict_loading issues
+    # This must happen before any other queries on @cards
+    @cards_array ||= @cards.to_a
+    
+    # Main set stats (just this set)
+    main_set_cards = @card_set.cards.includes(:collection_card).to_a
+    main_total = main_set_cards.count
+    main_owned = main_set_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+    main_completion = main_total > 0 ? (main_owned.to_f / main_total * 100).round(1) : 0
+    
+    # Normal cards stats (cards that can be nonfoil)
+    normal_cards = main_set_cards.select { |c| c.nonfoil? }
+    normal_total = normal_cards.count
+    normal_owned = normal_cards.count { |c| c.collection_card&.quantity.to_i > 0 }
+    normal_completion = normal_total > 0 ? (normal_owned.to_f / normal_total * 100).round(1) : 0
+    
+    # Foil cards stats (cards that can be foil)
+    foil_cards = main_set_cards.select { |c| c.foil? }
+    foil_total = foil_cards.count
+    foil_owned = foil_cards.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
+    foil_completion = foil_total > 0 ? (foil_owned.to_f / foil_total * 100).round(1) : 0
+    
+    # Main set images stats
+    main_images_downloaded = main_set_cards.count { |c| c.image_path.present? }
+    main_images_completion = main_total > 0 ? (main_images_downloaded.to_f / main_total * 100).round(1) : 0
+    
+    # Related sets stats (child sets only)
+    if @child_sets.any?
+      # Load all child set cards with associations
+      related_cards = @child_sets.flat_map { |cs| cs.cards.includes(:collection_card).to_a }
+      
+      related_total_cards = related_cards.count
+      related_owned_cards = related_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+      related_completion = related_total_cards > 0 ? (related_owned_cards.to_f / related_total_cards * 100).round(1) : 0
+      
+      # Related Normal stats
+      related_normal_cards = related_cards.select { |c| c.nonfoil? }
+      related_normal_total = related_normal_cards.count
+      related_normal_owned = related_normal_cards.count { |c| c.collection_card&.quantity.to_i > 0 }
+      related_normal_completion = related_normal_total > 0 ? (related_normal_owned.to_f / related_normal_total * 100).round(1) : 0
+      
+      # Related Foil stats
+      related_foil_cards = related_cards.select { |c| c.foil? }
+      related_foil_total = related_foil_cards.count
+      related_foil_owned = related_foil_cards.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
+      related_foil_completion = related_foil_total > 0 ? (related_foil_owned.to_f / related_foil_total * 100).round(1) : 0
+      
+      # Related Images stats
+      related_images_downloaded = related_cards.count { |c| c.image_path.present? }
+      related_images_completion = related_total_cards > 0 ? (related_images_downloaded.to_f / related_total_cards * 100).round(1) : 0
+      
+      # Combined stats (main + related)
+      combined_total = main_total + related_total_cards
+      combined_owned = main_owned + related_owned_cards
+      combined_completion = combined_total > 0 ? (combined_owned.to_f / combined_total * 100).round(1) : 0
+      
+      # Combined Normal stats
+      combined_normal_total = normal_total + related_normal_total
+      combined_normal_owned = normal_owned + related_normal_owned
+      combined_normal_completion = combined_normal_total > 0 ? (combined_normal_owned.to_f / combined_normal_total * 100).round(1) : 0
+      
+      # Combined Foil stats
+      combined_foil_total = foil_total + related_foil_total
+      combined_foil_owned = foil_owned + related_foil_owned
+      combined_foil_completion = combined_foil_total > 0 ? (combined_foil_owned.to_f / combined_foil_total * 100).round(1) : 0
+      
+      # Combined Images stats
+      combined_images_downloaded = main_images_downloaded + related_images_downloaded
+      combined_images_completion = combined_total > 0 ? (combined_images_downloaded.to_f / combined_total * 100).round(1) : 0
+      
+      # Per-child set stats for the foldable section
+      child_sets_stats = @child_sets.map do |cs|
+        cs_cards = cs.cards.includes(:collection_card).to_a
+        cs_total = cs_cards.count
+        cs_owned = cs_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+        cs_completion = cs_total > 0 ? (cs_owned.to_f / cs_total * 100).round(1) : 0
+        
+        cs_normal = cs_cards.select { |c| c.nonfoil? }
+        cs_normal_total = cs_normal.count
+        cs_normal_owned = cs_normal.count { |c| c.collection_card&.quantity.to_i > 0 }
+        cs_normal_completion = cs_normal_total > 0 ? (cs_normal_owned.to_f / cs_normal_total * 100).round(1) : 0
+        
+        cs_foil = cs_cards.select { |c| c.foil? }
+        cs_foil_total = cs_foil.count
+        cs_foil_owned = cs_foil.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
+        cs_foil_completion = cs_foil_total > 0 ? (cs_foil_owned.to_f / cs_foil_total * 100).round(1) : 0
+        
+        cs_images = cs_cards.count { |c| c.image_path.present? }
+        cs_images_completion = cs_total > 0 ? (cs_images.to_f / cs_total * 100).round(1) : 0
+        
+        {
+          set: cs,
+          total: cs_total, owned: cs_owned, completion: cs_completion,
+          normal_total: cs_normal_total, normal_owned: cs_normal_owned, normal_completion: cs_normal_completion,
+          foil_total: cs_foil_total, foil_owned: cs_foil_owned, foil_completion: cs_foil_completion,
+          images_downloaded: cs_images, images_completion: cs_images_completion
+        }
+      end
+    end
+    
+    # Page stats (what's shown in the current view - respects include_subsets)
+    page_total = @cards_array.count
+    page_owned = @cards_array.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+    page_completion = page_total > 0 ? (page_owned.to_f / page_total * 100).round(1) : 0
   %>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0;">
-    <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
-      <div style="color:#888;font-size:13px;">Cards in Set</div>
-      <div style="font-size:24px;font-weight:600;color:#fff;"><%= total_cards %></div>
+  
+  <% if @child_sets.any? %>
+    <!-- Stats Table with Main/Related/Combined rows and Total/Normal/Foil/Images columns -->
+    <div data-controller="collapsible" style="margin:24px 0;">
+      <table style="width:100%;border-collapse:separate;border-spacing:2px;background:#333;border-radius:6px;">
+        <!-- Header Row -->
+        <thead>
+          <tr>
+            <th style="background:#252525;padding:12px 16px;text-align:left;border-radius:6px 0 0 0;"></th>
+            <th style="background:#252525;padding:12px 16px;text-align:center;">
+              <div style="color:#888;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Total</div>
+            </th>
+            <th style="background:#252525;padding:12px 16px;text-align:center;">
+              <div style="color:#888;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Normal</div>
+            </th>
+            <th style="background:linear-gradient(135deg, #2a2a3a 0%, #252525 100%);padding:12px 16px;text-align:center;">
+              <div style="color:#a8f;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Foil</div>
+            </th>
+            <th style="background:#252525;padding:12px 16px;text-align:center;border-radius:0 6px 0 0;">
+              <div style="color:#888;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Images</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Main Set Row -->
+          <tr>
+            <td style="background:#1a1a1a;padding:12px 16px;">
+              <div style="color:#fff;font-size:13px;font-weight:500;">Main Set</div>
+            </td>
+            <td style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= main_owned %>/<%= main_total %></div>
+              <div style="color:<%= percentage_color(main_completion) %>;font-size:12px;"><%= main_completion %>%</div>
+            </td>
+            <td style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= normal_owned %>/<%= normal_total %></div>
+              <div style="color:<%= percentage_color(normal_completion) %>;font-size:12px;"><%= normal_completion %>%</div>
+            </td>
+            <td style="background:linear-gradient(135deg, #1a1a2a 0%, #1a1a1a 100%);padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= foil_owned %>/<%= foil_total %></div>
+              <div style="color:<%= percentage_color(foil_completion) %>;font-size:12px;"><%= foil_completion %>%</div>
+            </td>
+            <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
+              <%= render "card_sets/images_stats_card", card_set: @card_set, total_cards: main_total, compact: true, as_td: true %>
+            <% end %>
+          </tr>
+          
+          <!-- Related Sets Row (Clickable to expand) -->
+          <tr>
+            <td style="background:#1a1a1a;padding:0;">
+              <button data-action="click->collapsible#toggle" 
+                      style="background:#1a1a1a;padding:12px 16px;border:none;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;width:100%;">
+                <span data-collapsible-target="icon" style="color:#888;font-size:12px;width:12px;">+</span>
+                <div style="color:#fff;font-size:13px;font-weight:500;">Related <span style="color:#666;font-weight:400;">(<%= @child_sets.count %>)</span></div>
+              </button>
+            </td>
+            <td style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= related_owned_cards %>/<%= related_total_cards %></div>
+              <div style="color:<%= percentage_color(related_completion) %>;font-size:12px;"><%= related_completion %>%</div>
+            </td>
+            <td style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= related_normal_owned %>/<%= related_normal_total %></div>
+              <div style="color:<%= percentage_color(related_normal_completion) %>;font-size:12px;"><%= related_normal_completion %>%</div>
+            </td>
+            <td style="background:linear-gradient(135deg, #1a1a2a 0%, #1a1a1a 100%);padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= related_foil_owned %>/<%= related_foil_total %></div>
+              <div style="color:<%= percentage_color(related_foil_completion) %>;font-size:12px;"><%= related_foil_completion %>%</div>
+            </td>
+            <td style="background:#1a1a1a;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= related_images_downloaded %>/<%= related_total_cards %></div>
+              <div style="color:<%= percentage_color(related_images_completion) %>;font-size:12px;"><%= related_images_completion %>%</div>
+            </td>
+          </tr>
+          
+          <!-- Child Sets Rows (Hidden by default) -->
+          <% child_sets_stats.each do |cs_stats| %>
+            <tr data-collapsible-target="content" style="display:none;">
+              <td style="background:#151515;padding:10px 16px 10px 32px;">
+                <a href="<%= card_set_path(cs_stats[:set]) %>" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+                  <div style="color:#ccc;font-size:12px;font-weight:400;"><%= cs_stats[:set].name %></div>
+                  <div style="color:#666;font-size:11px;">(<%= cs_stats[:set].code.upcase %>)</div>
+                </a>
+              </td>
+              <td style="background:#151515;padding:10px 16px;text-align:center;">
+                <div style="font-size:16px;font-weight:600;color:#fff;"><%= cs_stats[:owned] %>/<%= cs_stats[:total] %></div>
+                <div style="color:<%= percentage_color(cs_stats[:completion]) %>;font-size:11px;"><%= cs_stats[:completion] %>%</div>
+              </td>
+              <td style="background:#151515;padding:10px 16px;text-align:center;">
+                <div style="font-size:16px;font-weight:600;color:#fff;"><%= cs_stats[:normal_owned] %>/<%= cs_stats[:normal_total] %></div>
+                <div style="color:<%= percentage_color(cs_stats[:normal_completion]) %>;font-size:11px;"><%= cs_stats[:normal_completion] %>%</div>
+              </td>
+              <td style="background:linear-gradient(135deg, #15151f 0%, #151515 100%);padding:10px 16px;text-align:center;">
+                <div style="font-size:16px;font-weight:600;color:#fff;"><%= cs_stats[:foil_owned] %>/<%= cs_stats[:foil_total] %></div>
+                <div style="color:<%= percentage_color(cs_stats[:foil_completion]) %>;font-size:11px;"><%= cs_stats[:foil_completion] %>%</div>
+              </td>
+              <td style="background:#151515;padding:10px 16px;text-align:center;">
+                <div style="font-size:16px;font-weight:600;color:#fff;"><%= cs_stats[:images_downloaded] %>/<%= cs_stats[:total] %></div>
+                <div style="color:<%= percentage_color(cs_stats[:images_completion]) %>;font-size:11px;"><%= cs_stats[:images_completion] %>%</div>
+              </td>
+            </tr>
+          <% end %>
+          
+          <!-- Combined Row -->
+          <tr>
+            <td style="background:<%= @include_subsets ? '#1a2a1a' : '#1a1a1a' %>;padding:12px 16px;<%= @include_subsets ? 'border-left:2px solid #4a4;' : '' %>border-radius:0 0 0 6px;">
+              <div style="color:#fff;font-size:13px;font-weight:500;">Combined<%= ' *' if @include_subsets %></div>
+            </td>
+            <td style="background:<%= @include_subsets ? '#1a2a1a' : '#1a1a1a' %>;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= combined_owned %>/<%= combined_total %></div>
+              <div style="color:<%= percentage_color(combined_completion) %>;font-size:12px;"><%= combined_completion %>%</div>
+            </td>
+            <td style="background:<%= @include_subsets ? '#1a2a1a' : '#1a1a1a' %>;padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= combined_normal_owned %>/<%= combined_normal_total %></div>
+              <div style="color:<%= percentage_color(combined_normal_completion) %>;font-size:12px;"><%= combined_normal_completion %>%</div>
+            </td>
+            <td style="background:linear-gradient(135deg, <%= @include_subsets ? '#1a2a2a' : '#1a1a2a' %> 0%, <%= @include_subsets ? '#1a2a1a' : '#1a1a1a' %> 100%);padding:12px 16px;text-align:center;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= combined_foil_owned %>/<%= combined_foil_total %></div>
+              <div style="color:<%= percentage_color(combined_foil_completion) %>;font-size:12px;"><%= combined_foil_completion %>%</div>
+            </td>
+            <td style="background:<%= @include_subsets ? '#1a2a1a' : '#1a1a1a' %>;padding:12px 16px;text-align:center;border-radius:0 0 6px 0;">
+              <div style="font-size:18px;font-weight:600;color:#fff;"><%= combined_images_downloaded %>/<%= combined_total %></div>
+              <div style="color:<%= percentage_color(combined_images_completion) %>;font-size:12px;"><%= combined_images_completion %>%</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <% if @include_subsets %>
+        <div style="color:#666;font-size:12px;margin-top:8px;">* Currently showing combined view</div>
+      <% end %>
     </div>
-    <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
-      <div style="color:#888;font-size:13px;">Owned</div>
-      <div style="font-size:24px;font-weight:600;color:#4f8;"><%= owned_cards %></div>
+  <% else %>
+    <!-- Simple stats (no child sets) -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin:24px 0;">
+      <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+        <div style="color:#888;font-size:13px;">Cards</div>
+        <div style="font-size:24px;font-weight:600;color:#fff;"><%= main_owned %>/<%= main_total %></div>
+        <div style="color:<%= percentage_color(main_completion) %>;font-size:13px;margin-top:4px;"><%= main_completion %>%</div>
+      </div>
+      <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+        <div style="color:#888;font-size:13px;">Normal</div>
+        <div style="font-size:24px;font-weight:600;color:#fff;"><%= normal_owned %>/<%= normal_total %></div>
+        <div style="color:<%= percentage_color(normal_completion) %>;font-size:13px;margin-top:4px;"><%= normal_completion %>%</div>
+      </div>
+      <div style="background:linear-gradient(135deg, #1a1a2a 0%, #1a1a1a 100%);padding:16px;border-radius:6px;">
+        <div style="color:#a8f;font-size:13px;">Foil</div>
+        <div style="font-size:24px;font-weight:600;color:#fff;"><%= foil_owned %>/<%= foil_total %></div>
+        <div style="color:<%= percentage_color(foil_completion) %>;font-size:13px;margin-top:4px;"><%= foil_completion %>%</div>
+      </div>
+      <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
+        <div style="color:#888;font-size:13px;">Unique</div>
+        <div style="font-size:24px;font-weight:600;color:#fff;"><%= main_owned %></div>
+        <div style="color:#666;font-size:13px;margin-top:4px;">cards owned</div>
+      </div>
+      <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
+        <%= render "card_sets/images_stats_card", card_set: @card_set, total_cards: main_total %>
+      <% end %>
     </div>
-    <div style="background:#1a1a1a;padding:16px;border-radius:6px;">
-      <div style="color:#888;font-size:13px;">Collection</div>
-      <div style="font-size:24px;font-weight:600;color:#6cf;"><%= collection_completion %>%</div>
-    </div>
-    <%= turbo_frame_tag "progress-#{@card_set.id}" do %>
-      <%= render "card_sets/images_stats_card", card_set: @card_set, total_cards: total_cards %>
-    <% end %>
-  </div>
+  <% end %>
+
+
 
   <% if @view_type != "binder" %>
   <div data-controller="card-sort" data-card-sort-view-value="<%= @view_type %>">
   <% end %>
   
   <!-- View Toggle and Sort Controls -->
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
-    <div style="display:flex;gap:8px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;">
+    <div style="display:flex;gap:8px;align-items:center;">
       <% ["table", "grid", "binder"].each do |view| %>
-        <a href="<%= card_set_path(@card_set, view_type: view) %>" 
+        <a href="<%= card_set_path(@card_set, view_type: view, include_subsets: (@view_type != "binder" && @include_subsets) || nil) %>" 
            style="padding:8px 16px;border-radius:4px;text-decoration:none;font-size:14px;<%= @view_type == view ? 'background:#29f;color:#fff;' : 'background:#333;color:#ccc;' %>">
           <%= view.capitalize %>
         </a>
       <% end %>
+      
+      <!-- Import CSV Button -->
+      <div style="margin-left:16px;" data-controller="csv-import">
+        <button data-action="click->csv-import#toggle" 
+                style="background:#333;color:#ccc;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;">
+          Import CSV
+        </button>
+        <div data-csv-import-target="panel" style="display:none;position:absolute;background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:16px;margin-top:8px;z-index:100;min-width:300px;">
+          <%= form_tag import_csv_card_set_path(@card_set), method: :post, multipart: true do %>
+            <div style="margin-bottom:12px;">
+              <label style="display:block;color:#888;font-size:12px;margin-bottom:6px;">Select CSV file from scanner app</label>
+              <%= file_field_tag :csv_file, accept: ".csv,.txt", style: "width:100%;background:#222;color:#eee;border:1px solid #444;padding:8px;border-radius:4px;font-size:13px;" %>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <%= submit_tag "Import", style: "flex:1;background:#29f;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;" %>
+              <button type="button" data-action="click->csv-import#toggle" 
+                      style="background:#333;color:#ccc;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;">
+                Cancel
+              </button>
+            </div>
+            <p style="color:#666;font-size:11px;margin:12px 0 0 0;">
+              Supports tab or comma-separated CSV files. Cards are matched by collector number or name.
+            </p>
+          <% end %>
+        </div>
+      </div>
     </div>
     
-    <% if @view_type != "binder" %>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span style="color:#888;font-size:13px;">Sort by:</span>
-        <select data-card-sort-target="sortField" data-action="change->card-sort#sort" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
-          <option value="number">Set/Number</option>
-          <option value="name">Name</option>
-          <option value="rarity">Rarity</option>
-          <option value="color">Color</option>
-          <option value="mana">Mana Value</option>
-          <option value="type">Type</option>
-        </select>
-        <select data-card-sort-target="sortDirection" data-action="change->card-sort#sort" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
-          <option value="asc">Asc</option>
-          <option value="desc">Desc</option>
-        </select>
-      </div>
-    <% end %>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <% if @view_type == "binder" %>
+        <!-- Binder: Search only (other controls in settings panel) -->
+        <input type="text" 
+               id="binder-search"
+               placeholder="Search cards..."
+               oninput="window.binderSearch(this.value)"
+               style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;width:180px;">
+        <script>
+          window.binderSearch = function(query) {
+            query = query.toLowerCase().trim();
+            document.querySelectorAll("[data-controller='binder-card']").forEach(function(card) {
+              var name = card.dataset.cardName || "";
+              var number = card.dataset.cardNumber || "";
+              var type = card.dataset.cardType || "";
+              var matches = query === "" || name.includes(query) || number.includes(query) || type.includes(query);
+              card.style.display = matches ? "" : "none";
+            });
+          };
+        </script>
+      <% else %>
+        <!-- Table/Grid: Search (supports wildcards: * for any chars, ? for single char) -->
+        <input type="text" 
+               data-card-sort-target="searchField" 
+               data-action="input->card-sort#search"
+               placeholder="Search (? * wildcards)..."
+               title="Wildcards: ? = one char, * = any chars. Examples: 22? matches 220-229, 22* matches 22+, *dragon matches ends with dragon"
+               style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;width:180px;">
+        
+        <!-- Filter -->
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="color:#888;font-size:13px;">Show:</span>
+          <select data-card-sort-target="filterField" data-action="change->card-sort#filter" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
+            <option value="all">All Cards</option>
+            <option value="owned">Owned</option>
+            <option value="missing">Missing</option>
+            <option value="foil-only">Foil Only</option>
+            <option value="nonfoil-only">Nonfoil Only</option>
+          </select>
+        </div>
+        
+        <!-- Sort -->
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="color:#888;font-size:13px;">Sort by:</span>
+          <select data-card-sort-target="sortField" data-action="change->card-sort#sort" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
+            <option value="number">Set/Number</option>
+            <option value="name">Name</option>
+            <option value="rarity">Rarity</option>
+            <option value="color">Color</option>
+            <option value="mana">Mana Value</option>
+            <option value="type">Type</option>
+          </select>
+          <select data-card-sort-target="sortDirection" data-action="change->card-sort#sort" style="background:#222;color:#eee;border:1px solid #444;padding:8px 12px;border-radius:4px;cursor:pointer;">
+            <option value="asc">Asc</option>
+            <option value="desc">Desc</option>
+          </select>
+        </div>
+        
+        <% if @child_sets.any? %>
+          <!-- Include Related Sets Toggle -->
+          <a href="<%= card_set_path(@card_set, view_type: @view_type, include_subsets: !@include_subsets || nil, group_by_set: @group_by_set || nil) %>"
+             style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:4px;text-decoration:none;font-size:13px;border-left:1px solid #444;padding-left:16px;margin-left:4px;<%= @include_subsets ? 'background:#4a3;color:#fff;' : 'background:#333;color:#888;' %>">
+            <span style="font-size:14px;"><%= @include_subsets ? '&#9745;' : '&#9744;' %></span>
+            Include Related
+          </a>
+        <% end %>
+        
+        <% if %w[grid table].include?(@view_type) && @include_subsets %>
+          <!-- Group by Set Toggle (grid and table views with subsets) -->
+          <a href="<%= card_set_path(@card_set, view_type: @view_type, include_subsets: @include_subsets || nil, group_by_set: !@group_by_set || nil) %>"
+             style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:4px;text-decoration:none;font-size:13px;<%= @group_by_set ? 'background:#369;color:#fff;' : 'background:#333;color:#888;' %>">
+            <span style="font-size:14px;"><%= @group_by_set ? '&#9745;' : '&#9744;' %></span>
+            Group by Set
+          </a>
+        <% end %>
+      <% end %>
+    </div>
   </div>
 
   <!-- Content -->
   <% if @view_type == "table" %>
-    <div style="background:#1a1a1a;border-radius:6px;overflow:hidden;">
-      <table style="width:100%;">
-        <thead>
-          <tr style="border-bottom:1px solid #333;">
-            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Name</th>
-            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Type</th>
-            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Rarity</th>
-            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Qty</th>
-            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Foil</th>
-            <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Notes</th>
-          </tr>
-        </thead>
-        <tbody data-card-sort-target="container">
-          <% @cards.each do |card| %>
-            <%= turbo_frame_tag "card-row-#{card.id}" do %>
-              <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: @card_set %>
+    <%
+      # Calculate binder settings for page column
+      binder_rows = @card_set.binder_rows || 3
+      binder_columns = @card_set.binder_columns || 3
+      cards_per_page = binder_rows * binder_columns
+    %>
+    <% if @cards_by_set %>
+      <!-- Grouped by Set -->
+      <% card_position = 0 %>
+      <% @cards_by_set.each do |set, set_cards| %>
+        <div data-card-sort-target="setGroup" style="margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <h3 style="font-size:16px;font-weight:500;color:#fff;margin:0;"><%= set.name %></h3>
+            <span style="color:#666;font-size:13px;"><%= set.code.upcase %></span>
+            <span style="color:#888;font-size:13px;"><%= set_cards.count %> cards</span>
+          </div>
+          <div style="background:#1a1a1a;border-radius:6px;overflow:hidden;">
+            <table style="width:100%;">
+              <thead>
+                <tr style="border-bottom:1px solid #333;">
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Name</th>
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Type</th>
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Rarity</th>
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Page</th>
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Qty</th>
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Foil</th>
+                  <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Notes</th>
+                </tr>
+              </thead>
+              <tbody data-card-sort-target="container">
+                <% set_cards.each_with_index do |card, index| %>
+                  <% card_position += 1 %>
+                  <%= turbo_frame_tag "card-row-#{card.id}" do %>
+                    <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: set, position: card_position, cards_per_page: cards_per_page %>
+                  <% end %>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <!-- Single Set -->
+      <div style="background:#1a1a1a;border-radius:6px;overflow:hidden;">
+        <table style="width:100%;">
+          <thead>
+            <tr style="border-bottom:1px solid #333;">
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Name</th>
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Type</th>
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Rarity</th>
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Page</th>
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Qty</th>
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:center;">Foil</th>
+              <th style="padding:12px 16px;color:#888;font-weight:500;text-align:left;">Notes</th>
+            </tr>
+          </thead>
+          <tbody data-card-sort-target="container">
+            <% @cards.each_with_index do |card, index| %>
+              <%= turbo_frame_tag "card-row-#{card.id}" do %>
+                <%= render "card_sets/card_row", card: card, view_type: @view_type, card_set: @card_set, position: index + 1, cards_per_page: cards_per_page %>
+              <% end %>
             <% end %>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
   </div>
 
   <% elsif @view_type == "grid" %>
-    <div data-card-sort-target="container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
-      <% @cards.each do |card| %>
-        <%= render "card_sets/grid_card", card: card %>
+    <% if @cards_by_set %>
+      <!-- Grouped by Set -->
+      <% @cards_by_set.each do |set, set_cards| %>
+        <div data-card-sort-target="setGroup" style="margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <h3 style="font-size:16px;font-weight:500;color:#fff;margin:0;"><%= set.name %></h3>
+            <span style="color:#666;font-size:13px;"><%= set.code.upcase %></span>
+            <span style="color:#888;font-size:13px;"><%= set_cards.count %> cards</span>
+          </div>
+          <div data-card-sort-target="container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+            <% set_cards.each do |card| %>
+              <%= render "card_sets/grid_card", card: card, card_set: set %>
+            <% end %>
+          </div>
+        </div>
       <% end %>
-    </div>
+    <% else %>
+      <div data-card-sort-target="container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+        <% @cards.each do |card| %>
+          <%= render "card_sets/grid_card", card: card %>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 
   <% elsif @view_type == "binder" %>
@@ -115,8 +519,10 @@
       sort_direction = @card_set.binder_sort_direction || "asc"
       
       # Sort cards based on binder settings
-      sorted_cards = @cards.includes(:collection_card).sort_by do |card|
-        sort_value = case sort_field
+      # Use pre-loaded cards array to ensure collection_card associations are available
+      # When including subsets, sort by set first to keep sets grouped together
+      sorted_cards = @cards_array.sort_by do |card|
+        base_sort = case sort_field
           when "number" then sortable_collector_number(card.collector_number)
           when "name" then card.name.downcase
           when "rarity" then rarity_sort_value(card.rarity)
@@ -125,7 +531,12 @@
           when "type" then card.type_line&.downcase || ""
           else sortable_collector_number(card.collector_number)
         end
-        sort_value
+        # When including subsets, group by set first
+        if @include_subsets
+          [card.card_set_id == @card_set.id ? 0 : 1, card.card_set_id, base_sort]
+        else
+          base_sort
+        end
       end
       sorted_cards = sorted_cards.reverse if sort_direction == "desc"
       
@@ -141,14 +552,17 @@
          data-binder-settings-url-value="<%= update_binder_settings_card_set_path(@card_set) %>"
          style="margin-bottom:24px;">
       
-      <!-- Info Bar with Settings Button -->
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <!-- Info Bar with Settings -->
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
         <div style="color:#888;font-size:13px;">
           <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= cards_per_page %> cards/page &middot; <%= binder_pages.count %> pages
         </div>
+        
+        <!-- Settings Cog Button -->
         <button data-action="click->binder-settings#toggle" 
-                style="background:#333;color:#ccc;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:13px;">
-          Settings
+                title="Binder Settings"
+                style="background:#333;color:#ccc;border:none;width:36px;height:36px;border-radius:4px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;">
+          &#9881;
         </button>
       </div>
       
@@ -196,6 +610,19 @@
               <option value="desc" <%= sort_direction == "desc" ? 'selected' : '' %>>Desc</option>
             </select>
           </div>
+          
+          <% if @child_sets.any? %>
+            <div style="display:flex;gap:8px;align-items:center;border-left:1px solid #444;padding-left:16px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#888;font-size:13px;">
+                <input type="checkbox" 
+                       data-binder-settings-target="includeSubsets" 
+                       data-action="change->binder-settings#save"
+                       <%= @include_subsets ? 'checked' : '' %>
+                       style="width:16px;height:16px;cursor:pointer;">
+                Include Related Sets
+              </label>
+            </div>
+          <% end %>
         </div>
         <p style="color:#666;font-size:12px;margin:12px 0 0 0;">
           Changes are saved automatically and will reload the page.
@@ -203,9 +630,26 @@
       </div>
     </div>
     
+    <%
+      # Calculate collection stats for cover page
+      total_cards_in_set = sorted_cards.count
+      owned_regular = sorted_cards.count { |c| c.collection_card&.quantity.to_i > 0 }
+      owned_foil = sorted_cards.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
+      owned_any = sorted_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+      total_regular = sorted_cards.sum { |c| c.collection_card&.quantity.to_i }
+      total_foil = sorted_cards.sum { |c| c.collection_card&.foil_quantity.to_i }
+      completion_pct = total_cards_in_set > 0 ? (owned_any.to_f / total_cards_in_set * 100).round(1) : 0
+      total_binder_pages = binder_pages.count
+      
+      # Total spreads = cover spread + card spreads
+      # Cover spread: page 0 (stats) + page 1 (first cards)
+      # Then: pages 2-3, 4-5, 6-7, etc.
+      total_spreads_with_cover = total_spreads + 1
+    %>
+    
     <!-- Binder View -->
     <div data-controller="binder" 
-         data-binder-total-spreads-value="<%= total_spreads %>"
+         data-binder-total-spreads-value="<%= total_spreads_with_cover %>"
          data-binder-cards-per-page-value="<%= cards_per_page %>"
          data-action="keydown->binder#keydown"
          tabindex="0"
@@ -218,7 +662,7 @@
           &larr; Previous
         </button>
         <span data-binder-target="pageIndicator" style="color:#fff;font-size:16px;min-width:120px;text-align:center;">
-          Pages 1-2
+          Cover
         </span>
         <button data-binder-target="nextBtn" data-action="click->binder#nextSpread"
                 style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">
@@ -226,55 +670,223 @@
         </button>
       </div>
       
-      <!-- Binder Spreads -->
-      <% binder_spreads.each_with_index do |spread, spread_index| %>
-        <div data-binder-target="spread" 
-             style="<%= spread_index == 0 ? 'display:flex;' : 'display:none;' %>gap:8px;perspective:2000px;">
+      <!-- Page Navigation with Status -->
+      <%
+        # Calculate page stats for indicators
+        page_stats = binder_pages.map.with_index do |page_cards, idx|
+          cards_count = page_cards.count
+          owned_count = page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+          {
+            page_num: idx + 1,
+            total: cards_count,
+            owned: owned_count,
+            complete: owned_count == cards_count && cards_count > 0,
+            partial: owned_count > 0 && owned_count < cards_count,
+            empty: owned_count == 0
+          }
+        end
+      %>
+      <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap;max-width:100%;padding:0 20px;">
+        <!-- Cover button -->
+        <button data-action="click->binder#goToSpread" 
+                data-spread-index="0"
+                data-binder-target="pageIndicatorDot"
+                style="background:#555;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.2s;"
+                title="Cover page">
+          Cover
+        </button>
+        
+        <!-- Page buttons with status colors -->
+        <% page_stats.each_with_index do |stat, idx| %>
+          <%
+            # Determine spread index
+            # Page 1 is on cover spread (index 0)
+            # Pages 2-3 are on spread index 1, Pages 4-5 on spread index 2, etc.
+            spread_idx = idx == 0 ? 0 : ((idx - 1) / 2) + 1
+            
+            # Color based on ownership
+            if stat[:complete]
+              bg_color = '#2a4a2a'
+              border_color = '#4a4'
+              text_color = '#6c6'
+            elsif stat[:partial]
+              bg_color = '#4a3a1a'
+              border_color = '#c90'
+              text_color = '#eb0'
+            else
+              bg_color = '#333'
+              border_color = '#555'
+              text_color = '#888'
+            end
+          %>
+          <button data-action="click->binder#goToSpread" 
+                  data-spread-index="<%= spread_idx %>"
+                  data-binder-target="pageIndicatorDot"
+                  style="background:<%= bg_color %>;color:<%= text_color %>;border:1px solid <%= border_color %>;min-width:32px;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;"
+                  title="Page <%= stat[:page_num] %>: <%= stat[:owned] %>/<%= stat[:total] %> owned<%= stat[:complete] ? ' (Complete!)' : '' %>">
+            <%= stat[:page_num] %>
+          </button>
+        <% end %>
+      </div>
+      
+      <!-- Cover Spread (Page 0 - Stats + Page 1 - First cards) -->
+      <div data-binder-target="spread" data-spread-type="cover" style="display:flex;gap:8px;perspective:2000px;">
+        <!-- Page 0: Inside Cover with Stats -->
+        <div style="flex:1;background:linear-gradient(135deg, #1a1a2a 0%, #1a1a1a 100%);border-radius:6px;padding:24px;min-height:400px;display:flex;flex-direction:column;justify-content:center;">
+          <div style="text-align:center;">
+            <h2 style="color:#fff;font-size:24px;font-weight:600;margin:0 0 8px 0;"><%= @card_set.name %></h2>
+            <div style="color:#666;font-size:14px;margin-bottom:24px;"><%= @card_set.code.upcase %></div>
+            
+            <!-- Collection Progress -->
+            <div style="background:#222;border-radius:8px;padding:20px;margin-bottom:20px;">
+              <div style="font-size:48px;font-weight:700;color:#4f8;margin-bottom:4px;"><%= completion_pct %>%</div>
+              <div style="color:#888;font-size:13px;">Collection Complete</div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;text-align:center;">
+              <div style="background:#222;padding:16px;border-radius:6px;">
+                <div style="font-size:24px;font-weight:600;color:#fff;"><%= owned_any %></div>
+                <div style="color:#888;font-size:11px;">Unique Cards</div>
+              </div>
+              <div style="background:#222;padding:16px;border-radius:6px;">
+                <div style="font-size:24px;font-weight:600;color:#888;"><%= total_cards_in_set %></div>
+                <div style="color:#888;font-size:11px;">Total in Set</div>
+              </div>
+              <div style="background:#222;padding:16px;border-radius:6px;">
+                <div style="font-size:24px;font-weight:600;color:#6cf;"><%= total_regular %></div>
+                <div style="color:#888;font-size:11px;">Regular Copies</div>
+              </div>
+              <div style="background:#222;padding:16px;border-radius:6px;">
+                <div style="font-size:24px;font-weight:600;color:#c9f;"><%= total_foil %></div>
+                <div style="color:#888;font-size:11px;">Foil Copies</div>
+              </div>
+            </div>
+            
+            <!-- Binder Info -->
+            <div style="margin-top:20px;color:#666;font-size:12px;">
+              <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= total_binder_pages %> pages
+            </div>
+          </div>
+        </div>
+        
+        <!-- Page 1: First page of cards -->
+        <% if binder_pages.any? %>
+          <% first_page_cards = binder_pages[0] %>
+          <%
+            page1_total = first_page_cards.count
+            page1_owned = first_page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+            page1_pct = page1_total > 0 ? (page1_owned.to_f / page1_total * 100).round(0) : 0
+            page1_complete = page1_owned == page1_total && page1_total > 0
+            page1_color = page1_complete ? '#4a4' : (page1_owned > 0 ? '#c90' : '#666')
+          %>
+          <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
+            <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:right;">
+              Page 1
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
+              <% first_page_cards.each_with_index do |card, card_index| %>
+                <%= render "card_sets/binder_card_flip", card: card, card_set: (@include_subsets ? card.card_set : @card_set), position: card_index + 1 %>
+              <% end %>
+              <% (cards_per_page - first_page_cards.count).times do %>
+                <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
+              <% end %>
+            </div>
+            <!-- Page Status Bar -->
+            <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="color:<%= page1_color %>;font-size:11px;font-weight:600;">
+                  <%= page1_complete ? '&#10003; Complete' : "#{page1_owned}/#{page1_total} owned" %>
+                </span>
+                <span style="color:#888;font-size:11px;"><%= page1_pct %>%</span>
+              </div>
+              <div style="height:4px;background:#333;border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:<%= page1_pct %>%;background:<%= page1_color %>;border-radius:2px;transition:width 0.3s;"></div>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;align-items:center;justify-content:center;">
+            <div style="color:#666;text-align:center;">
+              <div style="font-size:48px;margin-bottom:12px;">📭</div>
+              <div>No cards in this set yet</div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <!-- Card Spreads (Pages 2-3, 4-5, etc.) -->
+      <% # Start from page 2 (index 1), pair remaining pages %>
+      <% remaining_pages = binder_pages[1..] || [] %>
+      <% remaining_spreads = remaining_pages.each_slice(2).to_a %>
+      <% remaining_spreads.each_with_index do |spread, spread_index| %>
+        <div data-binder-target="spread" style="display:none;gap:8px;perspective:2000px;">
           
           <% spread.each_with_index do |page_cards, page_in_spread| %>
-            <% page_num = spread_index * 2 + page_in_spread + 1 %>
+            <% # Page numbers: spread 0 = pages 2-3, spread 1 = pages 4-5, etc. %>
+            <% page_num = (spread_index * 2) + page_in_spread + 2 %>
+            <%
+              pg_total = page_cards.count
+              pg_owned = page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+              pg_pct = pg_total > 0 ? (pg_owned.to_f / pg_total * 100).round(0) : 0
+              pg_complete = pg_owned == pg_total && pg_total > 0
+              pg_color = pg_complete ? '#4a4' : (pg_owned > 0 ? '#c90' : '#666')
+            %>
             <!-- Page <%= page_num %> (<%= page_in_spread == 0 ? 'Left' : 'Right' %>) -->
-            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;">
+            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
               <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:<%= page_in_spread == 0 ? 'left' : 'right' %>;">
                 Page <%= page_num %>
               </div>
-              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;">
+              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
                 <% page_cards.each_with_index do |card, card_index| %>
-                  <%= render "card_sets/binder_card_flip", card: card, card_set: @card_set, position: card_index + 1 %>
+                  <%= render "card_sets/binder_card_flip", card: card, card_set: (@include_subsets ? card.card_set : @card_set), position: card_index + 1 %>
                 <% end %>
-                <% # Fill empty slots if page is not full %>
                 <% (cards_per_page - page_cards.count).times do %>
                   <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
                 <% end %>
+              </div>
+              <!-- Page Status Bar -->
+              <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="color:<%= pg_color %>;font-size:11px;font-weight:600;">
+                    <%= pg_complete ? '&#10003; Complete' : "#{pg_owned}/#{pg_total} owned" %>
+                  </span>
+                  <span style="color:#888;font-size:11px;"><%= pg_pct %>%</span>
+                </div>
+                <div style="height:4px;background:#333;border-radius:2px;overflow:hidden;">
+                  <div style="height:100%;width:<%= pg_pct %>%;background:<%= pg_color %>;border-radius:2px;transition:width 0.3s;"></div>
+                </div>
               </div>
             </div>
           <% end %>
           
           <% # Add empty right page if spread has only one page %>
           <% if spread.count == 1 %>
-            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;">
+            <% empty_page_num = (spread_index * 2) + 3 %>
+            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
               <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:right;">
-                Page <%= spread_index * 2 + 2 %>
+                Page <%= empty_page_num %>
               </div>
-              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;">
+              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
                 <% cards_per_page.times do %>
                   <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
                 <% end %>
+              </div>
+              <!-- Empty Page Status Bar -->
+              <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="color:#666;font-size:11px;font-weight:600;">Empty page</span>
+                  <span style="color:#888;font-size:11px;">-</span>
+                </div>
+                <div style="height:4px;background:#333;border-radius:2px;overflow:hidden;">
+                  <div style="height:100%;width:0%;background:#666;border-radius:2px;"></div>
+                </div>
               </div>
             </div>
           <% end %>
         </div>
       <% end %>
       
-      <!-- Page Jump -->
-      <div style="display:flex;justify-content:center;gap:4px;margin-top:20px;flex-wrap:wrap;">
-        <% binder_spreads.each_with_index do |_, spread_index| %>
-          <button data-action="click->binder#goToSpread" data-spread="<%= spread_index %>"
-                  style="background:#333;color:#888;border:none;width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:12px;">
-            <%= spread_index * 2 + 1 %>-<%= spread_index * 2 + 2 %>
-          </button>
-        <% end %>
-      </div>
     </div>
   <% end %>
 </div>
