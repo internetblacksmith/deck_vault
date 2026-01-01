@@ -1,14 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["card", "front", "back", "quantity", "foilQuantity"]
+  static targets = ["card", "front", "editor", "quantity", "foilQuantity", "cardImage", "flipButton", "badges", "normalBadge", "foilBadge", "editButton"]
   static values = { 
-    flipped: { type: Boolean, default: false },
-    cardSetId: Number
+    editorOpen: { type: Boolean, default: false },
+    cardSetId: Number,
+    isDfc: { type: Boolean, default: false },
+    showingBack: { type: Boolean, default: false },
+    frontImage: String,
+    backImage: String
   }
 
   connect() {
-    // Listen for clicks outside to close
+    // Listen for clicks outside to close editor
     this.outsideClickHandler = this.handleOutsideClick.bind(this)
   }
 
@@ -16,32 +20,66 @@ export default class extends Controller {
     document.removeEventListener("click", this.outsideClickHandler)
   }
 
-  flip(event) {
-    // Don't flip if clicking on inputs
-    if (event.target.tagName === "INPUT") return
+  // Toggle the editor overlay
+  toggleEditor(event) {
+    event.stopPropagation()
     
-    this.flippedValue = !this.flippedValue
-    this.cardTarget.style.transform = this.flippedValue ? "rotateY(180deg)" : "rotateY(0deg)"
-    
-    if (this.flippedValue) {
-      document.addEventListener("click", this.outsideClickHandler)
-      // Focus the quantity input
-      setTimeout(() => this.quantityTarget?.focus(), 300)
+    if (this.editorOpenValue) {
+      this.closeEditor()
     } else {
-      document.removeEventListener("click", this.outsideClickHandler)
+      this.openEditor()
+    }
+  }
+
+  openEditor() {
+    this.editorOpenValue = true
+    if (this.hasEditorTarget) {
+      this.editorTarget.style.display = "flex"
+    }
+    
+    document.addEventListener("click", this.outsideClickHandler)
+    // Focus the quantity input
+    setTimeout(() => this.quantityTarget?.focus(), 100)
+  }
+
+  closeEditor() {
+    this.editorOpenValue = false
+    if (this.hasEditorTarget) {
+      this.editorTarget.style.display = "none"
+    }
+    document.removeEventListener("click", this.outsideClickHandler)
+  }
+
+  // Flip between front and back face of DFC (not the editor)
+  flipCard(event) {
+    event.stopPropagation()
+    
+    if (!this.isDfcValue || !this.hasCardImageTarget) return
+    
+    this.showingBackValue = !this.showingBackValue
+    
+    if (this.showingBackValue && this.backImageValue) {
+      this.cardImageTarget.src = this.backImageValue
+    } else {
+      this.cardImageTarget.src = this.frontImageValue || '/card_placeholder.webp'
+    }
+    
+    // Update flip button appearance
+    if (this.hasFlipButtonTarget) {
+      if (this.showingBackValue) {
+        this.flipButtonTarget.style.background = "#2864b4"
+        this.flipButtonTarget.dataset.showing = "back"
+      } else {
+        this.flipButtonTarget.style.background = "#333"
+        this.flipButtonTarget.dataset.showing = "front"
+      }
     }
   }
 
   handleOutsideClick(event) {
-    if (!this.element.contains(event.target) && this.flippedValue) {
-      this.flipBack()
+    if (!this.element.contains(event.target) && this.editorOpenValue) {
+      this.closeEditor()
     }
-  }
-
-  flipBack() {
-    this.flippedValue = false
-    this.cardTarget.style.transform = "rotateY(0deg)"
-    document.removeEventListener("click", this.outsideClickHandler)
   }
 
   async save() {
@@ -68,8 +106,7 @@ export default class extends Controller {
 
       if (response.ok) {
         this.showSaveSuccess()
-        // Update the front display
-        this.updateFrontDisplay(quantity, foilQuantity)
+        this.updateDisplay(quantity, foilQuantity)
       } else {
         this.showSaveError()
       }
@@ -79,12 +116,12 @@ export default class extends Controller {
     }
   }
 
-  updateFrontDisplay(quantity, foilQuantity) {
+  updateDisplay(quantity, foilQuantity) {
     const qty = parseInt(quantity) || 0
     const foilQty = parseInt(foilQuantity) || 0
     const isOwned = qty > 0 || foilQty > 0
 
-    // Update card appearance
+    // Update card appearance (opacity/grayscale)
     const frontEl = this.frontTarget
     const img = frontEl.querySelector("img")
     
@@ -92,38 +129,67 @@ export default class extends Controller {
       frontEl.style.opacity = "1"
       if (img) img.style.filter = "none"
     } else {
-      frontEl.style.opacity = "0.35"
+      frontEl.style.opacity = "0.5"
       if (img) img.style.filter = "grayscale(100%)"
     }
 
-    // Update quantity badges
-    let badgeContainer = frontEl.querySelector(".quantity-badges")
-    if (!badgeContainer) {
-      badgeContainer = document.createElement("div")
-      badgeContainer.className = "quantity-badges"
-      badgeContainer.style.cssText = "position:absolute;top:4px;right:4px;display:flex;gap:2px;"
-      frontEl.appendChild(badgeContainer)
-    }
-
-    badgeContainer.innerHTML = ""
-    if (qty > 0) {
-      badgeContainer.innerHTML += `<div style="background:rgba(0,0,0,0.8);color:#4f8;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;">x${qty}</div>`
-    }
-    if (foilQty > 0) {
-      badgeContainer.innerHTML += `<div style="background:linear-gradient(135deg, rgba(80,60,120,0.9) 0%, rgba(40,30,80,0.9) 100%);color:#c9f;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;">x${foilQty}</div>`
+    // Update quantity badges in the control bar
+    if (this.hasBadgesTarget) {
+      this.badgesTarget.innerHTML = ""
+      
+      if (qty > 0) {
+        const normalBadge = document.createElement("div")
+        normalBadge.style.cssText = "background:#1a3a1a;color:#4f8;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;border:1px solid #2a4a2a;"
+        normalBadge.textContent = `x${qty}`
+        this.badgesTarget.appendChild(normalBadge)
+      }
+      
+      if (foilQty > 0) {
+        const foilBadge = document.createElement("div")
+        foilBadge.style.cssText = "background:linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);color:#c9f;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;border:1px solid #3a3a4a;"
+        foilBadge.textContent = `x${foilQty}`
+        this.badgesTarget.appendChild(foilBadge)
+      }
     }
   }
 
   showSaveSuccess() {
-    this.backTarget.style.boxShadow = "0 0 0 2px #4f8"
-    setTimeout(() => {
-      this.backTarget.style.boxShadow = "none"
-      this.flipBack()
-    }, 500)
+    // Flash the editor with green glow
+    if (this.hasEditorTarget) {
+      const el = this.editorTarget
+      el.style.transition = "box-shadow 0.3s ease-in-out"
+      el.style.boxShadow = "inset 0 0 20px rgba(68, 255, 136, 0.4)"
+      
+      setTimeout(() => {
+        el.style.boxShadow = "none"
+      }, 600)
+      
+      setTimeout(() => {
+        el.style.transition = ""
+      }, 900)
+    }
   }
 
   showSaveError() {
-    this.backTarget.style.boxShadow = "0 0 0 2px #f44"
-    setTimeout(() => this.backTarget.style.boxShadow = "none", 1500)
+    // Flash the editor with red glow
+    if (this.hasEditorTarget) {
+      const el = this.editorTarget
+      el.style.transition = "box-shadow 0.3s ease-in-out"
+      el.style.boxShadow = "inset 0 0 20px rgba(255, 68, 68, 0.4)"
+      
+      setTimeout(() => {
+        el.style.boxShadow = "none"
+      }, 800)
+      
+      setTimeout(() => {
+        el.style.transition = ""
+      }, 1100)
+    }
+  }
+
+  // Legacy method for compatibility with old openEditor action
+  close(event) {
+    event.stopPropagation()
+    this.closeEditor()
   }
 }
