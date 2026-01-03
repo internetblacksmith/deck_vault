@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# MCP Server for MTG Collector
+# This script runs as a standalone process and communicates via stdio
+# Usage: bin/mcp_server
+#
+# For Claude Desktop, add to your config:
+# {
+#   "mcpServers": {
+#     "mtg-collector": {
+#       "command": "/path/to/collector/bin/mcp_server",
+#       "args": []
+#     }
+#   }
+# }
+
+require_relative "../config/environment"
+require "mcp"
+
+# Load all MCP tools
+Dir[Rails.root.join("app/mcp/tools/*.rb")].each { |f| require f }
+
+# Create the MCP server with all tools
+server = MCP::Server.new(
+  name: "mtg-collector",
+  version: "1.0.0",
+  tools: [
+    Mcp::Tools::GetCollectionStatsTool,
+    Mcp::Tools::ListSetsTool,
+    Mcp::Tools::GetSetDetailsTool,
+    Mcp::Tools::SearchCardsTool,
+    Mcp::Tools::GetOwnedCardsTool,
+    Mcp::Tools::GetMissingCardsTool,
+    Mcp::Tools::UpdateCardQuantityTool
+  ]
+)
+
+# Start the stdio transport
+transport = MCP::Server::Transports::StdioTransport.new(server)
+transport.open
