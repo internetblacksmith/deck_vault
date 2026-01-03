@@ -4,36 +4,72 @@
 # belong in git's global ignore instead:
 # `$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`
 
+# =============================================================================
+# Collector (Rails App)
+# =============================================================================
+
 # Ignore bundler config.
-/.bundle
+collector/.bundle
 
 # Ignore all environment files except examples.
-/.env*
-!/.env.example
+collector/.env*
+!collector/.env.example
 
 # Ignore all logfiles and tempfiles.
-/log/*
-/tmp/*
-!/log/.keep
-!/tmp/.keep
+collector/log/*
+collector/tmp/*
+!collector/log/.keep
+!collector/tmp/.keep
 
 # Ignore pidfiles, but keep the directory.
-/tmp/pids/*
-!/tmp/pids/
-!/tmp/pids/.keep
+collector/tmp/pids/*
+!collector/tmp/pids/
+!collector/tmp/pids/.keep
 
 # Ignore storage (uploaded files in development and any SQLite databases).
-/storage/*
-!/storage/.keep
-/tmp/storage/*
-!/tmp/storage/
-!/tmp/storage/.keep
+collector/storage/*
+!collector/storage/.keep
+collector/tmp/storage/*
+!collector/tmp/storage/
+!collector/tmp/storage/.keep
 
-/public/assets
+collector/public/assets
 
 # Ignore key files for decrypting credentials and more.
-/config/*.key
+collector/config/*.key
 
+collector/app/assets/builds/*
+!collector/app/assets/builds/.keep
 
-/app/assets/builds/*
-!/app/assets/builds/.keep
+# =============================================================================
+# Showcase (Astro Static Site)
+# =============================================================================
+
+showcase/node_modules/
+showcase/dist/
+showcase/.astro/
+
+# =============================================================================
+# Seller (Node.js App)
+# =============================================================================
+
+seller/node_modules/
+seller/dist/
+seller/*.db
+
+# =============================================================================
+# Shared / Root
+# =============================================================================
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp files
+tmp/

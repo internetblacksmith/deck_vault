@@ -1,0 +1,75 @@
+---
+import type { Card } from '../lib/types';
+import { formatCollectorNumber, getRarityColor, getImageUrl } from '../lib/data';
+
+interface Props {
+  card: Card;
+  showQuantity?: boolean;
+  size?: 'small' | 'medium' | 'large';
+}
+
+const { card, showQuantity = true, size = 'medium' } = Astro.props;
+
+const imageUrl = getImageUrl(card);
+const rarityColor = getRarityColor(card.rarity);
+const totalQuantity = card.quantity + card.foil_quantity;
+---
+
+<div class="card-container relative group">
+  <!-- Card Image -->
+  <div class="card-aspect relative rounded overflow-hidden bg-[#222]">
+    <img 
+      src={imageUrl}
+      alt={card.name}
+      loading="lazy"
+      class="w-full h-full object-contain"
+      onerror="this.src='/placeholder.webp'"
+    />
+    
+    <!-- Collector Number Badge -->
+    <div class="absolute bottom-1 left-1 bg-black/90 text-white px-2 py-0.5 rounded text-xs font-medium">
+      {formatCollectorNumber(card.collector_number)}
+    </div>
+    
+    <!-- Rarity Indicator -->
+    <div 
+      class="absolute bottom-1 right-1 w-2 h-2 rounded-full"
+      style={`background-color: ${rarityColor}`}
+      title={card.rarity}
+    />
+  </div>
+
+  <!-- Quantity Badges -->
+  {showQuantity && totalQuantity > 0 && (
+    <div class="absolute top-1 left-1 flex gap-1">
+      {card.quantity > 0 && (
+        <span class="bg-[#1a3a1a] text-[#4f8] px-1.5 py-0.5 rounded text-xs font-semibold border border-[#2a4a2a]">
+          x{card.quantity}
+        </span>
+      )}
+      {card.foil_quantity > 0 && (
+        <span class="foil-badge text-[#c9f] px-1.5 py-0.5 rounded text-xs font-semibold border border-[#3a3a4a]">
+          x{card.foil_quantity}
+        </span>
+      )}
+    </div>
+  )}
+
+  <!-- Hover Info -->
+  <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute inset-0 bg-black/80 rounded flex flex-col items-center justify-center p-2 text-center">
+    <span class="text-white text-sm font-medium mb-1 line-clamp-2">{card.name}</span>
+    <span class="text-[#888] text-xs">{card.type_line}</span>
+    {card.mana_cost && (
+      <span class="text-[#666] text-xs mt-1">{card.mana_cost}</span>
+    )}
+  </div>
+</div>
+
+<style>
+  .card-container {
+    transition: transform 0.2s;
+  }
+  .card-container:hover {
+    transform: scale(1.02);
+  }
+</style>

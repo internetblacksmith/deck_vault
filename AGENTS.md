@@ -1,8 +1,26 @@
-# Agent Coding Guidelines - MTG Collection Manager
+# Agent Coding Guidelines - MTG Tools Monorepo
 
-This document provides essential guidelines for agentic coding in the MTG Collection Manager codebase.
+This document provides essential guidelines for agentic coding in the MTG Tools monorepo.
 
-## Development Setup
+## Repository Structure
+
+```
+mtg_collector/
+├── collector/     # Rails app for collection management
+├── showcase/      # Static site generator (Astro)
+├── seller/        # Cardmarket seller app (Node.js)
+├── docker-compose.yml
+├── README.md
+└── AGENTS.md
+```
+
+---
+
+## Collector (Rails App)
+
+**Location:** `collector/`
+
+### Development Setup
 
 **Prerequisites:**
 - Ruby 3.4+
@@ -12,15 +30,18 @@ This document provides essential guidelines for agentic coding in the MTG Collec
 
 **Initial Setup:**
 ```bash
+cd collector
 bundle install
 cp .env.example .env
 bin/rails db:create db:migrate
-docker-compose up -d redis
+docker-compose -f ../docker-compose.yml up -d redis
 ```
 
-## Build, Test & Lint Commands
+### Build, Test & Lint Commands
 
-### Running Tests (RSpec)
+All commands should be run from the `collector/` directory.
+
+#### Running Tests (RSpec)
 ```bash
 # Run all tests (298 tests: model + request specs)
 bundle exec rspec
@@ -43,7 +64,7 @@ bundle exec rspec spec/models/user_spec.rb
 bundle exec rspec -e "validations"
 ```
 
-### Running Tests (Cucumber - BDD Acceptance Tests)
+#### Running Tests (Cucumber - BDD Acceptance Tests)
 ```bash
 # Run all Cucumber scenarios
 bundle exec cucumber
@@ -64,7 +85,7 @@ bundle exec cucumber --tags 'not @wip'
 bundle exec cucumber --tags @javascript
 ```
 
-### Code Quality
+#### Code Quality
 ```bash
 # Lint with RuboCop (Omakase Rails style)
 bin/rubocop
@@ -89,55 +110,43 @@ Just Rails server with automatic Tailwind CSS rebuilding. No background jobs.
 
 #### Option 2: Full Stack with Separate Redis Terminal
 ```bash
-# Terminal 1: Redis (required for Sidekiq)
+# Terminal 1: Redis (required for Sidekiq) - from repo root
 docker-compose up redis
 
-# Terminal 2: Rails + CSS + Sidekiq (all in one with foreman)
+# Terminal 2: Rails + CSS + Sidekiq (from collector/)
 bin/dev --sidekiq
 ```
 
 #### Option 3: Integrated Full Stack
 ```bash
-# Terminal 1: Redis
+# Terminal 1: Redis (from repo root)
 docker-compose up redis
 
-# Terminal 2: All services (Rails + CSS + Sidekiq)
+# Terminal 2: All services (from collector/)
 bin/dev --redis
-```
-
-#### Using foreman directly
-```bash
-# Use default Procfile.dev
-foreman start
-
-# Use Procfile with Sidekiq
-foreman start -f Procfile.dev
-
-# Use Procfile with Redis
-foreman start -f Procfile.dev.redis
 ```
 
 #### Shutdown
 ```bash
 # Stop foreman (Ctrl+C)
-# Stop Redis
+# Stop Redis (from repo root)
 docker-compose down
 
 # Kill any remaining processes
 pkill -f "puma|sidekiq|tailwindcss"
 ```
 
-## Code Style Guidelines
+### Code Style Guidelines
 
-### File Organization
-- **Models:** `app/models/` - Keep business logic and validations here
-- **Controllers:** `app/controllers/` - Handle HTTP requests, keep logic thin
-- **Services:** `app/services/` - External API calls and complex operations
-- **Jobs:** `app/jobs/` - Background jobs using Sidekiq
-- **Helpers:** `app/helpers/` - View helpers only
-- **Tests:** `test/` - Unit tests, integration tests, system tests
+#### File Organization
+- **Models:** `collector/app/models/` - Keep business logic and validations here
+- **Controllers:** `collector/app/controllers/` - Handle HTTP requests, keep logic thin
+- **Services:** `collector/app/services/` - External API calls and complex operations
+- **Jobs:** `collector/app/jobs/` - Background jobs using Sidekiq
+- **Helpers:** `collector/app/helpers/` - View helpers only
+- **Tests:** `collector/spec/` - RSpec tests
 
-### Naming Conventions
+#### Naming Conventions
 - **Constants:** `SCREAMING_SNAKE_CASE` - `BASE_URL`, `IMAGES_DIR`
 - **Classes:** `PascalCase` - `CardSet`, `ScryfallService`, `DownloadCardImagesJob`
 - **Methods:** `snake_case` - `download_progress_percentage`, `all_images_downloaded?`
@@ -145,7 +154,7 @@ pkill -f "puma|sidekiq|tailwindcss"
 - **Booleans:** End with `?` - `is_valid?`, `all_images_downloaded?`
 - **Database:** `snake_case` - `download_status`, `images_downloaded`
 
-### Imports & Dependencies
+#### Imports & Dependencies
 ```ruby
 # Standard: require statements at top
 require "fileutils"
@@ -162,13 +171,13 @@ class MyClass < ApplicationRecord
 end
 ```
 
-### Type Hints & Comments
+#### Type Hints & Comments
 - Use inline comments for complex logic: `# Skip if already downloaded`
 - Document methods with comment above: `# Fetch all Magic: The Gathering sets`
 - No explicit type hints (Ruby is dynamically typed)
 - Use descriptive variable names instead: `images_count` not `count`
 
-### Formatting
+#### Formatting
 - **Indentation:** 2 spaces (never tabs)
 - **Line length:** Prefer <100 chars, max 120
 - **Arrays/Hashes:** Use bracket notation for single-line, proper formatting for multi-line:
@@ -185,7 +194,7 @@ end
   }
   ```
 
-### Error Handling
+#### Error Handling
 ```ruby
 # Always use rescue with StandardError (never rescue Exception)
 rescue StandardError => e
@@ -200,7 +209,7 @@ rescue ActiveRecord::RecordNotFound
   render json: { errors: "Not found" }, status: :not_found
 ```
 
-### Database
+#### Database
 - Use `has_many`, `belongs_to` associations
 - Always add `dependent: :destroy` for cleanup: `has_many :cards, dependent: :destroy`
 - Use `validates` for data integrity:
@@ -211,13 +220,13 @@ rescue ActiveRecord::RecordNotFound
   ```
 - Use enums for status fields: `enum :download_status, { pending: "pending", ... }`
 
-### API Integration
+#### API Integration
 - Wrap external API calls in service classes: `ScryfallService`
 - Always rescue errors and log them: `rescue StandardError => e`
 - Return empty collections on failure: `return [] unless response.success?`
 - Use `.freeze` for API URLs: `BASE_URL = "https://...".freeze`
 
-### Controllers
+#### Controllers
 - Keep thin: delegate to services/models
 - Use `before_action` for setup: `before_action :set_card_set, only: [:show]`
 - Private helper methods at bottom: `private` separator
@@ -227,19 +236,19 @@ rescue ActiveRecord::RecordNotFound
   render json: { errors: errors }, status: :unprocessable_entity
   ```
 
-### Views
+#### Views
 - Use data attributes for JavaScript: `data-card-id="<%= card.id %>"`
 - Prefer conditional operators: `@status == 'active' ? 'green' : 'red'`
 - Auto-escape variables (Rails default is safe)
 
-### Background Jobs (Sidekiq)
+#### Background Jobs (Sidekiq)
 - Use `queue_as :default` for most jobs
 - Add retries: `sidekiq_options retry: 3`
 - Log success and failures: `Rails.logger.info/warn/error`
 - Always rescue and re-raise: `rescue StandardError => e; raise`
 - Update progress in database if needed
 
-### Testing with RSpec
+#### Testing with RSpec
 - Test file mirrors source: `app/models/card.rb` → `spec/models/card_spec.rb`
 - Use FactoryBot factories for test data: `create(:card), build(:user)`
 - Use shoulda-matchers for model testing: `validate_presence_of(:email)`
@@ -248,39 +257,222 @@ rescue ActiveRecord::RecordNotFound
 - Request tests should login users: create user and POST to login route first
 - Use `before do` for common setup in request tests
 
-### Gems & Dependencies
+#### Gems & Dependencies
 - Keep versions flexible but safe: `gem "rails", "~> 8.1.1"` not exact versions
 - Group gems by environment: `group :development, :test do`
 - Use `bundle update` sparingly, prefer `bundle install`
 - Check compatibility before upgrading: `connection_pool ~> 2.3` (verified with Sidekiq 7.1)
 
-## Project-Specific Patterns
+### Project-Specific Patterns
 
-### Authentication
+#### Authentication
 - Uses custom bcrypt authentication (no Devise needed)
 - `ApplicationController#authenticate_user` protects all routes by default
 - `SessionsController` handles login/logout
 - `RegistrationsController` handles signup
 - Routes: GET/POST `/login`, GET/POST `/sign_up`, DELETE `/logout`
-- User model: `has_secure_password`, email validation with RFC regex
+- User model: `has_secure_password`, username validation
 - Session stored in encrypted Rails cookie
-- Test helper: Login users in request specs with `post login_path, params: { email:, password: }`
+- Test helper: Login users in request specs with `post login_path, params: { username:, password: }`
 
-### Scryfall Integration
+#### Chat Feature (Claude AI)
+The app includes an AI chat assistant powered by Claude for natural language collection queries.
+
+**Location:** `collector/app/services/chat_service.rb`, `collector/app/controllers/chat_controller.rb`
+
+**Setup:**
+```bash
+# Add to .env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Routes:** `GET /chat`, `POST /chat`
+
+**ChatService Tools:**
+- `get_collection_stats` - Collection statistics
+- `list_sets` - List downloaded sets  
+- `get_set_cards` - Cards in a specific set
+- `search_cards` - Search by name/set
+- `get_owned_cards` - Cards you own
+- `get_missing_cards` - Cards you don't own
+- `update_card_quantity` - Update quantities
+
+**Testing:**
+```bash
+bundle exec rspec spec/requests/chat_spec.rb
+bundle exec rspec spec/services/chat_service_spec.rb
+```
+
+#### API v1 Endpoints
+RESTful JSON API for programmatic access.
+
+**Location:** `collector/app/controllers/api/v1/`
+
+**Endpoints:**
+```
+GET  /api/v1/stats              # Collection statistics
+GET  /api/v1/sets               # List completed sets
+GET  /api/v1/sets/:code         # Set details with cards
+POST /api/v1/sets/download      # Download new set from Scryfall
+GET  /api/v1/cards              # Search/filter cards
+GET  /api/v1/cards/:id          # Card details
+PATCH /api/v1/cards/:id         # Update card quantity
+```
+
+**Query Parameters for `/api/v1/cards`:**
+- `q` - Search by card name
+- `set` - Filter by set code
+- `rarity` - Filter by rarity (common, uncommon, rare, mythic)
+- `owned=true` - Only owned cards
+- `missing=true` - Only missing cards
+- `limit` - Max results (default 100, max 500)
+
+**Testing:**
+```bash
+bundle exec rspec spec/requests/api/v1/
+```
+
+#### Delver Lens Import
+Import collections from Delver Lens CSV exports.
+
+**Location:** `collector/app/services/delver_csv_import_service.rb`
+
+**Features:**
+- Parses Delver Lens CSV format (Name, Set code, Foil, Quantity, Scryfall ID)
+- Auto-downloads missing sets from Scryfall
+- Two modes: "add" (merge quantities) or "replace" (clear and import)
+- Handles foil cards correctly
+
+**Route:** `POST /card_sets/import_delver_csv`
+
+**Testing:**
+```bash
+bundle exec cucumber features/delver_import.feature
+```
+
+#### Scryfall Integration
 - Use `ScryfallService` for all API calls
 - Always handle pagination: `has_more` flag
 - Download images asynchronously: queue `DownloadCardImagesJob`
 - Cache responses with timestamp checks
 
-### Background Jobs
+#### Background Jobs
 - Queue in controller: `DownloadCardImagesJob.perform_later(card_id)`
 - Progress tracking: update `card_set.images_downloaded` and `download_status`
 - Ensure idempotence: check `image_path.present?` before downloading
 
-### Database Queries
+#### Database Queries
 - Use `includes` to prevent N+1: `@cards.includes(:collection_card)`
 - Use `where.not` for negation: `cards.where.not(image_path: nil)`
 - Count efficiently: `CardSet.count` not loading all
+
+#### MCP Server (Model Context Protocol)
+The collector app includes a built-in MCP server for LLM integration (Claude Desktop, etc.).
+
+**Location:** `collector/app/mcp/tools/`
+
+**Running the MCP Server:**
+```bash
+cd collector
+bin/mcp_server
+```
+
+**Claude Desktop Configuration:**
+Add to your Claude Desktop config (`~/.config/claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "mtg-collector": {
+      "command": "/path/to/collector/bin/mcp_server",
+      "args": []
+    }
+  }
+}
+```
+
+**Available Tools:**
+- `get_collection_stats` - Get collection statistics
+- `list_sets` - List all downloaded sets
+- `get_set_details` - Get cards in a specific set
+- `search_cards` - Search cards by name/set/rarity
+- `get_owned_cards` - Get cards you own
+- `get_missing_cards` - Get cards you don't own
+- `update_card_quantity` - Update card quantities
+
+**Creating New Tools:**
+```ruby
+# app/mcp/tools/my_tool.rb
+module Mcp
+  module Tools
+    class MyTool < MCP::Tool
+      tool_name "my_tool"
+      description "Description of what the tool does"
+
+      input_schema(
+        properties: {
+          param_name: { type: "string", description: "Param description" }
+        },
+        required: ["param_name"]
+      )
+
+      class << self
+        def call(param_name:, server_context:)
+          # Tool implementation using Rails models
+          result = { data: "result" }
+          MCP::Tool::Response.new([{
+            type: "text",
+            text: JSON.pretty_generate(result)
+          }])
+        end
+      end
+    end
+  end
+end
+```
+
+---
+
+## Showcase (Astro Static Site)
+
+**Location:** `showcase/`
+**Status:** Planned
+
+### Tech Stack
+- Astro
+- TypeScript
+- Tailwind CSS
+
+### Commands (planned)
+```bash
+cd showcase
+npm install
+npm run dev        # Development server
+npm run build      # Build static site
+npm run preview    # Preview built site
+```
+
+---
+
+## Seller (Node.js App)
+
+**Location:** `seller/`
+**Status:** Planned
+
+### Tech Stack
+- Node.js + Express
+- TypeScript
+- SQLite
+- Cardmarket API
+
+### Commands (planned)
+```bash
+cd seller
+npm install
+npm run dev        # Development server
+npm run build      # Build for production
+```
+
+---
 
 ## Git & Commits
 
@@ -288,18 +480,21 @@ rescue ActiveRecord::RecordNotFound
 - Reference related code: include file paths in messages
 - One logical change per commit
 - Never force push without explicit request
+- Prefix commits with project when relevant: `[collector] Add export endpoint`
 
 ## Debugging
 
+### Collector
 - Use Rails logger: `Rails.logger.info("message")`
-- Check development log: `tail -f log/development.log`
-- Use `rails console` for debugging
+- Check development log: `tail -f collector/log/development.log`
+- Use `rails console` for debugging (from collector/)
 - Check Redis: `docker-compose exec redis redis-cli`
 - Monitor Sidekiq: `bundle exec sidekiq -v` shows connected/processing
 
 ## Documentation
 
-- Update README.md for user-facing changes
+- Update root README.md for monorepo-level changes
+- Update collector/README.md for collector-specific changes
 - Update SIDEKIQ_SETUP.md for infrastructure changes
 - Add inline comments for non-obvious logic
 - Keep AGENTS.md current with code changes

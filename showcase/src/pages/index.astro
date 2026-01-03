@@ -1,0 +1,88 @@
+---
+import Layout from '../layouts/Layout.astro';
+import StatsCard from '../components/StatsCard.astro';
+import SetCard from '../components/SetCard.astro';
+import collectionData from '../data/collection.json';
+
+const { stats, sets, cards, exported_at } = collectionData;
+
+// Sort sets by completion percentage (highest first)
+const sortedSets = [...sets].sort((a, b) => b.completion_percentage - a.completion_percentage);
+
+// Get recent/top sets (up to 6)
+const topSets = sortedSets.slice(0, 6);
+
+// Calculate some extra stats
+const totalValue = cards.length; // Placeholder - could integrate price data
+const avgCompletion = sets.length > 0 
+  ? (sets.reduce((sum, s) => sum + s.completion_percentage, 0) / sets.length).toFixed(1)
+  : 0;
+---
+
+<Layout title="Dashboard">
+  <!-- Hero Stats -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-white mb-2">My Collection</h1>
+    <p class="text-[#888]">
+      Last updated: {new Date(exported_at).toLocaleDateString('en-GB', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}
+    </p>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <StatsCard 
+      label="Unique Cards" 
+      value={stats.total_unique.toLocaleString()} 
+    />
+    <StatsCard 
+      label="Total Cards" 
+      value={stats.total_cards.toLocaleString()}
+      subtext={`${stats.total_foils} foils`}
+      color="green"
+    />
+    <StatsCard 
+      label="Sets Collected" 
+      value={stats.sets_collected}
+      subtext={`${avgCompletion}% avg completion`}
+      color="blue"
+    />
+    <StatsCard 
+      label="Foil Cards" 
+      value={stats.total_foils.toLocaleString()}
+      color="purple"
+    />
+  </div>
+
+  <!-- Top Sets -->
+  {topSets.length > 0 && (
+    <section class="mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-white">Top Sets</h2>
+        <a href="/sets" class="text-[#29f] text-sm hover:underline">View all sets</a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {topSets.map(set => (
+          <SetCard set={set} />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- Empty State -->
+  {stats.total_unique === 0 && (
+    <div class="bg-[#1a1a1a] rounded-lg p-12 text-center">
+      <div class="text-6xl mb-4">🎴</div>
+      <h2 class="text-xl font-bold text-white mb-2">No cards yet</h2>
+      <p class="text-[#888] mb-4">
+        Export your collection from the Collector app to see it here.
+      </p>
+      <p class="text-[#666] text-sm">
+        Run <code class="bg-[#222] px-2 py-1 rounded">npm run import</code> to import your collection.
+      </p>
+    </div>
+  )}
+</Layout>
