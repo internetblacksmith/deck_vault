@@ -1,0 +1,51 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SetCard from '../../components/SetCard.astro';
+import collectionData from '../../data/collection.json';
+
+const { sets } = collectionData;
+
+// Sort sets by name
+const sortedSets = [...sets].sort((a, b) => a.name.localeCompare(b.name));
+
+// Group sets by year
+const setsByYear = sortedSets.reduce((acc, set) => {
+  const year = set.released_at ? new Date(set.released_at).getFullYear().toString() : 'Unknown';
+  if (!acc[year]) acc[year] = [];
+  acc[year].push(set);
+  return acc;
+}, {} as Record<string, typeof sets>);
+
+// Sort years descending
+const years = Object.keys(setsByYear).sort((a, b) => {
+  if (a === 'Unknown') return 1;
+  if (b === 'Unknown') return -1;
+  return parseInt(b) - parseInt(a);
+});
+---
+
+<Layout title="All Sets">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-white mb-2">All Sets</h1>
+    <p class="text-[#888]">{sets.length} sets in collection</p>
+  </div>
+
+  {sets.length === 0 ? (
+    <div class="bg-[#1a1a1a] rounded-lg p-12 text-center">
+      <div class="text-6xl mb-4">📦</div>
+      <h2 class="text-xl font-bold text-white mb-2">No sets yet</h2>
+      <p class="text-[#888]">Import your collection to see your sets here.</p>
+    </div>
+  ) : (
+    years.map(year => (
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-[#888] mb-4 border-b border-[#333] pb-2">{year}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {setsByYear[year].map(set => (
+            <SetCard set={set} />
+          ))}
+        </div>
+      </section>
+    ))
+  )}
+</Layout>

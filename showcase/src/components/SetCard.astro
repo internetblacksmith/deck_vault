@@ -1,0 +1,42 @@
+---
+import type { CardSet } from '../lib/types';
+
+interface Props {
+  set: CardSet;
+}
+
+const { set } = Astro.props;
+
+const progressColor = set.completion_percentage >= 100 
+  ? '#4f8' 
+  : set.completion_percentage >= 50 
+    ? '#fc0' 
+    : '#f84';
+---
+
+<a 
+  href={`/sets/${set.code.toLowerCase()}`}
+  class="block bg-[#1a1a1a] rounded-lg p-4 hover:bg-[#222] transition-colors border border-[#333] hover:border-[#444]"
+>
+  <div class="flex justify-between items-start mb-3">
+    <div>
+      <h3 class="text-white font-semibold">{set.name}</h3>
+      <span class="text-[#666] text-xs uppercase">{set.code}</span>
+    </div>
+    <span class="text-[#29f] text-sm font-bold">{set.completion_percentage}%</span>
+  </div>
+  
+  <div class="progress-bar mb-2">
+    <div 
+      class="progress-bar-fill" 
+      style={`width: ${set.completion_percentage}%; background-color: ${progressColor}`}
+    />
+  </div>
+  
+  <div class="flex justify-between text-xs text-[#888]">
+    <span>{set.owned_count} / {set.card_count} cards</span>
+    {set.released_at && (
+      <span>{new Date(set.released_at).getFullYear()}</span>
+    )}
+  </div>
+</a>

@@ -1,0 +1,23 @@
+---
+interface Props {
+  label: string;
+  value: string | number;
+  subtext?: string;
+  color?: 'default' | 'green' | 'purple' | 'blue';
+}
+
+const { label, value, subtext, color = 'default' } = Astro.props;
+
+const colorClasses = {
+  default: 'text-white',
+  green: 'text-[#4f8]',
+  purple: 'text-[#c9f]',
+  blue: 'text-[#29f]',
+};
+---
+
+<div class="bg-[#1a1a1a] rounded-lg p-6">
+  <div class="text-[#888] text-sm mb-1">{label}</div>
+  <div class={`text-3xl font-bold ${colorClasses[color]}`}>{value}</div>
+  {subtext && <div class="text-[#666] text-xs mt-1">{subtext}</div>}
+</div>

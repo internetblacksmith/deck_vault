@@ -1,0 +1,256 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Card from '../../components/Card.astro';
+import collectionData from '../../data/collection.json';
+import { getCardsForSet, getSetByCode, organizeIntoPages, organizeIntoSpreads } from '../../lib/data';
+
+export function getStaticPaths() {
+  const { sets } = collectionData;
+  return sets.map(set => ({
+    params: { code: set.code.toLowerCase() },
+  }));
+}
+
+const { code } = Astro.params;
+const { sets, cards } = collectionData;
+
+const set = getSetByCode(sets, code!);
+const setCards = getCardsForSet(cards, code!);
+
+if (!set) {
+  return Astro.redirect('/sets');
+}
+
+// Get view from URL params (default to grid)
+const url = new URL(Astro.request.url);
+const view = url.searchParams.get('view') || 'grid';
+
+// Binder settings
+const rows = 3;
+const columns = 3;
+const cardsPerPage = rows * columns;
+const pages = organizeIntoPages(setCards, cardsPerPage);
+const spreads = organizeIntoSpreads(pages);
+
+// Progress color
+const progressColor = set.completion_percentage >= 100 
+  ? '#4f8' 
+  : set.completion_percentage >= 50 
+    ? '#fc0' 
+    : '#f84';
+---
+
+<Layout title={set.name}>
+  <!-- Set Header -->
+  <div class="mb-6">
+    <div class="flex items-center gap-2 mb-2">
+      <a href="/sets" class="text-[#888] hover:text-white text-sm">&larr; All Sets</a>
+    </div>
+    <h1 class="text-3xl font-bold text-white mb-1">{set.name}</h1>
+    <div class="flex items-center gap-4 text-[#888]">
+      <span class="uppercase text-xs">{set.code}</span>
+      {set.released_at && (
+        <span class="text-sm">{new Date(set.released_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'long' })}</span>
+      )}
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="bg-[#1a1a1a] rounded-lg p-4 mb-6">
+    <div class="flex flex-wrap gap-6 mb-3">
+      <div>
+        <span class="text-[#888] text-sm">Cards</span>
+        <span class="text-white font-bold ml-2">{set.owned_count} / {set.card_count}</span>
+      </div>
+      <div>
+        <span class="text-[#888] text-sm">Completion</span>
+        <span class="text-[#29f] font-bold ml-2">{set.completion_percentage}%</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div 
+        class="progress-bar-fill" 
+        style={`width: ${set.completion_percentage}%; background-color: ${progressColor}`}
+      />
+    </div>
+  </div>
+
+  <!-- View Toggle -->
+  <div class="flex gap-2 mb-6">
+    <a 
+      href={`/sets/${code}?view=grid`}
+      class:list={["btn", view === 'grid' ? "btn-primary" : "btn-secondary"]}
+    >
+      Grid
+    </a>
+    <a 
+      href={`/sets/${code}?view=binder`}
+      class:list={["btn", view === 'binder' ? "btn-primary" : "btn-secondary"]}
+    >
+      Binder
+    </a>
+  </div>
+
+  <!-- Grid View -->
+  {view === 'grid' && (
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+      {setCards.map(card => (
+        <Card card={card} />
+      ))}
+    </div>
+  )}
+
+  <!-- Binder View -->
+  {view === 'binder' && (
+    <div 
+      id="binder" 
+      class="binder-container"
+      data-spreads={JSON.stringify(spreads.length)}
+    >
+      <!-- Binder Navigation -->
+      <div class="flex justify-center items-center gap-4 mb-6">
+        <button 
+          id="prev-btn"
+          class="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled
+        >
+          &larr; Previous
+        </button>
+        <span id="spread-indicator" class="text-[#888]">
+          1 / {spreads.length}
+        </span>
+        <button 
+          id="next-btn"
+          class="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next &rarr;
+        </button>
+      </div>
+
+      <!-- Spreads Container -->
+      <div id="spreads-container" class="relative">
+        {spreads.map((spread, index) => (
+          <div 
+            class="spread flex gap-4 justify-center"
+            data-spread-index={index}
+            style={index === 0 ? '' : 'display: none;'}
+          >
+            <!-- Left Page -->
+            <div class="binder-page flex-1 max-w-md">
+              {spread.left ? (
+                <>
+                  <div class={`grid gap-2`} style={`grid-template-columns: repeat(${columns}, 1fr)`}>
+                    {spread.left.cards.map(card => (
+                      card ? <Card card={card} size="small" /> : <div class="card-aspect bg-[#111] rounded border border-dashed border-[#333]" />
+                    ))}
+                  </div>
+                  <div class="text-center text-[#666] text-sm mt-3">Page {spread.left.page_number}</div>
+                </>
+              ) : (
+                <div class="flex items-center justify-center h-full min-h-[400px]">
+                  <div class="text-center">
+                    <div class="text-4xl font-bold text-white mb-2">{set.name}</div>
+                    <div class="text-[#888]">{set.owned_count} cards</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <!-- Right Page -->
+            <div class="binder-page flex-1 max-w-md">
+              {spread.right ? (
+                <>
+                  <div class={`grid gap-2`} style={`grid-template-columns: repeat(${columns}, 1fr)`}>
+                    {spread.right.cards.map(card => (
+                      card ? <Card card={card} size="small" /> : <div class="card-aspect bg-[#111] rounded border border-dashed border-[#333]" />
+                    ))}
+                  </div>
+                  <div class="text-center text-[#666] text-sm mt-3">Page {spread.right.page_number}</div>
+                </>
+              ) : (
+                <div class="flex items-center justify-center h-full min-h-[400px] text-[#666]">
+                  End of binder
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Page Numbers -->
+      <div class="flex flex-wrap justify-center gap-2 mt-6">
+        {spreads.map((_, index) => (
+          <button 
+            class="page-btn w-8 h-8 rounded text-sm border border-[#444] hover:bg-[#333] transition-colors"
+            class:list={[index === 0 && "bg-[#29f] text-white border-[#29f]"]}
+            data-page={index}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <script>
+      // Binder navigation
+      const spreadsContainer = document.getElementById('spreads-container');
+      const prevBtn = document.getElementById('prev-btn') as HTMLButtonElement;
+      const nextBtn = document.getElementById('next-btn') as HTMLButtonElement;
+      const indicator = document.getElementById('spread-indicator');
+      const pageBtns = document.querySelectorAll('.page-btn');
+      
+      const spreads = spreadsContainer?.querySelectorAll('.spread');
+      let currentSpread = 0;
+      const totalSpreads = spreads?.length || 0;
+
+      function showSpread(index: number) {
+        if (!spreads || index < 0 || index >= totalSpreads) return;
+        
+        spreads.forEach((spread, i) => {
+          (spread as HTMLElement).style.display = i === index ? 'flex' : 'none';
+        });
+        
+        currentSpread = index;
+        
+        // Update indicator
+        if (indicator) indicator.textContent = `${index + 1} / ${totalSpreads}`;
+        
+        // Update buttons
+        if (prevBtn) prevBtn.disabled = index === 0;
+        if (nextBtn) nextBtn.disabled = index === totalSpreads - 1;
+        
+        // Update page buttons
+        pageBtns.forEach((btn, i) => {
+          btn.classList.toggle('bg-[#29f]', i === index);
+          btn.classList.toggle('text-white', i === index);
+          btn.classList.toggle('border-[#29f]', i === index);
+        });
+      }
+
+      prevBtn?.addEventListener('click', () => showSpread(currentSpread - 1));
+      nextBtn?.addEventListener('click', () => showSpread(currentSpread + 1));
+      
+      pageBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const page = parseInt((btn as HTMLElement).dataset.page || '0');
+          showSpread(page);
+        });
+      });
+
+      // Arrow key navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') showSpread(currentSpread - 1);
+        if (e.key === 'ArrowRight') showSpread(currentSpread + 1);
+      });
+    </script>
+  )}
+
+  <!-- Empty state -->
+  {setCards.length === 0 && (
+    <div class="bg-[#1a1a1a] rounded-lg p-12 text-center">
+      <div class="text-6xl mb-4">🃏</div>
+      <h2 class="text-xl font-bold text-white mb-2">No cards in this set</h2>
+      <p class="text-[#888]">You don't have any cards from this set in your collection yet.</p>
+    </div>
+  )}
+</Layout>
