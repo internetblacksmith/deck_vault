@@ -1,28 +1,63 @@
 // Data loading utilities
 import type { ShowcaseData, Card, CardSet, BinderPage, BinderSpread } from './types';
 
-// Load collection data from JSON file
+// Empty data structure for fallback
+const EMPTY_DATA: ShowcaseData = {
+  version: 2,
+  export_type: 'showcase',
+  exported_at: new Date().toISOString(),
+  stats: {
+    total_unique: 0,
+    total_cards: 0,
+    total_foils: 0,
+    sets_collected: 0,
+  },
+  sets: [],
+  cards: [],
+};
+
+// Fetch collection data from a remote Gist URL
+async function fetchFromGist(url: string): Promise<ShowcaseData> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch from Gist: ${response.status}`);
+  }
+  return await response.json() as ShowcaseData;
+}
+
+// Load collection data from local JSON file
+async function loadFromLocalFile(): Promise<ShowcaseData> {
+  const data = await import('../data/collection.json');
+  return data.default as ShowcaseData;
+}
+
+// Load collection data - tries Gist URL first (if configured), falls back to local file
 export async function loadCollectionData(): Promise<ShowcaseData> {
+  // Check for Gist URL in environment (set at build time)
+  const gistUrl = import.meta.env.PUBLIC_GIST_URL;
+
   try {
-    // In production, this file is generated at build time
-    const data = await import('../data/collection.json');
-    return data.default as ShowcaseData;
+    if (gistUrl) {
+      console.log('Loading collection from Gist...');
+      return await fetchFromGist(gistUrl);
+    }
+    // Fall back to local file
+    console.log('Loading collection from local file...');
+    return await loadFromLocalFile();
   } catch (error) {
     console.error('Failed to load collection data:', error);
-    // Return empty data structure
-    return {
-      version: 2,
-      export_type: 'showcase',
-      exported_at: new Date().toISOString(),
-      stats: {
-        total_unique: 0,
-        total_cards: 0,
-        total_foils: 0,
-        sets_collected: 0,
-      },
-      sets: [],
-      cards: [],
-    };
+    
+    // If Gist failed, try local file as fallback
+    if (gistUrl) {
+      try {
+        console.log('Gist failed, trying local file...');
+        return await loadFromLocalFile();
+      } catch {
+        // Both failed
+      }
+    }
+    
+    return EMPTY_DATA;
   }
 }
 
