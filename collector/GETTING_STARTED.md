@@ -1,6 +1,6 @@
-# Getting Started with MTG Collection Manager
+# Getting Started with Deck Vault
 
-This guide will help you set up and start using the MTG Collection Manager to track your Magic: The Gathering collection.
+This guide will help you set up and start using the Deck Vault to track your Magic: The Gathering collection.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This guide will help you set up and start using the MTG Collection Manager to tr
 
 ```bash
 git clone <repository-url>
-cd mtg_collector
+cd deck_vault
 bundle install
 ```
 

@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide will help you install and run MTG Collector on your computer. No programming experience required!
+This guide will help you install and run Deck Vault on your computer. No programming experience required!
 
 ## Choose Your Installation Method
 
@@ -53,22 +53,22 @@ This guide will help you install and run MTG Collector on your computer. No prog
 
    > **Tip:** The whale icon should be still (not moving) when Docker is ready. This can take 1-2 minutes.
 
-### Step 2: Download MTG Collector
+### Step 2: Download Deck Vault
 
 Choose ONE of these methods:
 
 #### Method A: Download ZIP (Simplest)
 
 1. **Download the project**
-   - Go to: https://github.com/jabawack81/mtg_collector
+   - Go to: https://github.com/jabawack81/deck_vault
    - Click the green **"Code"** button
    - Click **"Download ZIP"**
 
 2. **Extract the ZIP file**
    - Find the downloaded file (usually in your Downloads folder)
-   - Right-click on `mtg_collector-main.zip`
+   - Right-click on `deck_vault-main.zip`
    - Click **"Extract All..."**
-   - Choose a simple location like `C:\mtg_collector` 
+   - Choose a simple location like `C:\deck_vault` 
    - Click **"Extract"**
 
    > **Important:** Remember where you extracted the files! You'll need this location in the next step.
@@ -87,8 +87,8 @@ GitHub Desktop is a free app that makes downloading and updating easy. If you wa
    - Open GitHub Desktop
    - Click **"Clone a repository from the Internet..."** (or File → Clone repository)
    - Click the **"URL"** tab
-   - Paste this URL: `https://github.com/jabawack81/mtg_collector.git`
-   - Choose where to save it (e.g., `C:\mtg_collector`)
+   - Paste this URL: `https://github.com/jabawack81/deck_vault.git`
+   - Choose where to save it (e.g., `C:\deck_vault`)
    - Click **"Clone"**
 
 3. **Getting updates later**
@@ -109,7 +109,7 @@ GitKraken is another popular Git client with a visual interface.
 2. **Clone the repository**
    - Click **"Clone a repo"** on the welcome screen
    - Select **"Clone with URL"**
-   - Paste: `https://github.com/jabawack81/mtg_collector.git`
+   - Paste: `https://github.com/jabawack81/deck_vault.git`
    - Choose where to save it
    - Click **"Clone the repo!"**
 
@@ -117,7 +117,7 @@ GitKraken is another popular Git client with a visual interface.
    - Open the repository in GitKraken
    - Click the **"Pull"** button in the toolbar
 
-### Step 3: Start MTG Collector
+### Step 3: Start Deck Vault
 
 1. **Open PowerShell**
    - Click the Start menu
@@ -128,12 +128,12 @@ GitKraken is another popular Git client with a visual interface.
    
    Type this command and press Enter:
    ```powershell
-   cd C:\mtg_collector\mtg_collector-main
+   cd C:\deck_vault\deck_vault-main
    ```
    
    > **Note:** If you extracted to a different location, adjust the path. For example, if you extracted to your Downloads folder:
    > ```powershell
-   > cd "$HOME\Downloads\mtg_collector-main"
+   > cd "$HOME\Downloads\deck_vault-main"
    > ```
 
 3. **Start the application**
@@ -148,7 +148,7 @@ GitKraken is another popular Git client with a visual interface.
    - You'll see lots of text scrolling - this is normal!
    - **Look for this message:**
      ```
-     mtg_collector_app  | * Listening on http://0.0.0.0:3000
+     deck_vault_app  | * Listening on http://0.0.0.0:3000
      ```
    - When you see that, the app is ready!
 
@@ -159,13 +159,13 @@ GitKraken is another popular Git client with a visual interface.
 1. Open your web browser (Chrome, Firefox, or Edge)
 2. Type in the address bar: **http://localhost:3000**
 3. Press Enter
-4. You should see the MTG Collector login page!
+4. You should see the Deck Vault login page!
 5. Click **"Sign up"** to create your account
 6. Start managing your collection!
 
 ### Stopping the App
 
-When you're done using MTG Collector:
+When you're done using Deck Vault:
 
 1. Go back to the PowerShell window
 2. Press `Ctrl+C` on your keyboard
@@ -173,15 +173,15 @@ When you're done using MTG Collector:
 
 ### Starting Again Later
 
-Whenever you want to use MTG Collector:
+Whenever you want to use Deck Vault:
 
 1. Make sure Docker Desktop is running (whale icon in system tray)
 2. Open PowerShell
 3. Navigate to the folder:
    ```powershell
-   cd C:\mtg_collector\mtg_collector-main
+   cd C:\deck_vault\deck_vault-main
    ```
-   (If you used GitHub Desktop or GitKraken, the folder is just `mtg_collector` without `-main`)
+   (If you used GitHub Desktop or GitKraken, the folder is just `deck_vault` without `-main`)
 4. Start the app:
    ```powershell
    docker-compose up
@@ -192,7 +192,7 @@ Whenever you want to use MTG Collector:
 
 ### Getting Updates
 
-When new versions of MTG Collector are released:
+When new versions of Deck Vault are released:
 
 **If you downloaded the ZIP:**
 1. Download the new ZIP from GitHub
@@ -235,12 +235,12 @@ When new versions of MTG Collector are released:
 
 6. Wait for Docker to start (whale icon appears in the menu bar at the top)
 
-### Step 2: Download MTG Collector
+### Step 2: Download Deck Vault
 
 Choose ONE of these methods:
 
 **Method A: Download ZIP**
-1. Go to https://github.com/jabawack81/mtg_collector
+1. Go to https://github.com/jabawack81/deck_vault
 2. Click the green "Code" button → "Download ZIP"
 3. Extract the ZIP (double-click it in Finder)
 4. Move the folder somewhere convenient (e.g., your home folder)
@@ -249,19 +249,19 @@ Choose ONE of these methods:
 1. Download from https://desktop.github.com/
 2. Install and open it
 3. Click "Clone a repository" → "URL" tab
-4. Paste: `https://github.com/jabawack81/mtg_collector.git`
+4. Paste: `https://github.com/jabawack81/deck_vault.git`
 5. Click "Clone"
 
 **Method C: Terminal (if you're comfortable with command line)**
 ```bash
 cd ~
-git clone https://github.com/jabawack81/mtg_collector.git
-cd mtg_collector
+git clone https://github.com/jabawack81/deck_vault.git
+cd deck_vault
 ```
 
-### Step 3: Start MTG Collector
+### Step 3: Start Deck Vault
 
-In Terminal, make sure you're in the mtg_collector folder, then run:
+In Terminal, make sure you're in the deck_vault folder, then run:
 
 ```bash
 docker-compose up
@@ -269,7 +269,7 @@ docker-compose up
 
 Wait for everything to download and start. When you see:
 ```
-mtg_collector_app  | * Listening on http://0.0.0.0:3000
+deck_vault_app  | * Listening on http://0.0.0.0:3000
 ```
 ...the app is ready!
 
@@ -324,15 +324,15 @@ sudo usermod -aG docker $USER
 # Log out and back in
 ```
 
-### Step 2: Download MTG Collector
+### Step 2: Download Deck Vault
 
 ```bash
 cd ~
-git clone https://github.com/jabawack81/mtg_collector.git
-cd mtg_collector
+git clone https://github.com/jabawack81/deck_vault.git
+cd deck_vault
 ```
 
-### Step 3: Start MTG Collector
+### Step 3: Start Deck Vault
 
 ```bash
 docker-compose up
@@ -365,8 +365,8 @@ For developers who want to run without Docker. Requires more setup but gives you
 brew install ruby sqlite3 redis git
 
 # Clone the repo
-git clone https://github.com/jabawack81/mtg_collector.git
-cd mtg_collector/collector
+git clone https://github.com/jabawack81/deck_vault.git
+cd deck_vault/collector
 
 # Install Ruby gems
 bundle install
@@ -393,8 +393,8 @@ sudo apt install -y ruby-full build-essential sqlite3 libsqlite3-dev redis-serve
 sudo gem install bundler
 
 # Clone the repo
-git clone https://github.com/jabawack81/mtg_collector.git
-cd mtg_collector/collector
+git clone https://github.com/jabawack81/deck_vault.git
+cd deck_vault/collector
 
 # Install Ruby gems
 bundle install
@@ -572,7 +572,7 @@ docker-compose up --build
 
 ### Need more help?
 
-Open an issue on GitHub: https://github.com/jabawack81/mtg_collector/issues
+Open an issue on GitHub: https://github.com/jabawack81/deck_vault/issues
 
 Include:
 - What you were trying to do

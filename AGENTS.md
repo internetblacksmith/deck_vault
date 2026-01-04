@@ -1,11 +1,11 @@
-# Agent Coding Guidelines - MTG Tools Monorepo
+# Agent Coding Guidelines - Deck Vault Monorepo
 
-This document provides essential guidelines for agentic coding in the MTG Tools monorepo.
+This document provides essential guidelines for agentic coding in the Deck Vault monorepo.
 
 ## Repository Structure
 
 ```
-mtg_collector/
+deck_vault/
 ├── collector/     # Rails app for collection management
 ├── showcase/      # Static site generator (Astro)
 ├── seller/        # Cardmarket seller app (Node.js)

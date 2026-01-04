@@ -1,6 +1,6 @@
 # Deploying the Showcase Site
 
-This guide explains how to deploy your MTG Collection Showcase to the web so anyone can view your collection.
+This guide explains how to deploy your Deck Vault Showcase to the web so anyone can view your collection.
 
 ## Overview
 

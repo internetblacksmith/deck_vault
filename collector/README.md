@@ -1,4 +1,4 @@
-# MTG Collection Manager
+# Deck Vault
 
 A Rails web application for managing your Magic: The Gathering card collection. Download card sets from Scryfall's API and track which cards you own, how many copies you have, and where they're stored in your binder.
 
@@ -58,7 +58,7 @@ Just Docker Desktop. See [DOCKER_SETUP.md](../DOCKER_SETUP.md) for easy setup.
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd mtg_collector
+cd deck_vault
 ```
 
 2. Install dependencies:
