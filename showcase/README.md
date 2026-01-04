@@ -44,10 +44,13 @@ npm run preview
 
 The `dist/` folder contains the static site. Deploy to any static hosting:
 
-- **GitHub Pages**: Push `dist/` to `gh-pages` branch
-- **Netlify**: Connect repo, set build command to `npm run build`
-- **Vercel**: Same as Netlify
-- **Any web server**: Just copy the `dist/` folder
+- **Netlify**: Drag & drop `dist/` folder, or connect GitHub repo
+- **Vercel**: Connect GitHub repo
+- **GitHub Pages**: Use GitHub Actions workflow
+- **Cloudflare Pages**: Connect GitHub repo
+- **Any web server**: Copy the `dist/` folder
+
+**See [SHOWCASE_DEPLOY.md](../SHOWCASE_DEPLOY.md) for detailed deployment instructions.**
 
 ## Commands
 
