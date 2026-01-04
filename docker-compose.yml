@@ -1,4 +1,63 @@
 services:
+  # MTG Collector Rails App
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile.dev
+    container_name: mtg_collector_app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for live reloading
+      - ./collector:/rails
+      # Persist database and downloaded images
+      - collector_storage:/rails/storage
+      # Exclude node_modules and tmp from sync for performance
+      - /rails/tmp
+      - /rails/node_modules
+    environment:
+      - RAILS_ENV=development
+      - REDIS_URL=redis://redis:6379/0
+      # Optional: Add your API keys here or use .env file
+      # - ANTHROPIC_API_KEY=
+      # - GITHUB_TOKEN=
+    env_file:
+      - path: ./collector/.env
+        required: false
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - mtg_network
+    stdin_open: true
+    tty: true
+
+  # Sidekiq background job processor
+  sidekiq:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile.dev
+    container_name: mtg_collector_sidekiq
+    command: bundle exec sidekiq
+    volumes:
+      - ./collector:/rails
+      - collector_storage:/rails/storage
+      - /rails/tmp
+    environment:
+      - RAILS_ENV=development
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - path: ./collector/.env
+        required: false
+    depends_on:
+      redis:
+        condition: service_healthy
+      collector:
+        condition: service_started
+    networks:
+      - mtg_network
+
+  # Redis for Sidekiq job queue and caching
   redis:
     image: redis:7-alpine
     container_name: mtg_collector_redis
@@ -16,7 +75,10 @@ services:
       - mtg_network
 
 volumes:
+  collector_storage:
+    name: mtg_collector_storage
   redis_data:
+    name: mtg_collector_redis
 
 networks:
   mtg_network:
