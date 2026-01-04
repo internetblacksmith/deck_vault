@@ -2,6 +2,10 @@ class DownloadCardImagesJob < ApplicationJob
   queue_as :default
   sidekiq_options retry: 3
 
+  # Small delay between image downloads to be a good citizen
+  # Note: scryfall.io CDN doesn't have strict rate limits, but we're polite
+  IMAGE_DOWNLOAD_DELAY = 0.05 # 50ms
+
   def perform(card_id)
     # Eager load card_set to avoid strict_loading violation
     card = Card.includes(:card_set).find(card_id)
@@ -9,6 +13,7 @@ class DownloadCardImagesJob < ApplicationJob
 
     # Download front image if not present
     if card.image_path.blank?
+      sleep(IMAGE_DOWNLOAD_DELAY) # Rate limit
       image_path = ScryfallService.download_card_image(card.to_image_hash)
 
       if image_path
@@ -21,6 +26,7 @@ class DownloadCardImagesJob < ApplicationJob
 
     # Download back image for double-faced cards if not present
     if card.double_faced? && card.back_image_path.blank?
+      sleep(IMAGE_DOWNLOAD_DELAY) # Rate limit
       back_image_path = ScryfallService.download_card_image(card.to_back_image_hash, suffix: "_back")
 
       if back_image_path

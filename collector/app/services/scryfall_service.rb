@@ -9,6 +9,9 @@ class ScryfallService
     "Accept" => "application/json"
   }.freeze
 
+  # Rate limit delay between API requests (Scryfall recommends 50-100ms)
+  RATE_LIMIT_DELAY = 0.1 # 100ms = 10 requests/second max
+
   # Ensure images directory exists
   def self.ensure_images_dir
     FileUtils.mkdir_p(IMAGES_DIR) unless File.exist?(IMAGES_DIR)
@@ -27,18 +30,25 @@ class ScryfallService
 
   # Fetch all cards for a specific set
   # Uses unique:prints to get all card variants (including full-art, showcase, etc.)
+  # Implements rate limiting per Scryfall ToS (50-100ms between requests)
   def self.fetch_cards_for_set(set_code)
     cards = []
     page = 1
     has_more = true
 
     while has_more
+      # Rate limit: wait between paginated requests (not needed for first page)
+      sleep(RATE_LIMIT_DELAY) if page > 1
+
       response = HTTParty.get("#{BASE_URL}/cards/search", query: { q: "set:#{set_code} unique:prints", page: page }, headers: HEADERS)
       break unless response.success?
 
       cards.concat(response.parsed_response["data"].map { |card_data| format_card(card_data) })
       has_more = response.parsed_response["has_more"] || false
       page += 1
+
+      # Log progress for large sets
+      Rails.logger.info("Fetched page #{page - 1} for set #{set_code} (#{cards.size} cards so far)") if page > 2
     end
 
     cards
