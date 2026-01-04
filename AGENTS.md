@@ -6,7 +6,7 @@ This document provides essential guidelines for agentic coding in the Deck Vault
 
 ```
 deck_vault/
-├── collector/     # Rails app for collection management
+├── vault/     # Rails app for collection management
 ├── showcase/      # Static site generator (Astro)
 ├── seller/        # Cardmarket seller app (Node.js)
 ├── docker-compose.yml
@@ -18,7 +18,7 @@ deck_vault/
 
 ## Collector (Rails App)
 
-**Location:** `collector/`
+**Location:** `vault/`
 
 ### Development Setup
 
@@ -30,7 +30,7 @@ deck_vault/
 
 **Initial Setup:**
 ```bash
-cd collector
+cd vault
 bundle install
 cp .env.example .env
 bin/rails db:create db:migrate
@@ -39,7 +39,7 @@ docker-compose -f ../docker-compose.yml up -d redis
 
 ### Build, Test & Lint Commands
 
-All commands should be run from the `collector/` directory.
+All commands should be run from the `vault/` directory.
 
 #### Running Tests (RSpec)
 ```bash
@@ -113,7 +113,7 @@ Just Rails server with automatic Tailwind CSS rebuilding. No background jobs.
 # Terminal 1: Redis (required for Sidekiq) - from repo root
 docker-compose up redis
 
-# Terminal 2: Rails + CSS + Sidekiq (from collector/)
+# Terminal 2: Rails + CSS + Sidekiq (from vault/)
 bin/dev --sidekiq
 ```
 
@@ -122,7 +122,7 @@ bin/dev --sidekiq
 # Terminal 1: Redis (from repo root)
 docker-compose up redis
 
-# Terminal 2: All services (from collector/)
+# Terminal 2: All services (from vault/)
 bin/dev --redis
 ```
 
@@ -139,12 +139,12 @@ pkill -f "puma|sidekiq|tailwindcss"
 ### Code Style Guidelines
 
 #### File Organization
-- **Models:** `collector/app/models/` - Keep business logic and validations here
-- **Controllers:** `collector/app/controllers/` - Handle HTTP requests, keep logic thin
-- **Services:** `collector/app/services/` - External API calls and complex operations
-- **Jobs:** `collector/app/jobs/` - Background jobs using Sidekiq
-- **Helpers:** `collector/app/helpers/` - View helpers only
-- **Tests:** `collector/spec/` - RSpec tests
+- **Models:** `vault/app/models/` - Keep business logic and validations here
+- **Controllers:** `vault/app/controllers/` - Handle HTTP requests, keep logic thin
+- **Services:** `vault/app/services/` - External API calls and complex operations
+- **Jobs:** `vault/app/jobs/` - Background jobs using Sidekiq
+- **Helpers:** `vault/app/helpers/` - View helpers only
+- **Tests:** `vault/spec/` - RSpec tests
 
 #### Naming Conventions
 - **Constants:** `SCREAMING_SNAKE_CASE` - `BASE_URL`, `IMAGES_DIR`
@@ -278,7 +278,7 @@ rescue ActiveRecord::RecordNotFound
 #### Chat Feature (Claude AI)
 The app includes an AI chat assistant powered by Claude for natural language collection queries.
 
-**Location:** `collector/app/services/chat_service.rb`, `collector/app/controllers/chat_controller.rb`
+**Location:** `vault/app/services/chat_service.rb`, `vault/app/controllers/chat_controller.rb`
 
 **Setup:**
 ```bash
@@ -306,7 +306,7 @@ bundle exec rspec spec/services/chat_service_spec.rb
 #### API v1 Endpoints
 RESTful JSON API for programmatic access.
 
-**Location:** `collector/app/controllers/api/v1/`
+**Location:** `vault/app/controllers/api/v1/`
 
 **Endpoints:**
 ```
@@ -335,7 +335,7 @@ bundle exec rspec spec/requests/api/v1/
 #### Delver Lens Import
 Import collections from Delver Lens CSV exports.
 
-**Location:** `collector/app/services/delver_csv_import_service.rb`
+**Location:** `vault/app/services/delver_csv_import_service.rb`
 
 **Features:**
 - Parses Delver Lens CSV format (Name, Set code, Foil, Quantity, Scryfall ID)
@@ -367,13 +367,13 @@ bundle exec cucumber features/delver_import.feature
 - Count efficiently: `CardSet.count` not loading all
 
 #### MCP Server (Model Context Protocol)
-The collector app includes a built-in MCP server for LLM integration (Claude Desktop, etc.).
+The vault app includes a built-in MCP server for LLM integration (Claude Desktop, etc.).
 
-**Location:** `collector/app/mcp/tools/`
+**Location:** `vault/app/mcp/tools/`
 
 **Running the MCP Server:**
 ```bash
-cd collector
+cd vault
 bin/mcp_server
 ```
 
@@ -382,8 +382,8 @@ Add to your Claude Desktop config (`~/.config/claude/claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
-    "mtg-collector": {
-      "command": "/path/to/collector/bin/mcp_server",
+    "deck-vault": {
+      "command": "/path/to/vault/bin/mcp_server",
       "args": []
     }
   }
@@ -480,21 +480,21 @@ npm run build      # Build for production
 - Reference related code: include file paths in messages
 - One logical change per commit
 - Never force push without explicit request
-- Prefix commits with project when relevant: `[collector] Add export endpoint`
+- Prefix commits with project when relevant: `[vault] Add export endpoint`
 
 ## Debugging
 
 ### Collector
 - Use Rails logger: `Rails.logger.info("message")`
-- Check development log: `tail -f collector/log/development.log`
-- Use `rails console` for debugging (from collector/)
+- Check development log: `tail -f vault/log/development.log`
+- Use `rails console` for debugging (from vault/)
 - Check Redis: `docker-compose exec redis redis-cli`
 - Monitor Sidekiq: `bundle exec sidekiq -v` shows connected/processing
 
 ## Documentation
 
 - Update root README.md for monorepo-level changes
-- Update collector/README.md for collector-specific changes
+- Update vault/README.md for vault-specific changes
 - Update SIDEKIQ_SETUP.md for infrastructure changes
 - Add inline comments for non-obvious logic
 - Keep AGENTS.md current with code changes
