@@ -2,6 +2,22 @@
 
 A monorepo containing tools for managing, showcasing, and selling your Magic: The Gathering card collection.
 
+## Getting Started
+
+**New to MTG Collector?** Follow the installation guide for your platform:
+
+| Platform | Guide |
+|----------|-------|
+| Windows | [Installation Guide](./INSTALL.md#windows-installation) |
+| Mac | [Installation Guide](./INSTALL.md#mac-installation) |
+| Linux | [Installation Guide](./INSTALL.md#linux-installation) |
+
+Or if you just want to jump in:
+```bash
+docker-compose up
+# Open http://localhost:3000
+```
+
 ## Projects
 
 | Project | Description | Status |
@@ -23,16 +39,21 @@ The main collection management application. Track your cards, organize them in b
 - Background image downloading
 - Collection backup/restore
 
-**Quick Start:**
+**Quick Start (Docker - recommended for Windows):**
+```bash
+docker-compose up
+# Open http://localhost:3000
+```
+
+**Quick Start (Native):**
 ```bash
 cd collector
 bundle install
 bin/rails db:create db:migrate
-docker-compose -f ../docker-compose.yml up -d redis
 bin/dev
 ```
 
-See [collector/README.md](./collector/README.md) for full documentation.
+See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for Windows/Docker guide, or [collector/README.md](./collector/README.md) for native installation.
 
 ---
 
@@ -97,13 +118,23 @@ docker-compose down
 └─────────────┘                 └─────────────┘
 ```
 
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [INSTALL.md](./INSTALL.md) | Step-by-step installation for all platforms |
+| [DOCKER_SETUP.md](./DOCKER_SETUP.md) | Docker reference and troubleshooting |
+| [SHOWCASE_DEPLOY.md](./SHOWCASE_DEPLOY.md) | Deploy Showcase to Netlify, Vercel, GitHub Pages |
+| [SHOWCASE_PUBLISHING.md](./SHOWCASE_PUBLISHING.md) | Publish collection data via GitHub Gist |
+| [collector/README.md](./collector/README.md) | Full Collector documentation |
+| [showcase/README.md](./showcase/README.md) | Showcase site documentation |
+
 ## Development
 
-Each project has its own dependencies and setup. See individual READMEs:
+Each project has its own dependencies and setup. 
 
-- [collector/README.md](./collector/README.md) - Rails setup
-- showcase/README.md - Coming soon
-- seller/README.md - Coming soon
+- **Docker users**: See [INSTALL.md](./INSTALL.md) 
+- **Native installation**: See [INSTALL.md](./INSTALL.md#native-installation) or [collector/README.md](./collector/README.md)
 
 ## License
 

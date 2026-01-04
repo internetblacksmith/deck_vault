@@ -29,6 +29,10 @@ A Rails web application for managing your Magic: The Gathering card collection. 
   - Automatically downloads missing sets from Scryfall
   - Supports "Add to collection" or "Replace collection" modes
   - Handles foil cards correctly
+- **Showcase Publishing**: Publish your collection to a static Showcase site
+  - One-click publish to GitHub Gist
+  - Showcase site fetches data at build time
+  - See [SHOWCASE_PUBLISHING.md](../SHOWCASE_PUBLISHING.md) for setup
 
 ### Developer Features
 - **REST API v1**: Full JSON API for programmatic access
@@ -36,6 +40,12 @@ A Rails web application for managing your Magic: The Gathering card collection. 
 - **Modern Architecture**: Built with Rails 8.1, Hotwire (Turbo + Stimulus), real-time updates with ActionCable
 
 ## Requirements
+
+**Option 1: Docker (Recommended for Windows)**
+
+Just Docker Desktop. See [DOCKER_SETUP.md](../DOCKER_SETUP.md) for easy setup.
+
+**Option 2: Native Installation**
 
 - Ruby 3.4+
 - Rails 8.1+
