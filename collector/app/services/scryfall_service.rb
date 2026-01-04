@@ -2,6 +2,13 @@ class ScryfallService
   BASE_URL = "https://api.scryfall.com".freeze
   IMAGES_DIR = Rails.root.join("storage/card_images").freeze
 
+  # Required headers per Scryfall API Terms of Service
+  # https://scryfall.com/docs/api
+  HEADERS = {
+    "User-Agent" => "MTGCollector/1.0 (https://github.com/jabawack81/mtg_collector)",
+    "Accept" => "application/json"
+  }.freeze
+
   # Ensure images directory exists
   def self.ensure_images_dir
     FileUtils.mkdir_p(IMAGES_DIR) unless File.exist?(IMAGES_DIR)
@@ -9,7 +16,7 @@ class ScryfallService
 
   # Fetch all Magic: The Gathering sets
   def self.fetch_sets
-    response = HTTParty.get("#{BASE_URL}/sets")
+    response = HTTParty.get("#{BASE_URL}/sets", headers: HEADERS)
     return [] unless response.success?
 
     response.parsed_response["data"].map { |set_data| format_set(set_data) }
@@ -26,7 +33,7 @@ class ScryfallService
     has_more = true
 
     while has_more
-      response = HTTParty.get("#{BASE_URL}/cards/search", query: { q: "set:#{set_code} unique:prints", page: page })
+      response = HTTParty.get("#{BASE_URL}/cards/search", query: { q: "set:#{set_code} unique:prints", page: page }, headers: HEADERS)
       break unless response.success?
 
       cards.concat(response.parsed_response["data"].map { |card_data| format_card(card_data) })
@@ -214,7 +221,7 @@ class ScryfallService
 
   # Fetch details for a specific set
   def self.fetch_set_details(set_code)
-    response = HTTParty.get("#{BASE_URL}/sets/#{set_code}")
+    response = HTTParty.get("#{BASE_URL}/sets/#{set_code}", headers: HEADERS)
     return {} unless response.success?
 
     response.parsed_response
