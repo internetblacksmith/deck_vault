@@ -136,6 +136,10 @@ Each project has its own dependencies and setup.
 - **Docker users**: See [INSTALL.md](./INSTALL.md) 
 - **Native installation**: See [INSTALL.md](./INSTALL.md#native-installation) or [collector/README.md](./collector/README.md)
 
+## Disclaimer
+
+This project is not affiliated with, endorsed, sponsored, or approved by Wizards of the Coast LLC or Hasbro, Inc. Magic: The Gathering is a trademark of Wizards of the Coast LLC. All card images and data are provided by [Scryfall](https://scryfall.com/) under their [terms of use](https://scryfall.com/docs/api).
+
 ## License
 
 MIT
