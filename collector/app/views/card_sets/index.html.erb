@@ -115,6 +115,7 @@
           <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--delver">
             Import Delver
           </button>
+          <%= button_to "Publish to Showcase", publish_to_gist_card_sets_path, method: :post, class: "backup-btn backup-btn--publish", data: { turbo_confirm: "Publish your collection to GitHub Gist for the Showcase site?" } %>
         </div>
         <div data-backup-target="importPanel" class="import-panel" style="display:none;">
           <%= form_tag import_collection_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
@@ -462,6 +463,15 @@
   
   .backup-btn--delver:hover {
     background: #5a4a3a;
+  }
+  
+  .backup-btn--publish {
+    background: #3a2a4a;
+    color: #c8f;
+  }
+  
+  .backup-btn--publish:hover {
+    background: #4a3a5a;
   }
   
   .backup-btn--restore {
