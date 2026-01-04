@@ -38,17 +38,17 @@ Copy the example environment file:
 
 **Windows (PowerShell):**
 ```powershell
-copy collector\.env.example collector\.env
+copy vault\.env.example vault\.env
 ```
 
 **Windows (Command Prompt):**
 ```cmd
-copy collector\.env.example collector\.env
+copy vault\.env.example vault\.env
 ```
 
 **Mac/Linux:**
 ```bash
-cp collector/.env.example collector/.env
+cp vault/.env.example vault/.env
 ```
 
 ### 3. Start the Application
@@ -58,7 +58,7 @@ docker-compose up
 ```
 
 This will:
-- Build the collector app container (first time takes a few minutes)
+- Build the vault app container (first time takes a few minutes)
 - Start Redis for background jobs
 - Start Sidekiq for image downloads
 - Create the database automatically
@@ -89,7 +89,7 @@ docker-compose down
 docker-compose logs -f
 
 # Just the Rails app
-docker-compose logs -f collector
+docker-compose logs -f vault
 
 # Just Sidekiq (background jobs)
 docker-compose logs -f sidekiq
@@ -110,7 +110,7 @@ docker-compose up --build
 
 ### API Keys (Optional)
 
-Edit `collector/.env` to add optional features:
+Edit `vault/.env` to add optional features:
 
 ```env
 # For AI Chat feature (Claude)
@@ -168,7 +168,7 @@ Make sure Docker Desktop is running (look for the whale icon in your system tray
 
 Check the logs:
 ```bash
-docker-compose logs collector
+docker-compose logs vault
 ```
 
 ### Slow on Windows
@@ -180,13 +180,13 @@ For better performance on Windows:
 ### Need to access Rails console
 
 ```bash
-docker-compose exec collector bin/rails console
+docker-compose exec vault bin/rails console
 ```
 
 ### Need to run database migrations
 
 ```bash
-docker-compose exec collector bin/rails db:migrate
+docker-compose exec vault bin/rails db:migrate
 ```
 
 ## Updating
@@ -211,9 +211,9 @@ docker-compose down
 docker-compose down -v
 
 # Remove the Docker images
-docker rmi deck_vault-collector deck_vault-sidekiq
+docker rmi deck_vault-vault deck_vault-sidekiq
 ```
 
 ## Running Without Docker (Advanced)
 
-See [collector/README.md](./collector/README.md) for native installation instructions if you prefer not to use Docker.
+See [vault/README.md](./vault/README.md) for native installation instructions if you prefer not to use Docker.

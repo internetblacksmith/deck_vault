@@ -29,7 +29,7 @@ This allows the Showcase site (hosted on Netlify, Vercel, GitHub Pages, etc.) to
 
 ### Step 2: Add Token to Collector
 
-Add to your `collector/.env` file:
+Add to your `vault/.env` file:
 
 ```env
 GITHUB_TOKEN=ghp_your_token_here
@@ -80,7 +80,7 @@ That's it! Your changes will appear on the Showcase site after rebuild.
 
 ### "GITHUB_TOKEN not configured"
 
-Make sure you've added the token to `collector/.env` and restarted the app/containers.
+Make sure you've added the token to `vault/.env` and restarted the app/containers.
 
 ### "GitHub API error: Bad credentials"
 

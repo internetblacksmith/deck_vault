@@ -1,17 +1,17 @@
 services:
   # Deck Vault Rails App
-  collector:
+  vault:
     build:
-      context: ./collector
+      context: ./vault
       dockerfile: Dockerfile.dev
     container_name: deck_vault_app
     ports:
       - "3000:3000"
     volumes:
       # Mount source code for live reloading
-      - ./collector:/rails
+      - ./vault:/rails
       # Persist database and downloaded images
-      - collector_storage:/rails/storage
+      - vault_storage:/rails/storage
       # Exclude node_modules and tmp from sync for performance
       - /rails/tmp
       - /rails/node_modules
@@ -22,40 +22,40 @@ services:
       # - ANTHROPIC_API_KEY=
       # - GITHUB_TOKEN=
     env_file:
-      - path: ./collector/.env
+      - path: ./vault/.env
         required: false
     depends_on:
       redis:
         condition: service_healthy
     networks:
-      - mtg_network
+      - deck_vault_network
     stdin_open: true
     tty: true
 
   # Sidekiq background job processor
   sidekiq:
     build:
-      context: ./collector
+      context: ./vault
       dockerfile: Dockerfile.dev
     container_name: deck_vault_sidekiq
     command: bundle exec sidekiq
     volumes:
-      - ./collector:/rails
-      - collector_storage:/rails/storage
+      - ./vault:/rails
+      - vault_storage:/rails/storage
       - /rails/tmp
     environment:
       - RAILS_ENV=development
       - REDIS_URL=redis://redis:6379/0
     env_file:
-      - path: ./collector/.env
+      - path: ./vault/.env
         required: false
     depends_on:
       redis:
         condition: service_healthy
-      collector:
+      vault:
         condition: service_started
     networks:
-      - mtg_network
+      - deck_vault_network
 
   # Redis for Sidekiq job queue and caching
   redis:
@@ -72,14 +72,14 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - mtg_network
+      - deck_vault_network
 
 volumes:
-  collector_storage:
+  vault_storage:
     name: deck_vault_storage
   redis_data:
     name: deck_vault_redis
 
 networks:
-  mtg_network:
+  deck_vault_network:
     driver: bridge

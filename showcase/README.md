@@ -15,7 +15,7 @@ A static site generator for showcasing your Magic: The Gathering collection. Bui
 
 ### 1. Export your collection
 
-From the collector app:
+From the vault app:
 ```bash
 curl http://localhost:3000/card_sets/export_showcase > collection.json
 ```
@@ -29,7 +29,7 @@ npm install
 # From file
 npm run import -- --input ../collection.json
 
-# Or directly from collector URL
+# Or directly from vault URL
 npm run import -- --url http://localhost:3000/card_sets/export_showcase
 ```
 

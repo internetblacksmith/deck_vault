@@ -22,7 +22,7 @@ docker-compose up
 
 | Project | Description | Status |
 |---------|-------------|--------|
-| [collector](./collector) | Rails app for managing your card collection | Active |
+| [vault](./vault) | Rails app for managing your card collection | Active |
 | [showcase](./showcase) | Static site generator to showcase your collection | Planned |
 | [seller](./seller) | Web UI for selling duplicates on Cardmarket | Planned |
 
@@ -47,13 +47,13 @@ docker-compose up
 
 **Quick Start (Native):**
 ```bash
-cd collector
+cd vault
 bundle install
 bin/rails db:create db:migrate
 bin/dev
 ```
 
-See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for Windows/Docker guide, or [collector/README.md](./collector/README.md) for native installation.
+See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for Windows/Docker guide, or [vault/README.md](./vault/README.md) for native installation.
 
 ---
 
@@ -67,7 +67,7 @@ Generate a beautiful static website to show off your collection. Host it anywher
 - Set browser with completion stats
 - Client-side search
 - All images downloaded at build time (no external dependencies)
-- Dark theme matching the collector app
+- Dark theme matching the vault app
 
 **Tech Stack:** Astro + TypeScript + Tailwind CSS
 
@@ -78,7 +78,7 @@ Generate a beautiful static website to show off your collection. Host it anywher
 Simple web UI for listing and selling duplicate cards on Cardmarket.
 
 **Planned Features:**
-- Import duplicates from collector export
+- Import duplicates from vault export
 - Fetch current Cardmarket prices
 - Bulk pricing with margin settings
 - Sync listings to Cardmarket
@@ -92,7 +92,7 @@ Simple web UI for listing and selling duplicate cards on Cardmarket.
 
 ### Docker Compose
 
-Redis for background jobs (used by collector):
+Redis for background jobs (used by vault):
 
 ```bash
 # Start Redis
@@ -126,7 +126,7 @@ docker-compose down
 | [DOCKER_SETUP.md](./DOCKER_SETUP.md) | Docker reference and troubleshooting |
 | [SHOWCASE_DEPLOY.md](./SHOWCASE_DEPLOY.md) | Deploy Showcase to Netlify, Vercel, GitHub Pages |
 | [SHOWCASE_PUBLISHING.md](./SHOWCASE_PUBLISHING.md) | Publish collection data via GitHub Gist |
-| [collector/README.md](./collector/README.md) | Full Collector documentation |
+| [vault/README.md](./vault/README.md) | Full Collector documentation |
 | [showcase/README.md](./showcase/README.md) | Showcase site documentation |
 
 ## Development
@@ -134,7 +134,7 @@ docker-compose down
 Each project has its own dependencies and setup. 
 
 - **Docker users**: See [INSTALL.md](./INSTALL.md) 
-- **Native installation**: See [INSTALL.md](./INSTALL.md#native-installation) or [collector/README.md](./collector/README.md)
+- **Native installation**: See [INSTALL.md](./INSTALL.md#native-installation) or [vault/README.md](./vault/README.md)
 
 ## Disclaimer
 

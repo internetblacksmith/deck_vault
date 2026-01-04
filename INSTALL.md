@@ -366,7 +366,7 @@ brew install ruby sqlite3 redis git
 
 # Clone the repo
 git clone https://github.com/jabawack81/deck_vault.git
-cd deck_vault/collector
+cd deck_vault/vault
 
 # Install Ruby gems
 bundle install
@@ -394,7 +394,7 @@ sudo gem install bundler
 
 # Clone the repo
 git clone https://github.com/jabawack81/deck_vault.git
-cd deck_vault/collector
+cd deck_vault/vault
 
 # Install Ruby gems
 bundle install
@@ -462,7 +462,7 @@ Once the app is running and you've opened http://localhost:3000:
 
 ### Optional Configuration
 
-Create a `collector/.env` file to enable extra features:
+Create a `vault/.env` file to enable extra features:
 
 ```env
 # AI Chat (requires Anthropic API key)
