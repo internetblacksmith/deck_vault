@@ -35,6 +35,7 @@ Rails.application.routes.draw do
       post :import_delver_csv
       get :export_showcase
       get :export_duplicates
+      post :publish_to_gist
     end
     member do
       patch :update_card
