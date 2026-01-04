@@ -1,6 +1,6 @@
-# Running MTG Collector with Docker
+# Running Deck Vault with Docker
 
-This guide explains how to run MTG Collector using Docker, which works on **Windows**, **Mac**, and **Linux** without needing to install Ruby or other dependencies.
+This guide explains how to run Deck Vault using Docker, which works on **Windows**, **Mac**, and **Linux** without needing to install Ruby or other dependencies.
 
 ## Prerequisites
 
@@ -22,14 +22,14 @@ This guide explains how to run MTG Collector using Docker, which works on **Wind
 
 **Windows (PowerShell or Command Prompt):**
 ```powershell
-git clone https://github.com/jabawack81/mtg_collector.git
-cd mtg_collector
+git clone https://github.com/jabawack81/deck_vault.git
+cd deck_vault
 ```
 
 **Mac/Linux:**
 ```bash
-git clone https://github.com/jabawack81/mtg_collector.git
-cd mtg_collector
+git clone https://github.com/jabawack81/deck_vault.git
+cd deck_vault
 ```
 
 ### 2. Create Environment File
@@ -69,7 +69,7 @@ Once you see `Listening on http://0.0.0.0:3000`, open:
 
 **http://localhost:3000**
 
-You should see the MTG Collector interface!
+You should see the Deck Vault interface!
 
 ## Common Commands
 
@@ -123,7 +123,7 @@ GITHUB_TOKEN=ghp_your-token-here
 ### Ports
 
 By default:
-- **3000** - MTG Collector web app
+- **3000** - Deck Vault web app
 - **6379** - Redis (internal use)
 
 To change the web port, edit `docker-compose.yml`:
@@ -136,12 +136,12 @@ ports:
 
 Your data is stored in Docker volumes and persists between restarts:
 
-- **mtg_collector_storage** - Database and downloaded card images
-- **mtg_collector_redis** - Background job queue
+- **deck_vault_storage** - Database and downloaded card images
+- **deck_vault_redis** - Background job queue
 
 To see where data is stored:
 ```bash
-docker volume inspect mtg_collector_storage
+docker volume inspect deck_vault_storage
 ```
 
 ### Backup Your Collection
@@ -201,7 +201,7 @@ docker-compose up --build
 
 ## Uninstalling
 
-To completely remove MTG Collector:
+To completely remove Deck Vault:
 
 ```bash
 # Stop and remove containers
@@ -211,7 +211,7 @@ docker-compose down
 docker-compose down -v
 
 # Remove the Docker images
-docker rmi mtg_collector-collector mtg_collector-sidekiq
+docker rmi deck_vault-collector deck_vault-sidekiq
 ```
 
 ## Running Without Docker (Advanced)

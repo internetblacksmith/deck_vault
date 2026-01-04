@@ -1,6 +1,6 @@
 # Sidekiq Background Jobs Setup
 
-This document explains how to set up and run Sidekiq for background image downloading in the MTG Collection Manager.
+This document explains how to set up and run Sidekiq for background image downloading in the Deck Vault.
 
 ## What is Sidekiq?
 
@@ -73,7 +73,7 @@ redis-cli ping
 docker-compose down
 
 # Docker container
-docker stop mtg_collector_redis
+docker stop deck_vault_redis
 
 # macOS
 brew services stop redis
@@ -382,7 +382,7 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/path/to/mtg_collector
+WorkingDirectory=/path/to/deck_vault
 ExecStart=/usr/bin/bundle exec sidekiq -e production -c 25
 Restart=always
 StandardOutput=append:/var/log/sidekiq.log

@@ -6,7 +6,7 @@ require "uri"
 
 class GistExportService
   GITHUB_API_URL = "https://api.github.com"
-  GIST_FILENAME = "mtg_collection.json"
+  GIST_FILENAME = "deck_vault_collection.json"
 
   class Error < StandardError; end
   class ConfigurationError < Error; end
@@ -145,7 +145,7 @@ class GistExportService
       method: :post,
       path: "/gists",
       body: {
-        description: "MTG Collection Export - #{Time.current.strftime('%Y-%m-%d %H:%M')}",
+        description: "Deck Vault Export - #{Time.current.strftime('%Y-%m-%d %H:%M')}",
         public: false,
         files: {
           GIST_FILENAME => {
@@ -174,7 +174,7 @@ class GistExportService
       method: :patch,
       path: "/gists/#{@gist_id}",
       body: {
-        description: "MTG Collection Export - #{Time.current.strftime('%Y-%m-%d %H:%M')}",
+        description: "Deck Vault Export - #{Time.current.strftime('%Y-%m-%d %H:%M')}",
         files: {
           GIST_FILENAME => {
             content: JSON.pretty_generate(data)

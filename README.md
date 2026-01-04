@@ -1,10 +1,10 @@
-# MTG Tools
+# Deck Vault
 
-A monorepo containing tools for managing, showcasing, and selling your Magic: The Gathering card collection.
+A monorepo containing tools for managing, showcasing, and selling your trading card game collections. Currently supports Magic: The Gathering, with Pokemon support planned.
 
 ## Getting Started
 
-**New to MTG Collector?** Follow the installation guide for your platform:
+**New to Deck Vault?** Follow the installation guide for your platform:
 
 | Platform | Guide |
 |----------|-------|
@@ -22,7 +22,7 @@ docker-compose up
 
 | Project | Description | Status |
 |---------|-------------|--------|
-| [collector](./collector) | Rails app for managing your MTG collection | Active |
+| [collector](./collector) | Rails app for managing your card collection | Active |
 | [showcase](./showcase) | Static site generator to showcase your collection | Planned |
 | [seller](./seller) | Web UI for selling duplicates on Cardmarket | Planned |
 
@@ -138,7 +138,7 @@ Each project has its own dependencies and setup.
 
 ## Disclaimer
 
-This project is not affiliated with, endorsed, sponsored, or approved by Wizards of the Coast LLC or Hasbro, Inc. Magic: The Gathering is a trademark of Wizards of the Coast LLC. All card images and data are provided by [Scryfall](https://scryfall.com/) under their [terms of use](https://scryfall.com/docs/api).
+This project is not affiliated with, endorsed, sponsored, or approved by Wizards of the Coast LLC, Hasbro, Inc., The Pokemon Company, or Nintendo. Magic: The Gathering is a trademark of Wizards of the Coast LLC. Pokemon is a trademark of The Pokemon Company. All card images and data are provided by third-party APIs under their respective terms of use.
 
 ## License
 

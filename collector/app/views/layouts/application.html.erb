@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title><%= content_for(:title) || "MTG Collector" %></title>
+  <title><%= content_for(:title) || "Deck Vault" %></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#111111">
   <%= csrf_meta_tags %>
@@ -33,7 +33,7 @@
   <% if current_user %>
     <nav class="app-nav">
       <div style="display: flex; align-items: center; gap: 20px;">
-        <a href="<%= card_sets_path %>" class="app-nav-brand">MTG Collector</a>
+        <a href="<%= card_sets_path %>" class="app-nav-brand">Deck Vault</a>
         <a href="<%= chat_path %>" class="app-nav-link">Chat</a>
       </div>
       <div class="app-nav-user">

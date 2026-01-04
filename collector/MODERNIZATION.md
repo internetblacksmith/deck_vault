@@ -1,6 +1,6 @@
 # Rails 8.1 Modernization Complete - 100/100 Score
 
-This document tracks the complete modernization of the MTG Collection Manager from a basic Rails app to a production-ready Rails 8.1 application with comprehensive testing, real-time features, and authentication.
+This document tracks the complete modernization of the Deck Vault from a basic Rails app to a production-ready Rails 8.1 application with comprehensive testing, real-time features, and authentication.
 
 ## Final Modernization Score: 100/100 ✅
 
@@ -297,7 +297,7 @@ bin/rails db:migrate:status
 
 ## Conclusion
 
-The MTG Collection Manager has been successfully modernized to Rails 8.1 standards with:
+The Deck Vault has been successfully modernized to Rails 8.1 standards with:
 
 - **Complete Hotwire implementation** for fast, interactive UI
 - **Production-grade authentication** with secure password hashing

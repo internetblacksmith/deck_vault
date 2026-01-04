@@ -1,4 +1,4 @@
-# MTG Collection Showcase
+# Deck Vault Showcase
 
 A static site generator for showcasing your Magic: The Gathering collection. Built with Astro and Tailwind CSS.
 

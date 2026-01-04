@@ -22,7 +22,7 @@ This allows the Showcase site (hosted on Netlify, Vercel, GitHub Pages, etc.) to
 ### Step 1: Create a GitHub Personal Access Token
 
 1. Go to [GitHub Token Settings](https://github.com/settings/tokens/new?scopes=gist)
-2. Give it a name like "MTG Collector"
+2. Give it a name like "Deck Vault"
 3. Select the **gist** scope (should be pre-selected from link above)
 4. Click "Generate token"
 5. **Copy the token** (starts with `ghp_...`) - you won't see it again!

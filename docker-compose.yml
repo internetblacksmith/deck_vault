@@ -1,10 +1,10 @@
 services:
-  # MTG Collector Rails App
+  # Deck Vault Rails App
   collector:
     build:
       context: ./collector
       dockerfile: Dockerfile.dev
-    container_name: mtg_collector_app
+    container_name: deck_vault_app
     ports:
       - "3000:3000"
     volumes:
@@ -37,7 +37,7 @@ services:
     build:
       context: ./collector
       dockerfile: Dockerfile.dev
-    container_name: mtg_collector_sidekiq
+    container_name: deck_vault_sidekiq
     command: bundle exec sidekiq
     volumes:
       - ./collector:/rails
@@ -60,7 +60,7 @@ services:
   # Redis for Sidekiq job queue and caching
   redis:
     image: redis:7-alpine
-    container_name: mtg_collector_redis
+    container_name: deck_vault_redis
     ports:
       - "6379:6379"
     volumes:
@@ -76,9 +76,9 @@ services:
 
 volumes:
   collector_storage:
-    name: mtg_collector_storage
+    name: deck_vault_storage
   redis_data:
-    name: mtg_collector_redis
+    name: deck_vault_redis
 
 networks:
   mtg_network:
