@@ -1,6 +1,6 @@
 # Deck Vault
 
-A monorepo containing tools for managing, showcasing, and selling your trading card game collections. Currently supports Magic: The Gathering, with Pokemon support planned.
+A monorepo containing tools for managing, showcasing, and selling your Magic: The Gathering card collection.
 
 ## Getting Started
 
@@ -138,7 +138,7 @@ Each project has its own dependencies and setup.
 
 ## Disclaimer
 
-This project is not affiliated with, endorsed, sponsored, or approved by Wizards of the Coast LLC, Hasbro, Inc., The Pokemon Company, or Nintendo. Magic: The Gathering is a trademark of Wizards of the Coast LLC. Pokemon is a trademark of The Pokemon Company. All card images and data are provided by third-party APIs under their respective terms of use.
+This project is not affiliated with, endorsed, sponsored, or approved by Wizards of the Coast LLC or Hasbro, Inc. Magic: The Gathering is a trademark of Wizards of the Coast LLC. Card images and data are provided by [Scryfall](https://scryfall.com/) under their [terms of use](https://scryfall.com/docs/api).
 
 ## License
 
