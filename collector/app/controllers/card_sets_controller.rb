@@ -414,6 +414,21 @@ class CardSetsController < ApplicationController
     end
   end
 
+  # Publish collection to GitHub Gist for Showcase site
+  def publish_to_gist
+    result = GistExportService.new.export
+
+    respond_to do |format|
+      if result[:success]
+        format.json { render json: result }
+        format.html { redirect_to card_sets_path, notice: result[:message] }
+      else
+        format.json { render json: result, status: :unprocessable_entity }
+        format.html { redirect_to card_sets_path, alert: result[:error] }
+      end
+    end
+  end
+
   # Import collection from Delver Lens CSV export
   # This is the recommended method as CSV exports include Scryfall IDs
   def import_delver_csv
