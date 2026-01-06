@@ -843,12 +843,12 @@ RSpec.describe 'Card Sets', type: :request do
     end
 
     context 'without file' do
-      it 'shows error in flash' do
-        post import_collection_card_sets_path
+       it 'shows error in flash' do
+         post import_collection_card_sets_path
 
-        expect(response).to redirect_to(card_sets_path)
-        expect(flash[:alert]).to include('Please select a backup file')
-      end
+         expect(response).to redirect_to(card_sets_path)
+         expect(flash[:alert]).to include('Please select at least one backup file')
+       end
     end
 
     context 'updating existing collection cards' do
@@ -1064,120 +1064,120 @@ RSpec.describe 'Card Sets', type: :request do
     end
 
     context 'without file' do
-      it 'redirects with error' do
-        post import_delver_csv_card_sets_path
-        expect(response).to redirect_to(card_sets_path)
-        expect(flash[:alert]).to include('Please select a CSV file')
-      end
-    end
+       it 'redirects with error' do
+         post import_delver_csv_card_sets_path
+         expect(response).to redirect_to(card_sets_path)
+         expect(flash[:alert]).to include('Please select at least one CSV file')
+       end
+     end
 
-    context 'with non-csv file' do
-      it 'rejects non-csv files' do
-        file = upload_json_file('{}')
-        post import_delver_csv_card_sets_path, params: { csv_file: file }
-        expect(response).to redirect_to(card_sets_path)
-        expect(flash[:alert]).to include('Please upload a CSV file')
-      end
-    end
+     context 'with non-csv file' do
+       it 'rejects non-csv files' do
+         file = upload_json_file('{}')
+         post import_delver_csv_card_sets_path, params: { csv_files: [ file ] }
+         expect(response).to redirect_to(card_sets_path)
+         expect(flash[:alert]).to include('Please upload CSV files only')
+       end
+     end
 
     context 'with valid CSV' do
       let!(:card_set) { create(:card_set, code: 'tst', name: 'Test Set') }
       let!(:card) { create(:card, card_set: card_set, name: 'Test Card', collector_number: '1') }
 
-      it 'imports cards by Scryfall ID' do
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Test Card","TST","1","2x","","#{card.id}"
-        CSV
+       it 'imports cards by Scryfall ID' do
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Test Card","TST","1","2x","","#{card.id}"
+         CSV
 
-        expect {
-          post import_delver_csv_card_sets_path, params: { csv_file: upload_csv_file(csv_content) }
-        }.to change(CollectionCard, :count).by(1)
+         expect {
+           post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+         }.to change(CollectionCard, :count).by(1)
 
-        expect(response).to redirect_to(card_sets_path)
-        expect(flash[:notice]).to include('Added 2 cards')
+         expect(response).to redirect_to(card_sets_path)
+         expect(flash[:notice]).to include('Added 2 cards')
 
-        collection_card = CollectionCard.find_by(card_id: card.id)
-        expect(collection_card.quantity).to eq(2)
-      end
+         collection_card = CollectionCard.find_by(card_id: card.id)
+         expect(collection_card.quantity).to eq(2)
+       end
 
-      it 'imports foil cards' do
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Test Card","TST","1","3x","Foil","#{card.id}"
-        CSV
+       it 'imports foil cards' do
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Test Card","TST","1","3x","Foil","#{card.id}"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_file: upload_csv_file(csv_content) }
+         post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
-        collection_card = CollectionCard.find_by(card_id: card.id)
-        expect(collection_card.foil_quantity).to eq(3)
-        expect(collection_card.quantity.to_i).to eq(0) # nil or 0 both acceptable
-      end
+         collection_card = CollectionCard.find_by(card_id: card.id)
+         expect(collection_card.foil_quantity).to eq(3)
+         expect(collection_card.quantity.to_i).to eq(0) # nil or 0 both acceptable
+       end
 
-      it 'adds to existing quantities' do
-        create(:collection_card, card: card, quantity: 1, foil_quantity: 1)
+       it 'adds to existing quantities' do
+         create(:collection_card, card: card, quantity: 1, foil_quantity: 1)
 
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Test Card","TST","1","2x","","#{card.id}"
-        CSV
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Test Card","TST","1","2x","","#{card.id}"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_file: upload_csv_file(csv_content) }
+         post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
-        collection_card = CollectionCard.find_by(card_id: card.id)
-        expect(collection_card.quantity).to eq(3) # 1 + 2
-        expect(collection_card.foil_quantity).to eq(1) # unchanged
-      end
+         collection_card = CollectionCard.find_by(card_id: card.id)
+         expect(collection_card.quantity).to eq(3) # 1 + 2
+         expect(collection_card.foil_quantity).to eq(1) # unchanged
+       end
 
-      it 'replaces quantities when mode is replace' do
-        create(:collection_card, card: card, quantity: 5, foil_quantity: 3)
+       it 'replaces quantities when mode is replace' do
+         create(:collection_card, card: card, quantity: 5, foil_quantity: 3)
 
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Test Card","TST","1","2x","","#{card.id}"
-        CSV
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Test Card","TST","1","2x","","#{card.id}"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: {
-          csv_file: upload_csv_file(csv_content),
-          import_mode: 'replace'
-        }
+         post import_delver_csv_card_sets_path, params: {
+           csv_files: [ upload_csv_file(csv_content) ],
+           import_mode: 'replace'
+         }
 
-        collection_card = CollectionCard.find_by(card_id: card.id)
-        expect(collection_card.quantity).to eq(2) # replaced, not added
-        expect(collection_card.foil_quantity).to eq(3) # unchanged (not in CSV)
-      end
+         collection_card = CollectionCard.find_by(card_id: card.id)
+         expect(collection_card.quantity).to eq(2) # replaced, not added
+         expect(collection_card.foil_quantity).to eq(3) # unchanged (not in CSV)
+       end
 
-      it 'replaces foil quantities when mode is replace' do
-        create(:collection_card, card: card, quantity: 5, foil_quantity: 10)
+       it 'replaces foil quantities when mode is replace' do
+         create(:collection_card, card: card, quantity: 5, foil_quantity: 10)
 
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Test Card","TST","1","4x","Foil","#{card.id}"
-        CSV
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Test Card","TST","1","4x","Foil","#{card.id}"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: {
-          csv_file: upload_csv_file(csv_content),
-          import_mode: 'replace'
-        }
+         post import_delver_csv_card_sets_path, params: {
+           csv_files: [ upload_csv_file(csv_content) ],
+           import_mode: 'replace'
+         }
 
-        collection_card = CollectionCard.find_by(card_id: card.id)
-        expect(collection_card.quantity).to eq(5) # unchanged (not in CSV)
-        expect(collection_card.foil_quantity).to eq(4) # replaced
-      end
+         collection_card = CollectionCard.find_by(card_id: card.id)
+         expect(collection_card.quantity).to eq(5) # unchanged (not in CSV)
+         expect(collection_card.foil_quantity).to eq(4) # replaced
+       end
 
-      it 'shows correct message for replace mode' do
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Test Card","TST","1","2x","","#{card.id}"
-        CSV
+       it 'shows correct message for replace mode' do
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Test Card","TST","1","2x","","#{card.id}"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: {
-          csv_file: upload_csv_file(csv_content),
-          import_mode: 'replace'
-        }
+         post import_delver_csv_card_sets_path, params: {
+           csv_files: [ upload_csv_file(csv_content) ],
+           import_mode: 'replace'
+         }
 
-        expect(flash[:notice]).to include('Replaced with 2 cards')
-      end
+         expect(flash[:notice]).to include('Replaced with 2 cards')
+       end
 
       it 'skips cards not found in database' do
         csv_content = <<~CSV
@@ -1190,14 +1190,14 @@ RSpec.describe 'Card Sets', type: :request do
         # Don't create the card - so it will be skipped
         allow(ScryfallService).to receive(:download_set).with('xxx', include_children: false).and_return(mock_set)
 
-        post import_delver_csv_card_sets_path, params: { csv_file: upload_csv_file(csv_content) }
+         post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
-        expect(response).to redirect_to(card_sets_path)
-        # Should still succeed but with skipped count
-        expect(flash[:notice]).to include('skipped 1')
-      end
+         expect(response).to redirect_to(card_sets_path)
+         # Should still succeed but with skipped count
+         expect(flash[:notice]).to include('skipped 1')
+       end
 
-      it 'auto-downloads missing sets from Scryfall' do
+       it 'auto-downloads missing sets from Scryfall' do
         # No set exists in database initially
         expect(CardSet.find_by(code: 'newset')).to be_nil
 
@@ -1208,32 +1208,32 @@ RSpec.describe 'Card Sets', type: :request do
           set
         end
 
-        csv_content = <<~CSV
-          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
-          "Downloaded Card","NEWSET","1","2x","","downloaded-card-id"
-        CSV
+         csv_content = <<~CSV
+           Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+           "Downloaded Card","NEWSET","1","2x","","downloaded-card-id"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_file: upload_csv_file(csv_content) }
+         post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
-        expect(response).to redirect_to(card_sets_path)
-        expect(flash[:notice]).to include('Downloaded 1 set(s)')
-        expect(flash[:notice]).to include('New Set From Scryfall')
-        expect(flash[:notice]).to include('Added 2 cards')
-      end
+         expect(response).to redirect_to(card_sets_path)
+         expect(flash[:notice]).to include('Downloaded 1 set(s)')
+         expect(flash[:notice]).to include('New Set From Scryfall')
+         expect(flash[:notice]).to include('Added 2 cards')
+       end
     end
 
     context 'with invalid CSV' do
-      it 'rejects CSV without Scryfall ID column' do
-        csv_content = <<~CSV
-          Name,Edition,Quantity
-          "Test Card","TST","1"
-        CSV
+       it 'rejects CSV without Scryfall ID column' do
+         csv_content = <<~CSV
+           Name,Edition,Quantity
+           "Test Card","TST","1"
+         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_file: upload_csv_file(csv_content) }
+         post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
-        expect(response).to redirect_to(card_sets_path)
-        expect(flash[:alert]).to include("doesn't appear to be a Delver Lens export")
-      end
+         expect(response).to redirect_to(card_sets_path)
+         expect(flash[:alert]).to include("doesn't appear to be a Delver Lens export")
+       end
     end
   end
 

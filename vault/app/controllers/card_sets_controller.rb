@@ -256,61 +256,81 @@ class CardSetsController < ApplicationController
       disposition: "attachment"
   end
 
-  def import_collection
-    unless params[:backup_file].present?
-      redirect_to card_sets_path, alert: "Please select a backup file to import"
-      return
-    end
+   def import_collection
+     files = params[:backup_files]
+     files ||= params[:backup_file] ? [ params[:backup_file] ] : []
 
-    begin
-      backup_data = JSON.parse(params[:backup_file].read)
-      collection = backup_data["collection"]
+     if files.empty?
+       redirect_to card_sets_path, alert: "Please select at least one backup file to import"
+       return
+     end
 
-      unless collection.is_a?(Array)
-        redirect_to card_sets_path, alert: "Invalid backup file format"
-        return
-      end
+     total_imported = 0
+     total_skipped = 0
+     all_errors = []
 
-      imported = 0
-      skipped = 0
+     files.each do |file|
+       begin
+         backup_data = JSON.parse(file.read)
+         collection = backup_data["collection"]
 
-      collection.each do |item|
-        card_id = item["card_id"]
-        quantity = item["quantity"].to_i
-        foil_quantity = item["foil_quantity"].to_i
+         unless collection.is_a?(Array)
+           all_errors << "#{file.original_filename}: Invalid backup file format"
+           next
+         end
 
-        # Skip if card doesn't exist in database
-        # Must preload card_set to avoid strict loading violation when touch: true triggers
-        card = Card.includes(:card_set).find_by(id: card_id)
-        unless card
-          skipped += 1
-          next
-        end
+         imported = 0
+         skipped = 0
 
-        # Find or create collection card and update quantities
-        collection_card = CollectionCard.find_or_initialize_by(card_id: card_id)
-        collection_card.card = card  # Assign preloaded card for touch callback chain
-        collection_card.quantity = quantity
-        collection_card.foil_quantity = foil_quantity
+         collection.each do |item|
+           card_id = item["card_id"]
+           quantity = item["quantity"].to_i
+           foil_quantity = item["foil_quantity"].to_i
 
-        if collection_card.save
-          imported += 1
-        else
-          skipped += 1
-        end
-      end
+           # Skip if card doesn't exist in database
+           # Must preload card_set to avoid strict loading violation when touch: true triggers
+           card = Card.includes(:card_set).find_by(id: card_id)
+           unless card
+             skipped += 1
+             next
+           end
 
-      message = "Restored #{imported} cards"
-      message += ", skipped #{skipped} (cards not in database)" if skipped > 0
-      redirect_to card_sets_path, notice: message
+           # Find or create collection card and update quantities
+           collection_card = CollectionCard.find_or_initialize_by(card_id: card_id)
+           collection_card.card = card  # Assign preloaded card for touch callback chain
+           collection_card.quantity = quantity
+           collection_card.foil_quantity = foil_quantity
 
-    rescue JSON::ParserError
-      redirect_to card_sets_path, alert: "Invalid JSON file"
-    rescue StandardError => e
-      Rails.logger.error("Collection import error: #{e.message}")
-      redirect_to card_sets_path, alert: "Import failed: #{e.message}"
-    end
-  end
+           if collection_card.save
+             imported += 1
+           else
+             skipped += 1
+           end
+         end
+
+         total_imported += imported
+         total_skipped += skipped
+
+       rescue JSON::ParserError
+         all_errors << "#{file.original_filename}: Invalid JSON file"
+       rescue StandardError => e
+         Rails.logger.error("Collection import error: #{e.message}")
+         all_errors << "#{file.original_filename}: #{e.message}"
+       end
+     end
+
+     if total_imported > 0
+       message = "Restored #{total_imported} cards"
+       message += ", skipped #{total_skipped} (cards not in database)" if total_skipped > 0
+       redirect_to card_sets_path, notice: message
+     elsif all_errors.any?
+       error_msg = "Import failed: #{all_errors.first(3).join('; ')}"
+       error_msg += "..." if all_errors.count > 3
+       redirect_to card_sets_path, alert: error_msg
+     else
+       redirect_to card_sets_path, alert: "No valid backup files provided"
+     end
+   end
 
   # Export full collection data for static showcase site
   # Includes all card details, set info, and image URLs
@@ -429,50 +449,77 @@ class CardSetsController < ApplicationController
     end
   end
 
-  # Import collection from Delver Lens CSV export
-  # This is the recommended method as CSV exports include Scryfall IDs
-  def import_delver_csv
-    unless params[:csv_file].present?
-      redirect_to card_sets_path, alert: "Please select a CSV file to import"
-      return
-    end
+   # Import collection from Delver Lens CSV export
+   # This is the recommended method as CSV exports include Scryfall IDs
+   # Supports multiple files at once
+   def import_delver_csv
+     files = params[:csv_files]
+     files ||= params[:csv_file] ? [ params[:csv_file] ] : []
 
-    file = params[:csv_file]
+     if files.empty?
+       redirect_to card_sets_path, alert: "Please select at least one CSV file to import"
+       return
+     end
 
-    # Validate file extension
-    unless file.original_filename.end_with?(".csv")
-      redirect_to card_sets_path, alert: "Please upload a CSV file exported from Delver Lens"
-      return
-    end
+     mode = params[:import_mode]&.to_sym || :add
+     total_imported = 0
+     total_foils_imported = 0
+     total_skipped = 0
+     all_errors = []
+     all_downloaded_sets = []
+     all_missing_sets = Set.new
 
-    csv_content = file.read.force_encoding("UTF-8")
-    mode = params[:import_mode]&.to_sym || :add
-    result = DelverCsvImportService.new(csv_content, mode: mode).import
+     files.each do |file|
+       # Validate file extension
+       unless file.original_filename.end_with?(".csv")
+         all_errors << "#{file.original_filename}: Please upload CSV files only"
+         next
+       end
 
-    if result.success?
-      mode_text = mode == :replace ? "Replaced with" : "Added"
-      message = "#{mode_text} #{result.imported} cards"
-      message += " (#{result.foils_imported} foils)" if result.foils_imported > 0
-      message += ", skipped #{result.skipped}" if result.skipped > 0
+       begin
+         csv_content = file.read.force_encoding("UTF-8")
+         result = DelverCsvImportService.new(csv_content, mode: mode).import
 
-      if result.downloaded_sets.any?
-        set_names = result.downloaded_sets.map { |s| s[:name] }
-        message += ". Downloaded #{set_names.count} set(s): #{set_names.first(3).join(', ')}"
-        message += "..." if set_names.count > 3
-      end
+         if result.success?
+           total_imported += result.imported
+           total_foils_imported += result.foils_imported
+           total_skipped += result.skipped
+           all_downloaded_sets.concat(result.downloaded_sets)
+           all_missing_sets.merge(result.missing_sets)
+         else
+           all_errors.concat(result.errors)
+         end
+       rescue StandardError => e
+         all_errors << "#{file.original_filename}: #{e.message}"
+       end
+     end
 
-      if result.missing_sets.any?
-        message += ". Could not find sets: #{result.missing_sets.first(3).join(', ')}"
-        message += "..." if result.missing_sets.count > 3
-      end
+     if total_imported > 0 || total_foils_imported > 0 || total_skipped > 0
+        mode_text = mode == :replace ? "Replaced with" : "Added"
+        message = "#{mode_text} #{total_imported} cards"
+        message += " (#{total_foils_imported} foils)" if total_foils_imported > 0
+        message += ", skipped #{total_skipped}" if total_skipped > 0
 
-      redirect_to card_sets_path, notice: message
-    else
-      error_msg = "Import failed: #{result.errors.first(3).join(', ')}"
-      error_msg += "..." if result.errors.count > 3
-      redirect_to card_sets_path, alert: error_msg
-    end
-  end
+        if all_downloaded_sets.any?
+          set_names = all_downloaded_sets.map { |s| s[:name] }.uniq
+          message += ". Downloaded #{set_names.count} set(s): #{set_names.first(3).join(', ')}"
+          message += "..." if set_names.count > 3
+        end
+
+        if all_missing_sets.any?
+          message += ". Could not find sets: #{all_missing_sets.to_a.first(3).join(', ')}"
+          message += "..." if all_missing_sets.count > 3
+        end
+
+        redirect_to card_sets_path, notice: message
+     elsif all_errors.any?
+        error_msg = "Import failed: #{all_errors.first(3).join('; ')}"
+        error_msg += "..." if all_errors.count > 3
+        redirect_to card_sets_path, alert: error_msg
+     else
+        redirect_to card_sets_path, alert: "No valid CSV files provided"
+     end
+   end
 
   private
 
