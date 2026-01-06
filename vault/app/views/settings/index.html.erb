@@ -1,0 +1,158 @@
+<div style="max-width: 600px; margin: 0 auto;">
+  <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px;">Settings</h1>
+
+  <!-- GitHub Token Section -->
+  <div style="background: #1a1a1a; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+    <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 12px;">Showcase Publishing</h2>
+    <p style="color: #888; font-size: 14px; margin-bottom: 16px;">
+      Connect your GitHub account to publish your collection to a Gist, which the Showcase site can display.
+    </p>
+
+    <% if @github_token_configured %>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span style="color: #4ade80;">&#10003;</span>
+        <span style="color: #4ade80;">GitHub token configured</span>
+      </div>
+    <% end %>
+
+    <%= form_tag settings_path, method: :patch do %>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 6px;">
+          GitHub Personal Access Token
+        </label>
+        <input 
+          type="password" 
+          name="github_token" 
+          placeholder="<%= @github_token_configured ? '********' : 'ghp_xxxx...' %>"
+          style="width: 100%; background: #222; color: #eee; border: 1px solid #444; padding: 10px 12px; border-radius: 4px;"
+        >
+        <p style="color: #666; font-size: 12px; margin-top: 6px;">
+          Create a token at 
+          <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank" style="color: #6cf;">
+            github.com/settings/tokens
+          </a> 
+          with the <strong>gist</strong> scope.
+        </p>
+      </div>
+
+      <button type="submit" style="background: #29f; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 500;">
+        Save Token
+      </button>
+
+      <% if @github_token_configured %>
+        <button type="submit" name="github_token" value="" style="background: #333; color: #888; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+          Remove Token
+        </button>
+      <% end %>
+    <% end %>
+  </div>
+
+  <!-- Gist ID Section -->
+  <% if @gist_id.present? %>
+    <div style="background: #1a1a1a; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+      <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 12px;">Published Gist</h2>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 6px;">Gist ID</label>
+        <code style="display: block; background: #222; padding: 10px 12px; border-radius: 4px; font-size: 13px; word-break: break-all;">
+          <%= @gist_id %>
+        </code>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 6px;">Raw URL (for Showcase)</label>
+        <code style="display: block; background: #222; padding: 10px 12px; border-radius: 4px; font-size: 13px; word-break: break-all;">
+          https://gist.githubusercontent.com/raw/<%= @gist_id %>/deck_vault_collection.json
+        </code>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <a href="https://gist.github.com/<%= @gist_id %>" target="_blank" style="background: #333; color: #eee; padding: 10px 20px; border-radius: 4px; text-decoration: none; font-size: 14px;">
+          View on GitHub
+        </a>
+        
+        <%= button_to "Clear Gist ID", clear_gist_id_settings_path, method: :delete, 
+            style: "background: #333; color: #888; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;",
+            data: { confirm: "This will create a new Gist on next publish. Continue?" } %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Chat Configuration Section -->
+  <div style="background: #1a1a1a; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+    <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 12px;">Chat Assistant (Claude AI)</h2>
+    <p style="color: #888; font-size: 14px; margin-bottom: 16px;">
+      Configure the AI chat assistant that helps you manage your collection using natural language.
+    </p>
+
+    <% if @anthropic_api_key_configured %>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <span style="color: #4ade80;">&#10003;</span>
+        <span style="color: #4ade80;">Anthropic API key configured</span>
+      </div>
+    <% end %>
+
+    <%= form_tag settings_path, method: :patch do %>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 6px;">
+          Anthropic API Key
+        </label>
+        <input 
+          type="password" 
+          name="anthropic_api_key" 
+          placeholder="<%= @anthropic_api_key_configured ? '********' : 'sk-ant-...' %>"
+          style="width: 100%; background: #222; color: #eee; border: 1px solid #444; padding: 10px 12px; border-radius: 4px;"
+        >
+        <p style="color: #666; font-size: 12px; margin-top: 6px;">
+          Get your API key from 
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: #6cf;">
+            console.anthropic.com
+          </a>
+        </p>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #aaa; font-size: 14px; margin-bottom: 6px;">
+          Chat Model
+        </label>
+        <select 
+          name="chat_model"
+          style="width: 100%; background: #222; color: #eee; border: 1px solid #444; padding: 10px 12px; border-radius: 4px;"
+        >
+          <% @available_models.each do |model| %>
+            <option value="<%= model[:id] %>" <%= 'selected' if @chat_model == model[:id] %>>
+              <%= model[:display_name] %><%= ' (default)' if model[:id] == Setting::DEFAULT_CHAT_MODEL %>
+            </option>
+          <% end %>
+        </select>
+        <p style="color: #666; font-size: 12px; margin-top: 6px;">
+          Choose the Claude model for chat. Models are fetched from Anthropic API.
+          <% unless @anthropic_api_key_configured %>
+            <br><span style="color: #f97316;">Add your API key to see all available models.</span>
+          <% end %>
+        </p>
+      </div>
+
+      <button type="submit" style="background: #29f; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 500;">
+        Save Chat Settings
+      </button>
+
+      <% if @anthropic_api_key_configured %>
+        <button type="submit" name="anthropic_api_key" value="" style="background: #333; color: #888; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+          Remove API Key
+        </button>
+      <% end %>
+    <% end %>
+  </div>
+
+  <!-- Help Section -->
+  <div style="background: #1a1a1a; border-radius: 8px; padding: 20px;">
+    <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 12px;">How to Publish</h2>
+    <ol style="color: #888; font-size: 14px; padding-left: 20px; line-height: 1.8;">
+      <li>Add your GitHub token above</li>
+      <li>Go to your collection and click <strong>"Publish to Showcase"</strong></li>
+      <li>Copy the Raw URL to your Showcase site configuration</li>
+      <li>Future publishes will automatically update the same Gist</li>
+    </ol>
+  </div>
+</div>

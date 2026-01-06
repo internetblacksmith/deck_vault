@@ -25,6 +25,11 @@ Rails.application.routes.draw do
   get "chat", to: "chat#index"
   post "chat", to: "chat#create"
 
+  # Settings
+  get "settings", to: "settings#index", as: :settings
+  patch "settings", to: "settings#update"
+  delete "settings/clear_gist_id", to: "settings#clear_gist_id", as: :clear_gist_id_settings
+
   resources :card_sets, only: [ :index, :show, :destroy ] do
     collection do
       post :download_set
