@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_28_155022) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_04_213135) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "binder_columns", default: 3
     t.integer "binder_rows", default: 3
@@ -58,6 +58,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_28_155022) do
     t.integer "quantity"
     t.datetime "updated_at", null: false
     t.index ["card_id"], name: "index_collection_cards_on_card_id"
+  end
+
+  create_table "settings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "encrypted", default: false
+    t.string "key", null: false
+    t.datetime "updated_at", null: false
+    t.text "value"
+    t.index ["key"], name: "index_settings_on_key", unique: true
   end
 
   create_table "users", force: :cascade do |t|
