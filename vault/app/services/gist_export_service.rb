@@ -13,8 +13,8 @@ class GistExportService
   class ApiError < Error; end
 
   def initialize
-    @github_token = ENV["GITHUB_TOKEN"]
-    @gist_id = ENV["SHOWCASE_GIST_ID"]
+    @github_token = Setting.github_token
+    @gist_id = Setting.showcase_gist_id
   end
 
   # Export collection to GitHub Gist
@@ -158,6 +158,9 @@ class GistExportService
     gist_id = response["id"]
     raw_url = response.dig("files", GIST_FILENAME, "raw_url")
 
+    # Auto-save the gist ID for future updates
+    Setting.showcase_gist_id = gist_id
+
     Rails.logger.info("Created new Gist: #{gist_id}")
 
     {
@@ -165,7 +168,7 @@ class GistExportService
       gist_id: gist_id,
       gist_url: response["html_url"],
       raw_url: raw_url,
-      message: "Created new Gist. Add SHOWCASE_GIST_ID=#{gist_id} to your .env file."
+      message: "Collection published successfully! Gist ID saved automatically."
     }
   end
 
@@ -215,7 +218,7 @@ class GistExportService
 
     request["Authorization"] = "Bearer #{@github_token}"
     request["Accept"] = "application/vnd.github+json"
-    request["User-Agent"] = "MTGCollector/1.0"
+    request["User-Agent"] = "DeckVault/1.0"
     request["X-GitHub-Api-Version"] = "2022-11-28"
 
     if body

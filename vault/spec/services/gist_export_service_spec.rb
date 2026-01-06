@@ -6,14 +6,23 @@ RSpec.describe GistExportService do
   let(:service) { described_class.new }
 
   before do
-    allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("GITHUB_TOKEN").and_return("test-github-token")
-    allow(ENV).to receive(:[]).with("SHOWCASE_GIST_ID").and_return(nil)
+    # Clear any existing settings
+    Setting.delete(Setting::GITHUB_TOKEN)
+    Setting.delete(Setting::SHOWCASE_GIST_ID)
+    # Set token via Setting (which also checks ENV as fallback)
+    Setting.github_token = "test-github-token"
+  end
+
+  after do
+    Setting.delete(Setting::GITHUB_TOKEN)
+    Setting.delete(Setting::SHOWCASE_GIST_ID)
   end
 
   describe "#export" do
     context "without GITHUB_TOKEN configured" do
       before do
+        Setting.delete(Setting::GITHUB_TOKEN)
+        allow(ENV).to receive(:[]).and_call_original
         allow(ENV).to receive(:[]).with("GITHUB_TOKEN").and_return(nil)
       end
 
@@ -34,7 +43,7 @@ RSpec.describe GistExportService do
           "id" => "abc123gist",
           "html_url" => "https://gist.github.com/user/abc123gist",
           "files" => {
-            "mtg_collection.json" => {
+            "deck_vault_collection.json" => {
               "raw_url" => "https://gist.githubusercontent.com/raw/abc123gist/mtg_collection.json"
             }
           }
@@ -47,7 +56,7 @@ RSpec.describe GistExportService do
             headers: {
               "Authorization" => "Bearer test-github-token",
               "Accept" => "application/vnd.github+json",
-              "User-Agent" => "MTGCollector/1.0"
+              "User-Agent" => "DeckVault/1.0"
             }
           )
           .to_return(status: 200, body: mock_response.to_json, headers: { "Content-Type" => "application/json" })
@@ -59,7 +68,12 @@ RSpec.describe GistExportService do
         expect(result[:success]).to be true
         expect(result[:gist_id]).to eq("abc123gist")
         expect(result[:gist_url]).to eq("https://gist.github.com/user/abc123gist")
-        expect(result[:message]).to include("SHOWCASE_GIST_ID=abc123gist")
+        expect(result[:message]).to include("successfully")
+      end
+
+      it "saves the gist_id to settings after creating" do
+        service.export
+        expect(Setting.showcase_gist_id).to eq("abc123gist")
       end
 
       it "includes owned cards in the export" do
@@ -70,7 +84,7 @@ RSpec.describe GistExportService do
         expect(WebMock).to have_requested(:post, "https://api.github.com/gists")
           .with { |req|
             body = JSON.parse(req.body)
-            content = JSON.parse(body["files"]["mtg_collection.json"]["content"])
+            content = JSON.parse(body["files"]["deck_vault_collection.json"]["content"])
 
             content["cards"].length == 1 &&
               content["cards"][0]["name"] == "Test Card" &&
@@ -85,7 +99,7 @@ RSpec.describe GistExportService do
       let!(:card_set) { create(:card_set, :completed) }
 
       before do
-        allow(ENV).to receive(:[]).with("SHOWCASE_GIST_ID").and_return(gist_id)
+        Setting.showcase_gist_id = gist_id
 
         stub_request(:patch, "https://api.github.com/gists/#{gist_id}")
           .to_return(
@@ -94,7 +108,7 @@ RSpec.describe GistExportService do
               "id" => gist_id,
               "html_url" => "https://gist.github.com/user/#{gist_id}",
               "files" => {
-                "mtg_collection.json" => {
+                "deck_vault_collection.json" => {
                   "raw_url" => "https://gist.githubusercontent.com/raw/#{gist_id}/mtg_collection.json"
                 }
               }
@@ -144,11 +158,11 @@ RSpec.describe GistExportService do
 
     context "with SHOWCASE_GIST_ID" do
       before do
-        allow(ENV).to receive(:[]).with("SHOWCASE_GIST_ID").and_return("test123")
+        Setting.showcase_gist_id = "test123"
       end
 
       it "returns the raw URL" do
-        expect(service.raw_url).to eq("https://gist.githubusercontent.com/raw/test123/mtg_collection.json")
+        expect(service.raw_url).to eq("https://gist.githubusercontent.com/raw/test123/deck_vault_collection.json")
       end
     end
   end
@@ -175,7 +189,7 @@ RSpec.describe GistExportService do
           body: {
             "id" => "test",
             "html_url" => "https://gist.github.com/user/test",
-            "files" => { "mtg_collection.json" => { "raw_url" => "https://example.com/raw" } }
+            "files" => { "deck_vault_collection.json" => { "raw_url" => "https://example.com/raw" } }
           }.to_json,
           headers: { "Content-Type" => "application/json" }
         )
@@ -187,7 +201,7 @@ RSpec.describe GistExportService do
       expect(WebMock).to have_requested(:post, "https://api.github.com/gists")
         .with { |req|
           body = JSON.parse(req.body)
-          content = JSON.parse(body["files"]["mtg_collection.json"]["content"])
+          content = JSON.parse(body["files"]["deck_vault_collection.json"]["content"])
 
           # Check top-level structure
           content["version"] == 2 &&
@@ -205,7 +219,7 @@ RSpec.describe GistExportService do
       expect(WebMock).to have_requested(:post, "https://api.github.com/gists")
         .with { |req|
           body = JSON.parse(req.body)
-          content = JSON.parse(body["files"]["mtg_collection.json"]["content"])
+          content = JSON.parse(body["files"]["deck_vault_collection.json"]["content"])
           stats = content["stats"]
 
           stats["total_unique"] == 2 &&          # 2 owned cards
@@ -221,7 +235,7 @@ RSpec.describe GistExportService do
       expect(WebMock).to have_requested(:post, "https://api.github.com/gists")
         .with { |req|
           body = JSON.parse(req.body)
-          content = JSON.parse(body["files"]["mtg_collection.json"]["content"])
+          content = JSON.parse(body["files"]["deck_vault_collection.json"]["content"])
           set_data = content["sets"].first
 
           set_data["code"] == "fdn" &&
@@ -237,7 +251,7 @@ RSpec.describe GistExportService do
       expect(WebMock).to have_requested(:post, "https://api.github.com/gists")
         .with { |req|
           body = JSON.parse(req.body)
-          content = JSON.parse(body["files"]["mtg_collection.json"]["content"])
+          content = JSON.parse(body["files"]["deck_vault_collection.json"]["content"])
 
           content["cards"].length == 2 &&
             content["cards"].map { |c| c["name"] }.sort == [ "Card A", "Card B" ]
@@ -250,7 +264,7 @@ RSpec.describe GistExportService do
       expect(WebMock).to have_requested(:post, "https://api.github.com/gists")
         .with { |req|
           body = JSON.parse(req.body)
-          content = JSON.parse(body["files"]["mtg_collection.json"]["content"])
+          content = JSON.parse(body["files"]["deck_vault_collection.json"]["content"])
 
           content["cards"].all? { |c|
             c["set_code"] == "fdn" && c["set_name"] == "Foundations"
