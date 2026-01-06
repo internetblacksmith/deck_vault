@@ -123,14 +123,16 @@ class ChatService
   ].freeze
 
   def initialize
-    @client = Anthropic::Client.new(api_key: ENV.fetch("ANTHROPIC_API_KEY", nil))
+    @api_key = Setting.anthropic_api_key
+    @model = Setting.chat_model
+    @client = Anthropic::Client.new(api_key: @api_key)
   end
 
   def chat(messages)
-    raise "ANTHROPIC_API_KEY not configured" unless ENV["ANTHROPIC_API_KEY"].present?
+    raise "Anthropic API key not configured. Please add it in Settings." unless @api_key.present?
 
     response = @client.messages.create(
-      model: "claude-sonnet-4-20250514",
+      model: @model,
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       tools: TOOLS,
@@ -146,7 +148,7 @@ class ChatService
       ]
 
       response = @client.messages.create(
-        model: "claude-sonnet-4-20250514",
+        model: @model,
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         tools: TOOLS,

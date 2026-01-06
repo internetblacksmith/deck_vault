@@ -34,7 +34,7 @@ RSpec.describe ChatService do
         allow(ENV).to receive(:[]).with("ANTHROPIC_API_KEY").and_return(nil)
 
         expect { service.chat([ { role: "user", content: "Hello" } ]) }
-          .to raise_error("ANTHROPIC_API_KEY not configured")
+          .to raise_error("Anthropic API key not configured. Please add it in Settings.")
       end
     end
 
