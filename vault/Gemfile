@@ -43,7 +43,7 @@ gem "thruster", "0.1.17", require: false
 gem "image_processing", "1.14.0"
 
 # Scryfall API client
-gem "httparty", "0.23.2"
+gem "httparty", "0.24.0"
 
 # CSV handling
 gem "csv", "3.3.5"
