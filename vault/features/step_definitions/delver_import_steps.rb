@@ -53,7 +53,7 @@ end
 
 When('I attach the Delver CSV file') do
   within('[data-backup-target="delverPanel"]') do
-    attach_file('csv_file', @delver_csv_file.path)
+    attach_file('csv_files[]', @delver_csv_file.path)
   end
 end
 
