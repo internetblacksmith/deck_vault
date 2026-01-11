@@ -5,41 +5,41 @@
 # `$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`
 
 # =============================================================================
-# Collector (Rails App)
+# Vault (Rails App)
 # =============================================================================
 
 # Ignore bundler config.
-collector/.bundle
+vault/.bundle
 
 # Ignore all environment files except examples.
-collector/.env*
-!collector/.env.example
+vault/.env*
+!vault/.env.example
 
 # Ignore all logfiles and tempfiles.
-collector/log/*
-collector/tmp/*
-!collector/log/.keep
-!collector/tmp/.keep
+vault/log/*
+vault/tmp/*
+!vault/log/.keep
+!vault/tmp/.keep
 
 # Ignore pidfiles, but keep the directory.
-collector/tmp/pids/*
-!collector/tmp/pids/
-!collector/tmp/pids/.keep
+vault/tmp/pids/*
+!vault/tmp/pids/
+!vault/tmp/pids/.keep
 
 # Ignore storage (uploaded files in development and any SQLite databases).
-collector/storage/*
-!collector/storage/.keep
-collector/tmp/storage/*
-!collector/tmp/storage/
-!collector/tmp/storage/.keep
+vault/storage/*
+!vault/storage/.keep
+vault/tmp/storage/*
+!vault/tmp/storage/
+!vault/tmp/storage/.keep
 
-collector/public/assets
+vault/public/assets
 
 # Ignore key files for decrypting credentials and more.
-collector/config/*.key
+vault/config/*.key
 
-collector/app/assets/builds/*
-!collector/app/assets/builds/.keep
+vault/app/assets/builds/*
+!vault/app/assets/builds/.keep
 
 # =============================================================================
 # Showcase (Astro Static Site)
