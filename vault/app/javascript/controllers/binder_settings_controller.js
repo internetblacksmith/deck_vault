@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["panel", "rows", "columns", "sortField", "sortDirection", "includeSubsets", "search"]
+  static targets = ["panel", "rows", "columns", "sortField", "sortDirection", "includeSubsets", "pagesPerBinder", "search"]
   static values = { url: String }
 
   toggle() {
@@ -42,6 +42,11 @@ export default class extends Controller {
     data.append("binder_columns", this.columnsTarget.value)
     data.append("binder_sort_field", this.sortFieldTarget.value)
     data.append("binder_sort_direction", this.sortDirectionTarget.value)
+    
+    // Pages per binder setting
+    if (this.hasPagesPerBinderTarget) {
+      data.append("binder_pages_per_binder", this.pagesPerBinderTarget.value)
+    }
     
     // Include subsets toggle (only if present)
     if (this.hasIncludeSubsetsTarget) {

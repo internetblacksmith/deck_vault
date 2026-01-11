@@ -43,16 +43,15 @@ export default class extends Controller {
   }
 
   updateNavigation() {
-    // Update page indicator text
-    // Spread 0 = Cover (page 0) + Page 1
-    // Spread 1 = Pages 2-3
-    // Spread 2 = Pages 4-5, etc.
-    if (this.currentSpreadValue === 0) {
+    // Update page indicator text from spread's data attribute or calculate
+    const currentSpread = this.spreadTargets[this.currentSpreadValue]
+    if (currentSpread && currentSpread.dataset.spreadLabel) {
+      this.pageIndicatorTarget.textContent = currentSpread.dataset.spreadLabel
+    } else if (this.currentSpreadValue === 0) {
       this.pageIndicatorTarget.textContent = "Cover"
     } else {
-      const leftPage = (this.currentSpreadValue - 1) * 2 + 2
-      const rightPage = leftPage + 1
-      this.pageIndicatorTarget.textContent = `Pages ${leftPage}-${rightPage}`
+      // Fallback for spreads without explicit labels
+      this.pageIndicatorTarget.textContent = `Spread ${this.currentSpreadValue + 1}`
     }
 
     // Update button states
