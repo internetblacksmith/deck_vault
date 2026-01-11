@@ -118,38 +118,38 @@
           <%= button_to "Publish to Showcase", publish_to_gist_card_sets_path, method: :post, class: "backup-btn backup-btn--publish", data: { turbo_confirm: "Publish your collection to GitHub Gist for the Showcase site?" } %>
         </div>
         <div data-backup-target="importPanel" class="import-panel" style="display:none;">
-           <%= form_tag import_collection_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
-             <input type="file" name="backup_files[]" accept=".json" class="import-file-input" multiple>
-             <div class="import-actions">
-               <%= submit_tag "Restore", class: "backup-btn backup-btn--restore" %>
-               <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--cancel">Cancel</button>
-             </div>
-             <p class="import-hint">Select one or more previously exported JSON backup files</p>
-           <% end %>
-         </div>
-         <div data-backup-target="delverPanel" class="import-panel" style="display:none;">
-           <%= form_tag import_delver_csv_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
-             <input type="file" name="csv_files[]" accept=".csv" class="import-file-input" multiple>
-             <div class="import-mode-options">
-               <label class="import-mode-option">
-                 <input type="radio" name="import_mode" value="add" checked>
-                 <span class="import-mode-label">Add to collection</span>
-                 <span class="import-mode-desc">Adds quantities to existing cards</span>
-               </label>
-               <label class="import-mode-option">
-                 <input type="radio" name="import_mode" value="replace">
-                 <span class="import-mode-label">Replace collection</span>
-                 <span class="import-mode-desc">Overwrites existing quantities</span>
-               </label>
-             </div>
-             <div class="import-actions">
-               <%= submit_tag "Import from Delver", class: "backup-btn backup-btn--restore" %>
-               <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--cancel">Cancel</button>
-             </div>
-             <p class="import-hint">Export as CSV from Delver Lens, then select one or more files here.<br>
-             <strong>Note:</strong> First download the sets you need, then import to add quantities and foils.</p>
-           <% end %>
-         </div>
+          <%= form_tag import_collection_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
+            <input type="file" name="backup_files[]" accept=".json" class="import-file-input" multiple>
+            <div class="import-actions">
+              <%= submit_tag "Restore", class: "backup-btn backup-btn--restore" %>
+              <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--cancel">Cancel</button>
+            </div>
+            <p class="import-hint">Select one or more previously exported JSON backup files</p>
+          <% end %>
+        </div>
+        <div data-backup-target="delverPanel" class="import-panel" style="display:none;">
+          <%= form_tag import_delver_csv_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
+            <input type="file" name="csv_files[]" accept=".csv" class="import-file-input" multiple>
+            <div class="import-mode-options">
+              <label class="import-mode-option">
+                <input type="radio" name="import_mode" value="add" checked>
+                <span class="import-mode-label">Add to collection</span>
+                <span class="import-mode-desc">Adds quantities to existing cards</span>
+              </label>
+              <label class="import-mode-option">
+                <input type="radio" name="import_mode" value="replace">
+                <span class="import-mode-label">Replace collection</span>
+                <span class="import-mode-desc">Overwrites existing quantities</span>
+              </label>
+            </div>
+            <div class="import-actions">
+              <%= submit_tag "Import from Delver", class: "backup-btn backup-btn--restore" %>
+              <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--cancel">Cancel</button>
+            </div>
+            <p class="import-hint">Export as CSV from Delver Lens, then select one or more files here.<br>
+            <strong>Note:</strong> First download the sets you need, then import to add quantities and foils.</p>
+          <% end %>
+        </div>
       </div>
       
       <div class="collection-list">
