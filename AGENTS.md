@@ -16,6 +16,46 @@ deck_vault/
 
 ---
 
+## CRITICAL: Database Preservation
+
+**The development database contains the user's real card collection data. This data is irreplaceable and must be protected at all costs.**
+
+### Database Files (DO NOT DELETE OR OVERWRITE)
+- `vault/storage/development.sqlite3` - Production collection data
+- `vault/storage/test.sqlite3` - Test database (safe to reset)
+- `vault/storage/card_images/` - Downloaded card images
+
+### Dangerous Operations - ALWAYS WARN USER FIRST
+Before running any of these commands, **explicitly warn the user** and ask for confirmation:
+
+| Command | Risk | Warning Required |
+|---------|------|------------------|
+| `rails db:reset` | **DESTROYS ALL DATA** | Always |
+| `rails db:drop` | **DESTROYS ALL DATA** | Always |
+| `rails db:schema:load` | **DESTROYS ALL DATA** | Always |
+| `rails db:migrate:reset` | **DESTROYS ALL DATA** | Always |
+| `rm vault/storage/*.sqlite3` | **DESTROYS ALL DATA** | Always |
+| `git clean -fd` | May delete database | Check flags |
+| `rails db:seed` | May overwrite data | If seeds modify existing records |
+
+### Safe Operations
+These commands are safe and preserve existing data:
+- `rails db:migrate` - Adds new columns/tables, preserves data
+- `rails db:rollback` - Reverses last migration (usually safe)
+- `bundle exec rspec` - Uses separate test database
+- `bundle exec cucumber` - Uses separate test database
+
+### Before Any Destructive Database Operation
+1. **STOP** and warn the user about potential data loss
+2. Ask if they have a backup (they can export via UI or copy the .sqlite3 file)
+3. Suggest creating a backup: `cp vault/storage/development.sqlite3 vault/storage/development.sqlite3.backup`
+4. Only proceed with explicit user confirmation
+
+### Card Images
+The `vault/storage/card_images/` directory contains downloaded card images. While these can be re-downloaded from Scryfall, it's time-consuming. Avoid deleting unless necessary.
+
+---
+
 ## Collector (Rails App)
 
 **Location:** `vault/`
