@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_04_213135) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_08_225830) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "binder_columns", default: 3
+    t.integer "binder_pages_per_binder"
     t.integer "binder_rows", default: 3
     t.string "binder_sort_direction", default: "asc"
     t.string "binder_sort_field", default: "number"

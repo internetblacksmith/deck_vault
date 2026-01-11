@@ -517,6 +517,7 @@
       cards_per_page = binder_rows * binder_columns
       sort_field = @card_set.binder_sort_field || "number"
       sort_direction = @card_set.binder_sort_direction || "asc"
+      pages_per_binder = @card_set.binder_pages_per_binder # nil means unlimited
       
       # Sort cards based on binder settings
       # Use pre-loaded cards array to ensure collection_card associations are available
@@ -540,11 +541,85 @@
       end
       sorted_cards = sorted_cards.reverse if sort_direction == "desc"
       
-      # Group cards into pages, then pair pages into spreads (left + right)
+      # Group cards into pages
       binder_pages = sorted_cards.each_slice(cards_per_page).to_a
-      # Pair pages: [page1, page2], [page3, page4], etc.
-      binder_spreads = binder_pages.each_slice(2).to_a
-      total_spreads = binder_spreads.count
+      
+      # Build spreads with binder breaks
+      # A spread is [left_page, right_page] where each page is either:
+      # - An array of cards
+      # - :empty (placeholder for empty page at binder boundary)
+      # - :cover (the cover/stats page)
+      #
+      # Page numbering (1-indexed):
+      # - Page 1 is on cover spread (right side)
+      # - Pages 2-3 are on spread 1, Pages 4-5 on spread 2, etc.
+      #
+      # If pages_per_binder is set (e.g., 56):
+      # - Page 56 is the last page of binder 1, so spread with page 56 has empty right
+      # - Next spread has empty left and page 57 on right (first page of binder 2)
+      # - Then normal spreads continue: 58-59, 60-61, etc.
+      
+      all_spreads = []
+      
+      if pages_per_binder.present? && pages_per_binder > 0
+        # Build pages with binder breaks inserted
+        # Track which binder each page belongs to and insert breaks
+        page_number = 1
+        page_index = 0
+        pages_with_breaks = []
+        
+        while page_index < binder_pages.count
+          current_binder = ((page_number - 1) / pages_per_binder) + 1
+          position_in_binder = ((page_number - 1) % pages_per_binder) + 1
+          
+          # Add the actual page
+          pages_with_breaks << { type: :cards, cards: binder_pages[page_index], page_num: page_number, binder: current_binder }
+          page_index += 1
+          
+          # If this is the last page of a binder and there are more pages coming
+          if position_in_binder == pages_per_binder && page_index < binder_pages.count
+            # Check if this page would be on the left side of a spread (even page number)
+            # Page 1 is on right of cover, Page 2 is on left, Page 3 on right, etc.
+            # So even pages are on the left, odd on the right
+            if page_number.even?
+              # This page is on the left, add empty on right for back cover
+              pages_with_breaks << { type: :binder_end, binder: current_binder }
+              # Then add empty on left for next binder's front cover, next card page on right
+              pages_with_breaks << { type: :binder_start, binder: current_binder + 1 }
+            else
+              # This page is on the right, need empty left+right for binder transition
+              # The current spread already has this page on right
+              # Next spread: empty left (back cover), empty right (would need another spread)
+              # Actually: back cover on left of next spread, front cover on right
+              # Then: next spread has empty left (inside front cover) and first page of new binder
+              pages_with_breaks << { type: :binder_end, binder: current_binder }
+              pages_with_breaks << { type: :binder_start, binder: current_binder + 1 }
+            end
+          end
+          
+          page_number += 1
+        end
+        
+        # Now pair up pages into spreads
+        # Cover spread: stats (left) + page 1 (right)
+        # Then pair remaining pages
+        
+        # First page goes with cover
+        first_page = pages_with_breaks.shift if pages_with_breaks.any?
+        remaining_pages = pages_with_breaks
+        
+        # Pair remaining pages into spreads
+        spread_pages = remaining_pages.each_slice(2).to_a
+      else
+        # No binder breaks - simple pairing
+        first_page = binder_pages.any? ? { type: :cards, cards: binder_pages[0], page_num: 1, binder: 1 } : nil
+        remaining_pages = binder_pages[1..].to_a.map.with_index do |cards, idx|
+          { type: :cards, cards: cards, page_num: idx + 2, binder: 1 }
+        end
+        spread_pages = remaining_pages.each_slice(2).to_a
+      end
+      
+      total_spreads = spread_pages.count + 1 # +1 for cover spread
     %>
     
     <!-- Binder Configuration -->
@@ -611,6 +686,16 @@
             </select>
           </div>
           
+          <div style="display:flex;gap:8px;align-items:center;border-left:1px solid #444;padding-left:16px;">
+            <span style="color:#888;font-size:13px;">Pages/Binder:</span>
+            <select data-binder-settings-target="pagesPerBinder" data-action="change->binder-settings#save" style="background:#222;color:#eee;border:1px solid #444;padding:6px 10px;border-radius:4px;cursor:pointer;">
+              <option value="" <%= pages_per_binder.blank? ? 'selected' : '' %>>Unlimited</option>
+              <% [20, 40, 56, 60, 80, 100, 120].each do |n| %>
+                <option value="<%= n %>" <%= pages_per_binder == n ? 'selected' : '' %>><%= n %></option>
+              <% end %>
+            </select>
+          </div>
+          
           <% if @child_sets.any? %>
             <div style="display:flex;gap:8px;align-items:center;border-left:1px solid #444;padding-left:16px;">
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#888;font-size:13px;">
@@ -640,11 +725,10 @@
       total_foil = sorted_cards.sum { |c| c.collection_card&.foil_quantity.to_i }
       completion_pct = total_cards_in_set > 0 ? (owned_any.to_f / total_cards_in_set * 100).round(1) : 0
       total_binder_pages = binder_pages.count
+      total_binders = pages_per_binder.present? && pages_per_binder > 0 ? ((total_binder_pages - 1) / pages_per_binder) + 1 : 1
       
-      # Total spreads = cover spread + card spreads
-      # Cover spread: page 0 (stats) + page 1 (first cards)
-      # Then: pages 2-3, 4-5, 6-7, etc.
-      total_spreads_with_cover = total_spreads + 1
+      # Total spreads with cover already calculated above
+      total_spreads_with_cover = total_spreads
     %>
     
     <!-- Binder View -->
@@ -676,14 +760,64 @@
         page_stats = binder_pages.map.with_index do |page_cards, idx|
           cards_count = page_cards.count
           owned_count = page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+          binder_num = pages_per_binder.present? && pages_per_binder > 0 ? (idx / pages_per_binder) + 1 : 1
           {
             page_num: idx + 1,
             total: cards_count,
             owned: owned_count,
             complete: owned_count == cards_count && cards_count > 0,
             partial: owned_count > 0 && owned_count < cards_count,
-            empty: owned_count == 0
+            empty: owned_count == 0,
+            binder: binder_num
           }
+        end
+        
+        # Build a mapping of page numbers to spread indices (accounting for binder breaks)
+        # This is needed for the page indicator buttons
+        page_to_spread = {}
+        current_spread_idx = 0  # Start after cover
+        
+        if pages_per_binder.present? && pages_per_binder > 0
+          # Page 1 is on cover spread (index 0)
+          page_to_spread[1] = 0
+          current_spread_idx = 1
+          page_num = 2
+          
+          while page_num <= total_binder_pages
+            # Which binder is this page in?
+            page_binder = ((page_num - 1) / pages_per_binder) + 1
+            position_in_binder = ((page_num - 1) % pages_per_binder) + 1
+            
+            # Is this page starting a new binder (position 1)?
+            prev_page_binder = page_num > 1 ? (((page_num - 2) / pages_per_binder) + 1) : 0
+            
+            if page_binder > prev_page_binder && page_num > 1
+              # We crossed a binder boundary - add extra spreads for the transition
+              # Back cover spread (previous binder's back + new binder's front)
+              current_spread_idx += 1
+              # This page is on the right side of a new spread (inside front cover on left)
+              page_to_spread[page_num] = current_spread_idx
+              current_spread_idx += 1
+              page_num += 1
+            else
+              # Normal page pairing
+              # Even pages go on left, odd on right of same spread
+              if page_num.even?
+                page_to_spread[page_num] = current_spread_idx
+              else
+                page_to_spread[page_num] = current_spread_idx
+                current_spread_idx += 1
+              end
+              page_num += 1
+            end
+          end
+        else
+          # No binder breaks - simple mapping
+          # Page 1 is on cover (spread 0)
+          # Pages 2-3 on spread 1, 4-5 on spread 2, etc.
+          page_stats.each_with_index do |stat, idx|
+            page_to_spread[stat[:page_num]] = idx == 0 ? 0 : ((idx - 1) / 2) + 1
+          end
         end
       %>
       <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap;max-width:100%;padding:0 20px;">
@@ -697,12 +831,15 @@
         </button>
         
         <!-- Page buttons with status colors -->
+        <% current_binder = 1 %>
         <% page_stats.each_with_index do |stat, idx| %>
           <%
-            # Determine spread index
-            # Page 1 is on cover spread (index 0)
-            # Pages 2-3 are on spread index 1, Pages 4-5 on spread index 2, etc.
-            spread_idx = idx == 0 ? 0 : ((idx - 1) / 2) + 1
+            # Add binder separator when transitioning to new binder
+            if stat[:binder] > current_binder
+              current_binder = stat[:binder]
+            end
+            
+            spread_idx = page_to_spread[stat[:page_num]] || 0
             
             # Color based on ownership
             if stat[:complete]
@@ -719,11 +856,14 @@
               text_color = '#888'
             end
           %>
+          <% if pages_per_binder.present? && pages_per_binder > 0 && stat[:page_num] > 1 && ((stat[:page_num] - 1) % pages_per_binder) == 0 %>
+            <span style="color:#555;font-size:11px;padding:0 4px;">|</span>
+          <% end %>
           <button data-action="click->binder#goToSpread" 
                   data-spread-index="<%= spread_idx %>"
                   data-binder-target="pageIndicatorDot"
                   style="background:<%= bg_color %>;color:<%= text_color %>;border:1px solid <%= border_color %>;min-width:32px;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;"
-                  title="Page <%= stat[:page_num] %>: <%= stat[:owned] %>/<%= stat[:total] %> owned<%= stat[:complete] ? ' (Complete!)' : '' %>">
+                  title="Page <%= stat[:page_num] %>: <%= stat[:owned] %>/<%= stat[:total] %> owned<%= stat[:complete] ? ' (Complete!)' : '' %><%= total_binders > 1 ? " (Binder #{stat[:binder]})" : '' %>">
             <%= stat[:page_num] %>
           </button>
         <% end %>
@@ -765,14 +905,14 @@
             
             <!-- Binder Info -->
             <div style="margin-top:20px;color:#666;font-size:12px;">
-              <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= total_binder_pages %> pages
+              <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= total_binder_pages %> pages<%= total_binders > 1 ? " &middot; #{total_binders} binders" : '' %>
             </div>
           </div>
         </div>
         
         <!-- Page 1: First page of cards -->
-        <% if binder_pages.any? %>
-          <% first_page_cards = binder_pages[0] %>
+        <% if first_page %>
+          <% first_page_cards = first_page[:cards] %>
           <%
             page1_total = first_page_cards.count
             page1_owned = first_page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
@@ -782,7 +922,7 @@
           %>
           <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
             <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:right;">
-              Page 1
+              Page 1<%= total_binders > 1 ? " (Binder 1)" : '' %>
             </div>
             <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
               <% first_page_cards.each_with_index do |card, card_index| %>
@@ -808,64 +948,80 @@
         <% else %>
           <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;align-items:center;justify-content:center;">
             <div style="color:#666;text-align:center;">
-              <div style="font-size:48px;margin-bottom:12px;">📭</div>
+              <div style="font-size:48px;margin-bottom:12px;">&#128235;</div>
               <div>No cards in this set yet</div>
             </div>
           </div>
         <% end %>
       </div>
       
-      <!-- Card Spreads (Pages 2-3, 4-5, etc.) -->
-      <% # Start from page 2 (index 1), pair remaining pages %>
-      <% remaining_pages = binder_pages[1..] || [] %>
-      <% remaining_spreads = remaining_pages.each_slice(2).to_a %>
-      <% remaining_spreads.each_with_index do |spread, spread_index| %>
+      <!-- Remaining Spreads -->
+      <% spread_pages.each_with_index do |spread_pair, spread_index| %>
         <div data-binder-target="spread" style="display:none;gap:8px;perspective:2000px;">
-          
-          <% spread.each_with_index do |page_cards, page_in_spread| %>
-            <% # Page numbers: spread 0 = pages 2-3, spread 1 = pages 4-5, etc. %>
-            <% page_num = (spread_index * 2) + page_in_spread + 2 %>
-            <%
-              pg_total = page_cards.count
-              pg_owned = page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
-              pg_pct = pg_total > 0 ? (pg_owned.to_f / pg_total * 100).round(0) : 0
-              pg_complete = pg_owned == pg_total && pg_total > 0
-              pg_color = pg_complete ? '#4a4' : (pg_owned > 0 ? '#c90' : '#666')
-            %>
-            <!-- Page <%= page_num %> (<%= page_in_spread == 0 ? 'Left' : 'Right' %>) -->
-            <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
-              <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:<%= page_in_spread == 0 ? 'left' : 'right' %>;">
-                Page <%= page_num %>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
-                <% page_cards.each_with_index do |card, card_index| %>
-                  <%= render "card_sets/binder_card_flip", card: card, card_set: (@include_subsets ? card.card_set : @card_set), position: card_index + 1 %>
-                <% end %>
-                <% (cards_per_page - page_cards.count).times do %>
-                  <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
-                <% end %>
-              </div>
-              <!-- Page Status Bar -->
-              <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                  <span style="color:<%= pg_color %>;font-size:11px;font-weight:600;">
-                    <%= pg_complete ? '&#10003; Complete' : "#{pg_owned}/#{pg_total} owned" %>
-                  </span>
-                  <span style="color:#888;font-size:11px;"><%= pg_pct %>%</span>
+          <% spread_pair.each_with_index do |page_data, page_in_spread| %>
+            <% if page_data[:type] == :cards %>
+              <%
+                page_cards = page_data[:cards]
+                page_num = page_data[:page_num]
+                page_binder = page_data[:binder]
+                pg_total = page_cards.count
+                pg_owned = page_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
+                pg_pct = pg_total > 0 ? (pg_owned.to_f / pg_total * 100).round(0) : 0
+                pg_complete = pg_owned == pg_total && pg_total > 0
+                pg_color = pg_complete ? '#4a4' : (pg_owned > 0 ? '#c90' : '#666')
+              %>
+              <!-- Page <%= page_num %> (<%= page_in_spread == 0 ? 'Left' : 'Right' %>) -->
+              <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
+                <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:<%= page_in_spread == 0 ? 'left' : 'right' %>;">
+                  Page <%= page_num %><%= total_binders > 1 ? " (Binder #{page_binder})" : '' %>
                 </div>
-                <div style="height:4px;background:#333;border-radius:2px;overflow:hidden;">
-                  <div style="height:100%;width:<%= pg_pct %>%;background:<%= pg_color %>;border-radius:2px;transition:width 0.3s;"></div>
+                <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
+                  <% page_cards.each_with_index do |card, card_index| %>
+                    <%= render "card_sets/binder_card_flip", card: card, card_set: (@include_subsets ? card.card_set : @card_set), position: card_index + 1 %>
+                  <% end %>
+                  <% (cards_per_page - page_cards.count).times do %>
+                    <div style="aspect-ratio:5/7;background:#111;border-radius:4px;border:1px dashed #333;"></div>
+                  <% end %>
+                </div>
+                <!-- Page Status Bar -->
+                <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <span style="color:<%= pg_color %>;font-size:11px;font-weight:600;">
+                      <%= pg_complete ? '&#10003; Complete' : "#{pg_owned}/#{pg_total} owned" %>
+                    </span>
+                    <span style="color:#888;font-size:11px;"><%= pg_pct %>%</span>
+                  </div>
+                  <div style="height:4px;background:#333;border-radius:2px;overflow:hidden;">
+                    <div style="height:100%;width:<%= pg_pct %>%;background:<%= pg_color %>;border-radius:2px;transition:width 0.3s;"></div>
+                  </div>
                 </div>
               </div>
-            </div>
+            <% elsif page_data[:type] == :binder_end %>
+              <!-- Back Cover of Binder <%= page_data[:binder] %> -->
+              <div style="flex:1;background:linear-gradient(135deg, #2a1a1a 0%, #1a1a1a 100%);border-radius:6px;padding:24px;min-height:400px;display:flex;flex-direction:column;justify-content:center;">
+                <div style="text-align:center;">
+                  <div style="font-size:64px;margin-bottom:16px;opacity:0.3;">&#128218;</div>
+                  <div style="color:#666;font-size:16px;font-weight:500;">End of Binder <%= page_data[:binder] %></div>
+                  <div style="color:#444;font-size:12px;margin-top:8px;">Back Cover</div>
+                </div>
+              </div>
+            <% elsif page_data[:type] == :binder_start %>
+              <!-- Front Cover of Binder <%= page_data[:binder] %> -->
+              <div style="flex:1;background:linear-gradient(135deg, #1a2a1a 0%, #1a1a1a 100%);border-radius:6px;padding:24px;min-height:400px;display:flex;flex-direction:column;justify-content:center;">
+                <div style="text-align:center;">
+                  <div style="font-size:64px;margin-bottom:16px;opacity:0.3;">&#128214;</div>
+                  <div style="color:#666;font-size:16px;font-weight:500;">Binder <%= page_data[:binder] %></div>
+                  <div style="color:#444;font-size:12px;margin-top:8px;">Inside Front Cover</div>
+                </div>
+              </div>
+            <% end %>
           <% end %>
           
           <% # Add empty right page if spread has only one page %>
-          <% if spread.count == 1 %>
-            <% empty_page_num = (spread_index * 2) + 3 %>
+          <% if spread_pair.count == 1 && spread_pair[0][:type] == :cards %>
             <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:16px;min-height:400px;display:flex;flex-direction:column;">
               <div style="color:#666;font-size:12px;margin-bottom:12px;text-align:right;">
-                Page <%= empty_page_num %>
+                Empty
               </div>
               <div style="display:grid;grid-template-columns:repeat(<%= binder_columns %>,1fr);gap:8px;flex:1;">
                 <% cards_per_page.times do %>
