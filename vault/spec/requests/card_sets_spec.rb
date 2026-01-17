@@ -684,6 +684,46 @@ RSpec.describe 'Card Sets', type: :request do
         expect(response).to have_http_status(:not_found)
       end
     end
+
+    context 'with binder_pages_per_binder parameter' do
+      it 'updates binder_pages_per_binder with a valid number' do
+        patch update_binder_settings_card_set_path(card_set, format: :json), params: { binder_pages_per_binder: 48 }
+        expect(response).to be_successful
+        expect(card_set.reload.binder_pages_per_binder).to eq(48)
+      end
+
+      it 'accepts any positive integer value' do
+        patch update_binder_settings_card_set_path(card_set, format: :json), params: { binder_pages_per_binder: 56 }
+        expect(card_set.reload.binder_pages_per_binder).to eq(56)
+
+        patch update_binder_settings_card_set_path(card_set, format: :json), params: { binder_pages_per_binder: 23 }
+        expect(card_set.reload.binder_pages_per_binder).to eq(23)
+
+        patch update_binder_settings_card_set_path(card_set, format: :json), params: { binder_pages_per_binder: 100 }
+        expect(card_set.reload.binder_pages_per_binder).to eq(100)
+      end
+
+      it 'clears binder_pages_per_binder when set to empty string (unlimited)' do
+        card_set.update!(binder_pages_per_binder: 56)
+        patch update_binder_settings_card_set_path(card_set, format: :json), params: { binder_pages_per_binder: '' }
+        expect(response).to be_successful
+        expect(card_set.reload.binder_pages_per_binder).to be_nil
+      end
+
+      it 'can be set along with other binder settings' do
+        params = {
+          binder_rows: 4,
+          binder_columns: 4,
+          binder_pages_per_binder: 64
+        }
+        patch update_binder_settings_card_set_path(card_set, format: :json), params: params
+        expect(response).to be_successful
+        card_set.reload
+        expect(card_set.binder_rows).to eq(4)
+        expect(card_set.binder_columns).to eq(4)
+        expect(card_set.binder_pages_per_binder).to eq(64)
+      end
+    end
   end
 
   describe 'GET /card_sets/export_collection' do
