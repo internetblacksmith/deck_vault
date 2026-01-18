@@ -1328,7 +1328,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'when refresh succeeds' do
       before do
-        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 5, updated: 10 })
+        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 5, updated: 10, images_queued: 0 })
       end
 
       it 'redirects with success message' do
@@ -1348,9 +1348,30 @@ RSpec.describe 'Card Sets', type: :request do
       end
     end
 
+    context 'when refresh queues missing images' do
+      before do
+        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 0, updated: 5, images_queued: 3 })
+      end
+
+      it 'includes images queued count in success message' do
+        post refresh_cards_card_set_path(card_set)
+        expect(response).to redirect_to(card_set_path(card_set))
+        follow_redirect!
+        expect(response.body).to include('3 images queued for download')
+      end
+
+      it 'returns images_queued in JSON response' do
+        post refresh_cards_card_set_path(card_set, format: :json)
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['images_queued']).to eq(3)
+      end
+    end
+
     context 'when refresh fails' do
       before do
-        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 0, updated: 0, error: 'API error' })
+        allow(ScryfallService).to receive(:refresh_set).and_return({ added: 0, updated: 0, images_queued: 0, error: 'API error' })
       end
 
       it 'redirects with error message' do

@@ -282,4 +282,93 @@ RSpec.describe ScryfallService do
       end
     end
   end
+
+  describe '.refresh_set' do
+    let(:card_set) { create(:card_set, code: 'tst', name: 'Test Set') }
+
+    before do
+      allow(described_class).to receive(:fetch_set_details).and_return({ 'card_count' => 2, 'name' => 'Test Set' })
+    end
+
+    context 'when cards exist with missing images' do
+      let!(:card_with_image) do
+        create(:card, card_set: card_set, name: 'Card With Image', image_path: 'card_images/abc.jpg')
+      end
+      let!(:card_without_image) do
+        create(:card, card_set: card_set, name: 'Card Without Image', image_path: nil)
+      end
+
+      before do
+        # Mock fetch_cards_for_set to return data for existing cards
+        allow(described_class).to receive(:fetch_cards_for_set).and_return([
+          { id: card_with_image.id, name: 'Card With Image', image_uris: '{}' },
+          { id: card_without_image.id, name: 'Card Without Image', image_uris: '{}' }
+        ])
+      end
+
+      it 'queues image download only for cards missing images' do
+        expect(DownloadCardImagesJob).to receive(:perform_later).with(card_without_image.id).once
+        expect(DownloadCardImagesJob).not_to receive(:perform_later).with(card_with_image.id)
+
+        result = described_class.refresh_set(card_set)
+        expect(result[:images_queued]).to eq(1)
+      end
+
+      it 'returns count of images queued' do
+        allow(DownloadCardImagesJob).to receive(:perform_later)
+
+        result = described_class.refresh_set(card_set)
+        expect(result[:images_queued]).to eq(1)
+        expect(result[:updated]).to eq(2)
+        expect(result[:added]).to eq(0)
+      end
+    end
+
+    context 'when new cards are added' do
+      before do
+        allow(described_class).to receive(:fetch_cards_for_set).and_return([
+          { id: 'new-card-id', name: 'New Card', image_uris: '{}' }
+        ])
+      end
+
+      it 'queues image download for new cards' do
+        expect(DownloadCardImagesJob).to receive(:perform_later).once
+
+        result = described_class.refresh_set(card_set)
+        expect(result[:added]).to eq(1)
+        expect(result[:images_queued]).to eq(1)
+      end
+    end
+
+    context 'when all cards already have images' do
+      let!(:card_with_image) do
+        create(:card, card_set: card_set, name: 'Complete Card', image_path: 'card_images/complete.jpg')
+      end
+
+      before do
+        allow(described_class).to receive(:fetch_cards_for_set).and_return([
+          { id: card_with_image.id, name: 'Complete Card', image_uris: '{}' }
+        ])
+      end
+
+      it 'does not queue any image downloads' do
+        expect(DownloadCardImagesJob).not_to receive(:perform_later)
+
+        result = described_class.refresh_set(card_set)
+        expect(result[:images_queued]).to eq(0)
+      end
+    end
+
+    context 'when Scryfall API fails' do
+      before do
+        allow(described_class).to receive(:fetch_cards_for_set).and_return([])
+      end
+
+      it 'returns error with images_queued as 0' do
+        result = described_class.refresh_set(card_set)
+        expect(result[:error]).to be_present
+        expect(result[:images_queued]).to eq(0)
+      end
+    end
+  end
 end
