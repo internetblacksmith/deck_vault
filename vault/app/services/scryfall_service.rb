@@ -244,10 +244,11 @@ class ScryfallService
   # Returns hash with :added and :updated counts
   def self.refresh_set(card_set)
     cards_data = fetch_cards_for_set(card_set.code)
-    return { added: 0, updated: 0, error: "Failed to fetch cards from Scryfall" } if cards_data.empty?
+    return { added: 0, updated: 0, images_queued: 0, error: "Failed to fetch cards from Scryfall" } if cards_data.empty?
 
     added = 0
     updated = 0
+    images_queued = 0
 
     cards_data.each do |card_data|
       existing_card = card_set.cards.find_by(id: card_data[:id])
@@ -258,13 +259,21 @@ class ScryfallService
         update_attrs[:image_uris] = card_data[:image_uris] if card_data[:image_uris].present?
         existing_card.update(update_attrs)
         updated += 1
+        # Queue image download for existing card if missing
+        if existing_card.image_path.blank?
+          DownloadCardImagesJob.perform_later(existing_card.id)
+          images_queued += 1
+        end
       else
         # Create new card
         card = card_set.cards.create(card_data)
         if card.persisted?
           added += 1
           # Queue image download for new card
-          DownloadCardImagesJob.perform_later(card.id) if card.image_path.blank?
+          if card.image_path.blank?
+            DownloadCardImagesJob.perform_later(card.id)
+            images_queued += 1
+          end
         end
       end
     end
@@ -278,7 +287,7 @@ class ScryfallService
       )
     end
 
-    { added: added, updated: updated }
+    { added: added, updated: updated, images_queued: images_queued }
   rescue StandardError => e
     Rails.logger.error("Error refreshing set #{card_set.code}: #{e.message}")
     { added: 0, updated: 0, error: e.message }

@@ -194,9 +194,10 @@ class CardSetsController < ApplicationController
     else
       message = "Refresh complete: #{result[:added]} new cards added"
       message += ", #{result[:updated]} cards updated" if result[:updated] > 0
+      message += ", #{result[:images_queued]} images queued for download" if result[:images_queued] > 0
 
       respond_to do |format|
-        format.json { render json: { success: true, added: result[:added], updated: result[:updated], message: message } }
+        format.json { render json: { success: true, added: result[:added], updated: result[:updated], images_queued: result[:images_queued], message: message } }
         format.html { redirect_to card_set_path(@card_set), notice: message }
       end
     end
