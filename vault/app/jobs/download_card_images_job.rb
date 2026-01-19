@@ -11,6 +11,9 @@ class DownloadCardImagesJob < ApplicationJob
     card = Card.includes(:card_set).find(card_id)
     card_set = card.card_set
 
+    front_downloaded = false
+    back_downloaded = false
+
     # Download front image if not present
     if card.image_path.blank?
       sleep(IMAGE_DOWNLOAD_DELAY) # Rate limit
@@ -18,6 +21,7 @@ class DownloadCardImagesJob < ApplicationJob
 
       if image_path
         card.update(image_path: image_path)
+        front_downloaded = true
         Rails.logger.info("Downloaded front image for card #{card.name}")
       else
         Rails.logger.warn("Failed to download front image for card #{card.name}")
@@ -31,10 +35,16 @@ class DownloadCardImagesJob < ApplicationJob
 
       if back_image_path
         card.update(back_image_path: back_image_path)
+        back_downloaded = true
         Rails.logger.info("Downloaded back image for card #{card.name}")
       else
         Rails.logger.warn("Failed to download back image for card #{card.name}")
       end
+    end
+
+    # Broadcast individual card image update for real-time UI updates
+    if front_downloaded || back_downloaded
+      broadcast_card_image_ready(card)
     end
 
     # Update progress
@@ -56,6 +66,18 @@ class DownloadCardImagesJob < ApplicationJob
   end
 
   private
+
+  def broadcast_card_image_ready(card)
+    ActionCable.server.broadcast(
+      "card_image:#{card.id}",
+      {
+        type: "image_ready",
+        card_id: card.id,
+        image_path: card.image_path,
+        back_image_path: card.back_image_path
+      }
+    )
+  end
 
   def broadcast_progress_update(card_set, images_count)
     total_cards = card_set.cards.count
