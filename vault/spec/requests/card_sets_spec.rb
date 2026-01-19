@@ -451,6 +451,57 @@ RSpec.describe 'Card Sets', type: :request do
         expect(response).to be_successful
       end
     end
+
+    context 'with clear_needs_placement parameter' do
+      let!(:collection_card) { create(:collection_card, card: card, quantity: 2, needs_placement_at: Time.current) }
+
+      it 'clears needs_placement_at when clear_needs_placement is true' do
+        expect(collection_card.needs_placement_at).not_to be_nil
+
+        patch update_card_card_set_path(card_set, format: :json), params: {
+          card_id: card.id,
+          clear_needs_placement: true
+        }
+
+        expect(response).to be_successful
+        collection_card.reload
+        expect(collection_card.needs_placement_at).to be_nil
+      end
+
+      it 'returns success JSON response' do
+        patch update_card_card_set_path(card_set, format: :json), params: {
+          card_id: card.id,
+          clear_needs_placement: true
+        }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+      end
+
+      it 'does not modify quantity when clearing placement' do
+        original_quantity = collection_card.quantity
+
+        patch update_card_card_set_path(card_set, format: :json), params: {
+          card_id: card.id,
+          clear_needs_placement: true
+        }
+
+        collection_card.reload
+        expect(collection_card.quantity).to eq(original_quantity)
+      end
+
+      it 'works with string "true" value' do
+        patch update_card_card_set_path(card_set, format: :json), params: {
+          card_id: card.id,
+          clear_needs_placement: 'true'
+        }
+
+        expect(response).to be_successful
+        collection_card.reload
+        expect(collection_card.needs_placement_at).to be_nil
+      end
+    end
   end
 
   describe 'POST /card_sets/download_set' do
@@ -726,6 +777,91 @@ RSpec.describe 'Card Sets', type: :request do
     end
   end
 
+  describe 'POST /card_sets/:id/clear_placement_markers' do
+    let(:card_set) { create(:card_set) }
+    let!(:card1) { create(:card, card_set: card_set) }
+    let!(:card2) { create(:card, card_set: card_set) }
+    let!(:card3) { create(:card, card_set: card_set) }
+
+    context 'with cards needing placement' do
+      let!(:cc1) { create(:collection_card, card: card1, needs_placement_at: Time.current) }
+      let!(:cc2) { create(:collection_card, card: card2, needs_placement_at: 1.hour.ago) }
+      let!(:cc3) { create(:collection_card, card: card3, needs_placement_at: nil) }
+
+      it 'clears all needs_placement_at markers for the set' do
+        post clear_placement_markers_card_set_path(card_set)
+
+        cc1.reload
+        cc2.reload
+        cc3.reload
+
+        expect(cc1.needs_placement_at).to be_nil
+        expect(cc2.needs_placement_at).to be_nil
+        expect(cc3.needs_placement_at).to be_nil
+      end
+
+      it 'returns success JSON response with count' do
+        post clear_placement_markers_card_set_path(card_set, format: :json)
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['cleared']).to eq(2)
+      end
+
+      it 'redirects with notice for HTML format' do
+        post clear_placement_markers_card_set_path(card_set)
+
+        expect(response).to redirect_to(card_set_path(card_set, view_type: 'binder'))
+        follow_redirect!
+        expect(response.body).to include('Cleared 2 placement markers')
+      end
+    end
+
+    context 'with no cards needing placement' do
+      let!(:cc1) { create(:collection_card, card: card1, needs_placement_at: nil) }
+
+      it 'returns zero cleared count' do
+        post clear_placement_markers_card_set_path(card_set, format: :json)
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['cleared']).to eq(0)
+      end
+    end
+
+    context 'with child sets and include_subsets' do
+      let!(:child_set) { create(:card_set, parent_set_code: card_set.code) }
+      let!(:child_card) { create(:card, card_set: child_set) }
+      let!(:child_cc) { create(:collection_card, card: child_card, needs_placement_at: Time.current) }
+      let!(:parent_cc) { create(:collection_card, card: card1, needs_placement_at: Time.current) }
+
+      before do
+        card_set.update!(include_subsets: true)
+      end
+
+      it 'clears markers from both parent and child sets' do
+        post clear_placement_markers_card_set_path(card_set, format: :json)
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['cleared']).to eq(2)
+
+        parent_cc.reload
+        child_cc.reload
+        expect(parent_cc.needs_placement_at).to be_nil
+        expect(child_cc.needs_placement_at).to be_nil
+      end
+    end
+
+    context 'when set does not exist' do
+      it 'returns 404 error' do
+        post clear_placement_markers_card_set_path(9999)
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
   describe 'GET /card_sets/export_collection' do
     context 'with collection cards' do
       let!(:card_set) { create(:card_set) }
@@ -735,20 +871,20 @@ RSpec.describe 'Card Sets', type: :request do
       let!(:collection_card2) { create(:collection_card, card: card2, quantity: 0, foil_quantity: 3) }
 
       it 'returns JSON file' do
-        get export_collection_card_sets_path
+        get export_collection_path
         expect(response).to be_successful
         expect(response.content_type).to include('application/json')
       end
 
       it 'includes collection data' do
-        get export_collection_card_sets_path
+        get export_collection_path
         json = JSON.parse(response.body)
         expect(json['version']).to eq(1)
         expect(json['collection'].size).to eq(2)
       end
 
       it 'includes card_id, quantity, and foil_quantity' do
-        get export_collection_card_sets_path
+        get export_collection_path
         json = JSON.parse(response.body)
         card_data = json['collection'].find { |c| c['card_id'] == card1.id }
         expect(card_data['quantity']).to eq(2)
@@ -756,7 +892,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'sets attachment disposition' do
-        get export_collection_card_sets_path
+        get export_collection_path
         expect(response.headers['Content-Disposition']).to include('attachment')
         expect(response.headers['Content-Disposition']).to include('.json')
       end
@@ -764,7 +900,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'with no collection cards' do
       it 'returns empty collection' do
-        get export_collection_card_sets_path
+        get export_collection_path
         json = JSON.parse(response.body)
         expect(json['collection']).to eq([])
         expect(json['total_cards']).to eq(0)
@@ -777,7 +913,7 @@ RSpec.describe 'Card Sets', type: :request do
       let!(:collection_card) { create(:collection_card, card: card, quantity: 0, foil_quantity: 0) }
 
       it 'excludes cards with zero quantities' do
-        get export_collection_card_sets_path
+        get export_collection_path
         json = JSON.parse(response.body)
         expect(json['collection']).to eq([])
       end
@@ -808,7 +944,7 @@ RSpec.describe 'Card Sets', type: :request do
         }
 
         expect {
-          post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+          post import_collection_path, params: { backup_file: upload_backup(backup_data) }
         }.to change(CollectionCard, :count).by(2)
       end
 
@@ -820,7 +956,7 @@ RSpec.describe 'Card Sets', type: :request do
           ]
         }
 
-        post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+        post import_collection_path, params: { backup_file: upload_backup(backup_data) }
 
         collection_card = CollectionCard.find_by(card_id: card1.id)
         expect(collection_card.quantity).to eq(3)
@@ -836,7 +972,7 @@ RSpec.describe 'Card Sets', type: :request do
           ]
         }
 
-        post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+        post import_collection_path, params: { backup_file: upload_backup(backup_data) }
 
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:notice]).to include('Restored 2 cards')
@@ -854,7 +990,7 @@ RSpec.describe 'Card Sets', type: :request do
         }
 
         expect {
-          post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+          post import_collection_path, params: { backup_file: upload_backup(backup_data) }
         }.to change(CollectionCard, :count).by(1)
       end
 
@@ -867,7 +1003,7 @@ RSpec.describe 'Card Sets', type: :request do
           ]
         }
 
-        post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+        post import_collection_path, params: { backup_file: upload_backup(backup_data) }
 
         expect(flash[:notice]).to include('skipped 1')
       end
@@ -875,7 +1011,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'with invalid JSON' do
       it 'shows error in flash' do
-        post import_collection_card_sets_path, params: { backup_file: upload_backup('invalid json') }
+        post import_collection_path, params: { backup_file: upload_backup('invalid json') }
 
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:alert]).to include('Invalid JSON file')
@@ -884,7 +1020,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'without file' do
       it 'shows error in flash' do
-        post import_collection_card_sets_path
+        post import_collection_path
 
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:alert]).to include('Please select at least one backup file')
@@ -903,7 +1039,7 @@ RSpec.describe 'Card Sets', type: :request do
         }
 
         expect {
-          post import_collection_card_sets_path, params: { backup_file: upload_backup(backup_data) }
+          post import_collection_path, params: { backup_file: upload_backup(backup_data) }
         }.not_to change(CollectionCard, :count)
 
         existing_collection.reload
@@ -924,20 +1060,20 @@ RSpec.describe 'Card Sets', type: :request do
       # card3 has no collection_card (not owned)
 
       it 'returns JSON file' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         expect(response).to be_successful
         expect(response.content_type).to include('application/json')
       end
 
       it 'includes version 2 and export_type' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         json = JSON.parse(response.body)
         expect(json['version']).to eq(2)
         expect(json['export_type']).to eq('showcase')
       end
 
       it 'includes stats' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         json = JSON.parse(response.body)
         expect(json['stats']['total_unique']).to eq(2)
         expect(json['stats']['total_cards']).to eq(4) # 2+1 regular + 1 foil
@@ -946,7 +1082,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'includes set info with completion stats' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         json = JSON.parse(response.body)
         set_data = json['sets'].find { |s| s['code'] == 'TST' }
         expect(set_data['name']).to eq('Test Set')
@@ -956,7 +1092,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'includes full card details' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         json = JSON.parse(response.body)
         card_data = json['cards'].find { |c| c['id'] == card1.id }
         expect(card_data['name']).to eq('Card One')
@@ -967,7 +1103,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'only includes owned cards' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         json = JSON.parse(response.body)
         card_ids = json['cards'].map { |c| c['id'] }
         expect(card_ids).to include(card1.id)
@@ -976,7 +1112,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'sets attachment disposition' do
-        get export_showcase_card_sets_path
+        get export_showcase_path
         expect(response.headers['Content-Disposition']).to include('attachment')
         expect(response.headers['Content-Disposition']).to include('mtg_showcase_')
       end
@@ -994,20 +1130,20 @@ RSpec.describe 'Card Sets', type: :request do
       let!(:collection_card3) { create(:collection_card, card: card3, quantity: 0, foil_quantity: 4) }
 
       it 'returns JSON file' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         expect(response).to be_successful
         expect(response.content_type).to include('application/json')
       end
 
       it 'includes version 1 and export_type' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         json = JSON.parse(response.body)
         expect(json['version']).to eq(1)
         expect(json['export_type']).to eq('duplicates')
       end
 
       it 'includes stats' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         json = JSON.parse(response.body)
         expect(json['stats']['unique_cards_with_duplicates']).to eq(2) # card1 and card3
         expect(json['stats']['total_duplicate_cards']).to eq(5) # 2 from card1 + 3 from card3
@@ -1015,7 +1151,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'calculates duplicate quantities correctly (keeps 1)' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         json = JSON.parse(response.body)
         card_data = json['cards'].find { |c| c['id'] == card1.id }
         expect(card_data['quantity']).to eq(3)
@@ -1023,7 +1159,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'excludes cards with no duplicates' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         json = JSON.parse(response.body)
         card_ids = json['cards'].map { |c| c['id'] }
         expect(card_ids).to include(card1.id)
@@ -1032,7 +1168,7 @@ RSpec.describe 'Card Sets', type: :request do
       end
 
       it 'sets attachment disposition' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         expect(response.headers['Content-Disposition']).to include('attachment')
         expect(response.headers['Content-Disposition']).to include('mtg_duplicates_')
       end
@@ -1040,7 +1176,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'with no duplicates' do
       it 'returns empty cards array' do
-        get export_duplicates_card_sets_path
+        get export_duplicates_path
         json = JSON.parse(response.body)
         expect(json['cards']).to eq([])
         expect(json['stats']['unique_cards_with_duplicates']).to eq(0)
@@ -1070,7 +1206,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'without file' do
       it 'redirects with error' do
-        post import_delver_card_sets_path
+        post import_delver_path
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:alert]).to include('Please select a .dlens backup file')
       end
@@ -1079,9 +1215,9 @@ RSpec.describe 'Card Sets', type: :request do
     context 'with non-dlens file' do
       it 'rejects non-dlens files' do
         file = upload_json_file('{}')
-        post import_delver_card_sets_path, params: { dlens_file: file }
+        post import_delver_path, params: { dlens_file: file }
         expect(response).to redirect_to(card_sets_path)
-        expect(flash[:alert]).to include('Please upload a .dlens file')
+        expect(flash[:alert]).to include('Invalid file type')
       end
     end
   end
@@ -1105,7 +1241,7 @@ RSpec.describe 'Card Sets', type: :request do
 
     context 'without file' do
       it 'redirects with error' do
-        post import_delver_csv_card_sets_path
+        post import_delver_csv_path
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:alert]).to include('Please select at least one CSV file')
       end
@@ -1114,9 +1250,9 @@ RSpec.describe 'Card Sets', type: :request do
     context 'with non-csv file' do
       it 'rejects non-csv files' do
         file = upload_json_file('{}')
-        post import_delver_csv_card_sets_path, params: { csv_files: [ file ] }
+        post import_delver_csv_path, params: { csv_files: [ file ] }
         expect(response).to redirect_to(card_sets_path)
-        expect(flash[:alert]).to include('Please upload CSV files only')
+        expect(flash[:alert]).to include('Invalid file type')
       end
     end
 
@@ -1131,7 +1267,7 @@ RSpec.describe 'Card Sets', type: :request do
         CSV
 
         expect {
-          post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+          post import_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
         }.to change(CollectionCard, :count).by(1)
 
         expect(response).to redirect_to(card_sets_path)
@@ -1147,7 +1283,7 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1","3x","Foil","#{card.id}"
         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+        post import_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
         collection_card = CollectionCard.find_by(card_id: card.id)
         expect(collection_card.foil_quantity).to eq(3)
@@ -1162,7 +1298,7 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1","2x","","#{card.id}"
         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+        post import_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
         collection_card = CollectionCard.find_by(card_id: card.id)
         expect(collection_card.quantity).to eq(3) # 1 + 2
@@ -1177,7 +1313,7 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1","2x","","#{card.id}"
         CSV
 
-        post import_delver_csv_card_sets_path, params: {
+        post import_delver_csv_path, params: {
           csv_files: [ upload_csv_file(csv_content) ],
           import_mode: 'replace'
         }
@@ -1195,7 +1331,7 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1","4x","Foil","#{card.id}"
         CSV
 
-        post import_delver_csv_card_sets_path, params: {
+        post import_delver_csv_path, params: {
           csv_files: [ upload_csv_file(csv_content) ],
           import_mode: 'replace'
         }
@@ -1211,12 +1347,29 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1","2x","","#{card.id}"
         CSV
 
-        post import_delver_csv_card_sets_path, params: {
+        post import_delver_csv_path, params: {
           csv_files: [ upload_csv_file(csv_content) ],
           import_mode: 'replace'
         }
 
         expect(flash[:notice]).to include('Replaced with 2 cards')
+        expect(flash[:alert]).to include('Replace mode: Cards were NOT marked for binder placement')
+      end
+
+      it 'shows NEW marker message for add mode' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","3x","","#{card.id}"
+        CSV
+
+        post import_delver_csv_path, params: {
+          csv_files: [ upload_csv_file(csv_content) ],
+          import_mode: 'add'
+        }
+
+        expect(flash[:notice]).to include('Added 3 cards')
+        expect(flash[:notice]).to include('3 cards marked NEW for binder placement')
+        expect(flash[:alert]).to be_nil
       end
 
       it 'skips cards not found in database' do
@@ -1230,7 +1383,7 @@ RSpec.describe 'Card Sets', type: :request do
         # Don't create the card - so it will be skipped
         allow(ScryfallService).to receive(:download_set).with('xxx', include_children: false).and_return(mock_set)
 
-        post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+        post import_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
         expect(response).to redirect_to(card_sets_path)
         # Should still succeed but with skipped count
@@ -1253,7 +1406,7 @@ RSpec.describe 'Card Sets', type: :request do
           "Downloaded Card","NEWSET","1","2x","","downloaded-card-id"
         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+        post import_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:notice]).to include('Downloaded 1 set(s)')
@@ -1275,7 +1428,7 @@ RSpec.describe 'Card Sets', type: :request do
         CSV
 
         expect {
-          post import_delver_csv_card_sets_path, params: {
+          post import_delver_csv_path, params: {
             csv_files: [ upload_csv_file(csv_content1), upload_csv_file(csv_content2) ]
           }
         }.to change(CollectionCard, :count).by(2)
@@ -1298,7 +1451,7 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1","3x","","#{card.id}"
         CSV
 
-        post import_delver_csv_card_sets_path, params: {
+        post import_delver_csv_path, params: {
           csv_files: [ upload_csv_file(csv_content1), upload_csv_file(csv_content2) ]
         }
 
@@ -1315,10 +1468,176 @@ RSpec.describe 'Card Sets', type: :request do
           "Test Card","TST","1"
         CSV
 
-        post import_delver_csv_card_sets_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+        post import_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
 
         expect(response).to redirect_to(card_sets_path)
         expect(flash[:alert]).to include("doesn't appear to be a Delver Lens export")
+      end
+    end
+  end
+
+  describe 'POST /card_sets/preview_delver_csv' do
+    def upload_csv_file(content)
+      file = Tempfile.new([ 'delver', '.csv' ])
+      file.write(content)
+      file.flush
+      file.rewind
+      Rack::Test::UploadedFile.new(file.path, 'text/csv')
+    end
+
+    def upload_json_file(content = "{}")
+      file = Tempfile.new([ 'backup', '.json' ])
+      file.write(content)
+      file.flush
+      file.rewind
+      Rack::Test::UploadedFile.new(file.path, 'application/json')
+    end
+
+    context 'without file' do
+      it 'returns error JSON' do
+        post preview_delver_csv_path
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be false
+        expect(json['error']).to include('Please select at least one CSV file')
+      end
+    end
+
+    context 'with non-csv file' do
+      it 'returns error JSON' do
+        file = upload_json_file('{}')
+        post preview_delver_csv_path, params: { csv_files: [ file ] }
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be false
+        expect(json['errors']).to include(match(/Invalid file type/))
+      end
+    end
+
+    context 'with valid CSV' do
+      let!(:card_set) { create(:card_set, code: 'tst', name: 'Test Set') }
+      let!(:card) { create(:card, card_set: card_set, name: 'Test Card', collector_number: '1') }
+
+      it 'returns preview data' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","2x","","#{card.id}"
+        CSV
+
+        post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['total_count']).to eq(2)
+        expect(json['unique_count']).to eq(1)
+      end
+
+      it 'calculates regular and foil counts correctly' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","3x","","#{card.id}"
+          "Test Card","TST","1","2x","Foil","#{card.id}"
+        CSV
+
+        post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['regular_count']).to eq(3)
+        expect(json['foil_count']).to eq(2)
+        expect(json['total_count']).to eq(5)
+      end
+
+      it 'identifies found sets' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","1x","","#{card.id}"
+        CSV
+
+        post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['found_sets']).to include('Test Set')
+      end
+
+      it 'identifies missing sets' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Unknown Card","XYZ","1","1x","",""
+        CSV
+
+        post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['missing_sets']).to include('XYZ')
+      end
+
+      it 'groups cards by set' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","1x","","#{card.id}"
+        CSV
+
+        post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['cards_by_set']).to have_key('TST')
+        expect(json['cards_by_set']['TST']['set_name']).to eq('Test Set')
+        expect(json['cards_by_set']['TST']['cards'].first['name']).to eq('Test Card')
+      end
+
+      it 'does not create collection cards' do
+        csv_content = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","5x","","#{card.id}"
+        CSV
+
+        expect {
+          post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+        }.not_to change(CollectionCard, :count)
+      end
+
+      it 'handles multiple CSV files' do
+        card2 = create(:card, card_set: card_set, name: 'Test Card 2', collector_number: '2')
+
+        csv_content1 = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card","TST","1","2x","","#{card.id}"
+        CSV
+
+        csv_content2 = <<~CSV
+          Name,Edition code,Collector's number,QuantityX,Foil,Scryfall ID
+          "Test Card 2","TST","2","3x","","#{card2.id}"
+        CSV
+
+        post preview_delver_csv_path, params: {
+          csv_files: [ upload_csv_file(csv_content1), upload_csv_file(csv_content2) ]
+        }
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['total_count']).to eq(5) # 2 + 3
+        expect(json['unique_count']).to eq(2)
+      end
+    end
+
+    context 'with invalid CSV format' do
+      it 'returns error for CSV without Scryfall ID column' do
+        csv_content = <<~CSV
+          Name,Edition,Quantity
+          "Test Card","TST","1"
+        CSV
+
+        post preview_delver_csv_path, params: { csv_files: [ upload_csv_file(csv_content) ] }
+
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be false
+        expect(json['errors']).to include(match(/doesn't appear to be a Delver Lens export/))
       end
     end
   end
@@ -1394,6 +1713,497 @@ RSpec.describe 'Card Sets', type: :request do
       it 'returns 404 error' do
         post refresh_cards_card_set_path(9999)
         expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
+  describe 'POST /card_sets/:id/download_card_image' do
+    let(:card_set) { create(:card_set) }
+    let!(:card) { create(:card, :without_image_uris, card_set: card_set, image_path: nil) }
+
+    context 'with valid card that needs image' do
+      before do
+        # Mock Scryfall API response
+        allow(HTTParty).to receive(:get)
+          .with("https://api.scryfall.com/cards/#{card.id}")
+          .and_return(double(success?: true, parsed_response: { 'image_uris' => { 'normal' => 'https://example.com/test.jpg' } }))
+      end
+
+      it 'queues image download job' do
+        expect {
+          post download_card_image_card_set_path(card_set), params: { card_id: card.id }, as: :json
+        }.to have_enqueued_job(DownloadCardImagesJob).with(card.id)
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['message']).to include('Image download queued')
+      end
+
+      it 'updates card image_uris from Scryfall' do
+        expect(card.image_uris).to eq("{}")
+
+        post download_card_image_card_set_path(card_set), params: { card_id: card.id }, as: :json
+
+        card.reload
+        expect(card.image_uris).to eq('{"normal":"https://example.com/test.jpg"}')
+      end
+    end
+
+    context 'when card already has image' do
+      let!(:card_with_image) { create(:card, card_set: card_set, image_path: 'existing.jpg') }
+
+      it 'returns success without queuing job' do
+        expect(DownloadCardImagesJob).not_to receive(:perform_later)
+
+        post download_card_image_card_set_path(card_set), params: { card_id: card_with_image.id }, as: :json
+
+        expect(response).to be_successful
+        json = JSON.parse(response.body)
+        expect(json['success']).to be true
+        expect(json['message']).to include('already downloaded')
+        expect(json['image_path']).to eq('existing.jpg')
+      end
+    end
+
+    context 'when card does not exist' do
+      it 'returns 404 error' do
+        post download_card_image_card_set_path(card_set), params: { card_id: 9999 }, as: :json
+
+        expect(response).to have_http_status(:not_found)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be false
+        expect(json['error']).to eq('Card not found')
+      end
+    end
+
+    context 'when card belongs to different set' do
+      let(:other_set) { create(:card_set) }
+      let!(:other_card) { create(:card, card_set: other_set) }
+
+      it 'returns 404 error' do
+        post download_card_image_card_set_path(card_set), params: { card_id: other_card.id }, as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'with double-faced card' do
+      let!(:dfc_card) { create(:card, :double_faced, :without_image_uris, card_set: card_set, image_path: nil, back_image_uris: nil) }
+
+      before do
+        # Mock Scryfall API response for DFC
+        allow(HTTParty).to receive(:get)
+          .with("https://api.scryfall.com/cards/#{dfc_card.id}")
+          .and_return(double(
+            success?: true,
+            parsed_response: {
+              'card_faces' => [
+                { 'image_uris' => { 'normal' => 'https://example.com/front.jpg' } },
+                { 'image_uris' => { 'normal' => 'https://example.com/back.jpg' } }
+              ]
+            }
+          ))
+      end
+
+      it 'updates both front and back image_uris' do
+        post download_card_image_card_set_path(card_set), params: { card_id: dfc_card.id }, as: :json
+
+        expect(response).to be_successful
+        dfc_card.reload
+        expect(dfc_card.image_uris).to eq('{"normal":"https://example.com/front.jpg"}')
+        expect(dfc_card.back_image_uris).to eq('{"normal":"https://example.com/back.jpg"}')
+      end
+
+      it 'queues download job for DFC card' do
+        expect {
+          post download_card_image_card_set_path(card_set), params: { card_id: dfc_card.id }, as: :json
+        }.to have_enqueued_job(DownloadCardImagesJob).with(dfc_card.id)
+      end
+    end
+
+    context 'when Scryfall API fails' do
+      let!(:card_no_image) { create(:card, :without_image_uris, card_set: card_set, image_path: nil) }
+
+      before do
+        allow(HTTParty).to receive(:get)
+          .with("https://api.scryfall.com/cards/#{card_no_image.id}")
+          .and_return(double(success?: false))
+      end
+
+      it 'still queues download job' do
+        expect {
+          post download_card_image_card_set_path(card_set), params: { card_id: card_no_image.id }, as: :json
+        }.to have_enqueued_job(DownloadCardImagesJob).with(card_no_image.id)
+
+        expect(response).to be_successful
+      end
+
+      it 'does not update image_uris' do
+        post download_card_image_card_set_path(card_set), params: { card_id: card_no_image.id }, as: :json
+
+        card_no_image.reload
+        expect(card_no_image.image_uris).to eq('{}')
+      end
+    end
+
+    context 'when card has no image_uris in Scryfall response' do
+      let!(:card_no_image) { create(:card, :without_image_uris, card_set: card_set, image_path: nil) }
+
+      before do
+        allow(HTTParty).to receive(:get)
+          .with("https://api.scryfall.com/cards/#{card_no_image.id}")
+          .and_return(double(success?: true, parsed_response: {}))
+      end
+
+      it 'still queues download job' do
+        expect {
+          post download_card_image_card_set_path(card_set), params: { card_id: card_no_image.id }, as: :json
+        }.to have_enqueued_job(DownloadCardImagesJob).with(card_no_image.id)
+
+        expect(response).to be_successful
+      end
+    end
+  end
+
+  describe 'POST /card_sets/publish_to_gist' do
+    context 'without GitHub token configured' do
+      before do
+        allow(Setting).to receive(:github_token).and_return(nil)
+      end
+
+      it 'returns error for JSON format' do
+        post publish_to_gist_path, as: :json
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json['success']).to be false
+        expect(json['error']).to include('GITHUB_TOKEN not configured')
+      end
+
+      it 'redirects with error for HTML format' do
+        post publish_to_gist_path
+        expect(response).to redirect_to(card_sets_path)
+        expect(flash[:alert]).to include('GITHUB_TOKEN not configured')
+      end
+    end
+
+    context 'with GitHub token configured' do
+      let!(:card_set) { create(:card_set, code: 'TST', name: 'Test Set', download_status: :completed) }
+      let!(:card) { create(:card, card_set: card_set, name: 'Test Card') }
+      let!(:collection_card) { create(:collection_card, card: card, quantity: 2, foil_quantity: 1) }
+
+      before do
+        allow(Setting).to receive(:github_token).and_return('test-github-token')
+        allow(Setting).to receive(:showcase_gist_id).and_return(nil)
+      end
+
+      context 'when creating new gist' do
+        before do
+          stub_request(:post, 'https://api.github.com/gists')
+            .to_return(
+              status: 201,
+              body: {
+                id: 'new-gist-id-123',
+                html_url: 'https://gist.github.com/user/new-gist-id-123',
+                files: {
+                  'deck_vault_collection.json' => {
+                    raw_url: 'https://gist.githubusercontent.com/raw/new-gist-id-123/deck_vault_collection.json'
+                  }
+                }
+              }.to_json,
+              headers: { 'Content-Type' => 'application/json' }
+            )
+          allow(Setting).to receive(:showcase_gist_id=)
+        end
+
+        it 'returns success for JSON format' do
+          post publish_to_gist_path, as: :json
+
+          expect(response).to be_successful
+          json = JSON.parse(response.body)
+          expect(json['success']).to be true
+          expect(json['gist_id']).to eq('new-gist-id-123')
+          expect(json['gist_url']).to include('gist.github.com')
+        end
+
+        it 'redirects with success for HTML format' do
+          post publish_to_gist_path
+
+          expect(response).to redirect_to(card_sets_path)
+          expect(flash[:notice]).to include('successfully')
+        end
+
+        it 'saves gist ID for future updates' do
+          expect(Setting).to receive(:showcase_gist_id=).with('new-gist-id-123')
+          post publish_to_gist_path, as: :json
+        end
+      end
+
+      context 'when updating existing gist' do
+        before do
+          allow(Setting).to receive(:showcase_gist_id).and_return('existing-gist-id')
+
+          stub_request(:patch, 'https://api.github.com/gists/existing-gist-id')
+            .to_return(
+              status: 200,
+              body: {
+                id: 'existing-gist-id',
+                html_url: 'https://gist.github.com/user/existing-gist-id',
+                files: {
+                  'deck_vault_collection.json' => {
+                    raw_url: 'https://gist.githubusercontent.com/raw/existing-gist-id/deck_vault_collection.json'
+                  }
+                }
+              }.to_json,
+              headers: { 'Content-Type' => 'application/json' }
+            )
+        end
+
+        it 'updates the existing gist' do
+          post publish_to_gist_path, as: :json
+
+          expect(response).to be_successful
+          json = JSON.parse(response.body)
+          expect(json['success']).to be true
+          expect(json['gist_id']).to eq('existing-gist-id')
+        end
+      end
+
+      context 'when GitHub API fails' do
+        before do
+          stub_request(:post, 'https://api.github.com/gists')
+            .to_return(
+              status: 401,
+              body: { message: 'Bad credentials' }.to_json,
+              headers: { 'Content-Type' => 'application/json' }
+            )
+        end
+
+        it 'returns error for JSON format' do
+          post publish_to_gist_path, as: :json
+
+          expect(response).to have_http_status(422)
+          json = JSON.parse(response.body)
+          expect(json['success']).to be false
+          expect(json['error']).to include('GitHub API error')
+        end
+
+        it 'redirects with error for HTML format' do
+          post publish_to_gist_path
+
+          expect(response).to redirect_to(card_sets_path)
+          expect(flash[:alert]).to include('GitHub API error')
+        end
+      end
+    end
+  end
+
+  describe 'POST /card_sets/:id/import_csv' do
+    let(:card_set) { create(:card_set, name: 'Import Test Set', code: 'ITS') }
+    let!(:card1) { create(:card, card_set: card_set, name: 'Import Card 1', collector_number: '1') }
+    let!(:card2) { create(:card, card_set: card_set, name: 'Import Card 2', collector_number: '2') }
+
+    def upload_csv_file(content)
+      file = Tempfile.new([ 'import', '.csv' ])
+      file.write(content)
+      file.flush
+      file.rewind
+      Rack::Test::UploadedFile.new(file.path, 'text/csv')
+    end
+
+    context 'without file' do
+      it 'redirects with error' do
+        post import_csv_card_set_path(card_set)
+
+        expect(response).to redirect_to(card_set_path(card_set))
+        expect(flash[:alert]).to include('Please select a CSV file')
+      end
+    end
+
+    context 'with valid CSV' do
+      it 'imports cards successfully' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Import Card 1,Import Test Set,1,2x,
+        CSV
+
+        expect {
+          post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+        }.to change(CollectionCard, :count).by(1)
+
+        expect(response).to redirect_to(card_set_path(card_set))
+        expect(flash[:notice]).to include('Imported 1 cards')
+      end
+
+      it 'sets correct quantities' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Import Card 1,Import Test Set,1,3x,
+        CSV
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        collection_card = CollectionCard.find_by(card_id: card1.id)
+        expect(collection_card.quantity).to eq(3)
+      end
+
+      it 'imports foil cards' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Import Card 1,Import Test Set,1,2x,Foil
+        CSV
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        collection_card = CollectionCard.find_by(card_id: card1.id)
+        expect(collection_card.foil_quantity).to eq(2)
+      end
+
+      it 'imports multiple cards' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Import Card 1,Import Test Set,1,2x,
+          Import Card 2,Import Test Set,2,3x,
+        CSV
+
+        expect {
+          post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+        }.to change(CollectionCard, :count).by(2)
+
+        expect(flash[:notice]).to include('Imported 2 cards')
+      end
+
+      it 'adds to existing collection quantities' do
+        create(:collection_card, card: card1, quantity: 1, foil_quantity: 0)
+
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Import Card 1,Import Test Set,1,2x,
+        CSV
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        collection_card = CollectionCard.find_by(card_id: card1.id)
+        expect(collection_card.quantity).to eq(3)
+      end
+    end
+
+    context 'with cards from different set' do
+      it 'skips cards not matching the set' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Import Card 1,Import Test Set,1,2x,
+          Other Card,Other Set,99,1x,
+        CSV
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        expect(flash[:notice]).to include('Imported 1 cards')
+        expect(flash[:notice]).to include('skipped 1')
+      end
+    end
+
+    context 'with card not found in set' do
+      it 'skips cards not in the set' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Nonexistent Card,Import Test Set,99,1x,
+        CSV
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        expect(flash[:notice]).to include('skipped 1')
+      end
+    end
+
+    context 'with malformed CSV' do
+      it 'shows error message' do
+        csv_content = "\"unclosed quote"
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        expect(response).to redirect_to(card_set_path(card_set))
+        expect(flash[:alert]).to include('Import failed')
+      end
+    end
+
+    context 'when set does not exist' do
+      it 'returns 404 error' do
+        post import_csv_card_set_path(9999), params: { csv_file: upload_csv_file("Name,Edition\n") }
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'with tab-delimited CSV' do
+      it 'parses tab-delimited format' do
+        csv_content = "Name\tEdition\tCollector's number\tQuantityX\tFoil\nImport Card 1\tImport Test Set\t1\t4x\t"
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        expect(response).to redirect_to(card_set_path(card_set))
+        expect(flash[:notice]).to include('Imported 1 cards')
+
+        collection_card = CollectionCard.find_by(card_id: card1.id)
+        expect(collection_card.quantity).to eq(4)
+      end
+    end
+
+    context 'with double-faced card' do
+      let!(:dfc_card) { create(:card, card_set: card_set, name: 'Front Side // Back Side', collector_number: '10') }
+
+      it 'imports by matching front face name' do
+        csv_content = <<~CSV
+          Name,Edition,Collector's number,QuantityX,Foil
+          Front Side,Import Test Set,,2x,
+        CSV
+
+        post import_csv_card_set_path(card_set), params: { csv_file: upload_csv_file(csv_content) }
+
+        expect(flash[:notice]).to include('Imported 1 cards')
+        collection_card = CollectionCard.find_by(card_id: dfc_card.id)
+        expect(collection_card.quantity).to eq(2)
+      end
+    end
+  end
+
+  describe 'binder view download button visibility' do
+    let(:card_set) { create(:card_set, code: 'DLBTN', name: 'Download Button Test Set') }
+
+    context 'when card has no image' do
+      let!(:card_without_image) { create(:card, card_set: card_set, image_path: nil, name: 'Card Without Image') }
+
+      it 'shows download button in binder view' do
+        get card_set_path(card_set, view_type: 'binder')
+        expect(response).to be_successful
+        expect(response.body).to include('data-action="click->binder-card#downloadImage"')
+        expect(response.body).to include('Download missing image')
+      end
+    end
+
+    context 'when card has image' do
+      let!(:card_with_image) { create(:card, card_set: card_set, image_path: 'card_images/test.jpg', name: 'Card With Image') }
+
+      it 'does not show download button in binder view' do
+        get card_set_path(card_set, view_type: 'binder')
+        expect(response).to be_successful
+        # The download button should NOT be present for cards with images
+        # We check that the response doesn't have the downloadImage action tied to this specific card
+        # Since only the card without image gets the button, the count of download buttons should be 0
+        expect(response.body.scan('data-action="click->binder-card#downloadImage"').count).to eq(0)
+      end
+    end
+
+    context 'with mixed cards (some with images, some without)' do
+      let!(:card_with_image) { create(:card, card_set: card_set, image_path: 'card_images/test1.jpg', name: 'Card With Image', collector_number: '1') }
+      let!(:card_without_image1) { create(:card, card_set: card_set, image_path: nil, name: 'Card Without Image 1', collector_number: '2') }
+      let!(:card_without_image2) { create(:card, card_set: card_set, image_path: nil, name: 'Card Without Image 2', collector_number: '3') }
+
+      it 'shows download button only for cards without images' do
+        get card_set_path(card_set, view_type: 'binder')
+        expect(response).to be_successful
+        # Should have exactly 2 download buttons (for the 2 cards without images)
+        expect(response.body.scan('data-action="click->binder-card#downloadImage"').count).to eq(2)
       end
     end
   end
