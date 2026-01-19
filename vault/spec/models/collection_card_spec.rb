@@ -120,6 +120,48 @@ RSpec.describe CollectionCard, type: :model do
     it { is_expected.to respond_to(:foil_quantity) }
     it { is_expected.to respond_to(:page_number) }
     it { is_expected.to respond_to(:notes) }
+    it { is_expected.to respond_to(:needs_placement_at) }
+  end
+
+  # Needs Placement
+  describe 'needs_placement' do
+    describe '.needs_placement scope' do
+      let!(:card1) { create(:card) }
+      let!(:card2) { create(:card) }
+      let!(:card3) { create(:card) }
+      let!(:with_placement) { create(:collection_card, card: card1, needs_placement_at: Time.current) }
+      let!(:with_placement2) { create(:collection_card, card: card2, needs_placement_at: 1.hour.ago) }
+      let!(:without_placement) { create(:collection_card, card: card3, needs_placement_at: nil) }
+
+      it 'returns only collection cards with needs_placement_at set' do
+        result = CollectionCard.needs_placement
+        expect(result).to include(with_placement, with_placement2)
+        expect(result).not_to include(without_placement)
+      end
+
+      it 'returns empty when no cards need placement' do
+        CollectionCard.update_all(needs_placement_at: nil)
+        expect(CollectionCard.needs_placement).to be_empty
+      end
+    end
+
+    describe '#needs_placement?' do
+      context 'when needs_placement_at is set' do
+        subject { build(:collection_card, needs_placement_at: Time.current) }
+
+        it 'returns true' do
+          expect(subject.needs_placement?).to be true
+        end
+      end
+
+      context 'when needs_placement_at is nil' do
+        subject { build(:collection_card, needs_placement_at: nil) }
+
+        it 'returns false' do
+          expect(subject.needs_placement?).to be false
+        end
+      end
+    end
   end
 
   # Touch behavior
