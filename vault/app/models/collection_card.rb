@@ -3,7 +3,15 @@ class CollectionCard < ApplicationRecord
 
   validates :card_id, presence: true, uniqueness: true
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :foil_quantity, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :page_number, numericality: { greater_than: 0, less_than_or_equal_to: 200 }, allow_nil: true
+
+  # Scope for cards that need physical placement in binder
+  scope :needs_placement, -> { where.not(needs_placement_at: nil) }
+
+  def needs_placement?
+    needs_placement_at.present?
+  end
 
   # Touch the associated card when this record is updated
   # This automatically invalidates fragment caches that depend on card.updated_at
