@@ -335,6 +335,74 @@ RSpec.describe Card, type: :model do
     end
   end
 
+  # Callback: delete_image_file
+  describe '#delete_image_file callback' do
+    let(:card_set) { create(:card_set) }
+    let(:image_path) { 'card_images/test-card.jpg' }
+    let(:full_path) { Rails.root.join('storage', image_path) }
+
+    def find_card(card)
+      Card.includes(:collection_card, :card_set).find(card.id)
+    end
+
+    context 'when card has an image_path' do
+      let!(:card) { create(:card, card_set: card_set, image_path: image_path) }
+
+      before do
+        # Create a fake image file
+        FileUtils.mkdir_p(File.dirname(full_path))
+        File.write(full_path, 'fake image data')
+      end
+
+      after do
+        FileUtils.rm_f(full_path)
+      end
+
+      it 'deletes the image file when card is destroyed' do
+        expect(File.exist?(full_path)).to be true
+        find_card(card).destroy
+        expect(File.exist?(full_path)).to be false
+      end
+    end
+
+    context 'when card has no image_path' do
+      let!(:card) { create(:card, card_set: card_set, image_path: nil) }
+
+      it 'does not raise error on destroy' do
+        expect { find_card(card).destroy }.not_to raise_error
+      end
+    end
+
+    context 'when image file does not exist' do
+      let!(:card) { create(:card, card_set: card_set, image_path: image_path) }
+
+      it 'does not raise error on destroy' do
+        expect(File.exist?(full_path)).to be false
+        expect { find_card(card).destroy }.not_to raise_error
+      end
+    end
+
+    context 'when file deletion raises an error' do
+      let!(:card) { create(:card, card_set: card_set, image_path: image_path) }
+
+      before do
+        allow(File).to receive(:exist?).with(full_path).and_return(true)
+        allow(FileUtils).to receive(:rm_f).and_raise(Errno::EACCES.new('Permission denied'))
+      end
+
+      it 'logs the error' do
+        expect(Rails.logger).to receive(:error).with(/Error deleting image file/)
+        find_card(card).destroy
+      end
+
+      it 'does not prevent card destruction' do
+        allow(Rails.logger).to receive(:error) # Suppress logging for this test
+        find_card(card).destroy
+        expect(Card.find_by(id: card.id)).to be_nil
+      end
+    end
+  end
+
   # Edge cases
   describe 'edge cases' do
     context 'with very long name' do
