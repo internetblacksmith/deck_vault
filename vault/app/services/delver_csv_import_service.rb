@@ -211,12 +211,14 @@ class DelverCsvImportService
         collection_card.quantity = quantity
       end
     else
-      # Add mode: add to existing quantities
+      # Add mode: add to existing quantities and mark for placement
       if is_foil
         collection_card.foil_quantity = (collection_card.foil_quantity || 0) + quantity
       else
         collection_card.quantity = (collection_card.quantity || 0) + quantity
       end
+      # Mark card as needing physical placement in binder
+      collection_card.needs_placement_at = Time.current
     end
 
     unless collection_card.save
