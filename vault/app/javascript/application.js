@@ -22,6 +22,7 @@ const controllerDefinitions = [
   ["collapsible", () => import("controllers/collapsible_controller")],
   ["collection-progress", () => import("controllers/collection_progress_controller")],
   ["csv-import", () => import("controllers/csv_import_controller")],
+  ["delver-import", () => import("controllers/delver_import_controller")],
   ["grid-card-flip", () => import("controllers/grid_card_flip_controller")],
   ["set-filter", () => import("controllers/set_filter_controller")],
   ["set-progress", () => import("controllers/set_progress_controller")],
