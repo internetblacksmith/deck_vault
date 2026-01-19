@@ -135,7 +135,94 @@ Given('I have a Delver CSV file for missing set:') do |table|
   @delver_csv_file.flush
 end
 
+Then('{string} should need placement') do |card_name|
+  card = Card.find_by!(name: card_name)
+  collection_card = CollectionCard.find_by(card_id: card.id)
+  expect(collection_card).not_to be_nil
+  expect(collection_card.needs_placement_at).not_to be_nil
+end
+
+Then('{string} should not need placement') do |card_name|
+  card = Card.find_by!(name: card_name)
+  collection_card = CollectionCard.find_by(card_id: card.id)
+  # Either no collection_card exists, or needs_placement_at is nil
+  expect(collection_card&.needs_placement_at).to be_nil
+end
+
+# Preview modal steps
+Then('I should see the import preview modal') do
+  expect(page).to have_css('[data-delver-import-target="modal"]', visible: true, wait: 5)
+end
+
+Then('I should not see the import preview modal') do
+  expect(page).to have_css('[data-delver-import-target="modal"]', visible: false)
+end
+
+Then('I should see {string} as the total count') do |count|
+  within('[data-delver-import-target="modal"]') do
+    expect(page).to have_css('.preview-stat-value', text: count)
+  end
+end
+
+Then('I should see {string} as the regular count') do |count|
+  within('[data-delver-import-target="modal"]') do
+    stats = all('.preview-stat')
+    regular_stat = stats[1] # Second stat is regular count
+    expect(regular_stat).to have_css('.preview-stat-value', text: count)
+  end
+end
+
+Then('I should see {string} as the foil count') do |count|
+  within('[data-delver-import-target="modal"]') do
+    stats = all('.preview-stat')
+    foil_stat = stats[2] # Third stat is foil count
+    expect(foil_stat).to have_css('.preview-stat-value', text: count)
+  end
+end
+
+Then('I should see {string} in the preview') do |text|
+  within('[data-delver-import-target="modal"]') do
+    expect(page).to have_content(text)
+  end
+end
+
+Then('I should see {string} in the missing sets warning') do |set_code|
+  within('[data-delver-import-target="modal"]') do
+    expect(page).to have_css('.preview-warning', text: set_code)
+  end
+end
+
+When('I click {string} in the modal') do |button_text|
+  within('[data-delver-import-target="modal"]') do
+    click_button(button_text)
+  end
+end
+
+When('I confirm the import') do
+  within('[data-delver-import-target="modal"]') do
+    click_button('Confirm Import')
+  end
+end
+
+Given('I have an invalid non-CSV file') do
+  @invalid_file = Tempfile.new([ 'invalid', '.json' ])
+  @invalid_file.write('{"not": "a csv"}')
+  @invalid_file.flush
+end
+
+When('I attach the invalid file') do
+  within('[data-backup-target="delverPanel"]') do
+    attach_file('csv_files[]', @invalid_file.path)
+  end
+end
+
+When('I press the Escape key') do
+  page.driver.browser.action.send_keys(:escape).perform
+end
+
 After do
+  @invalid_file&.close
+  @invalid_file&.unlink
   @delver_csv_file&.close
   @delver_csv_file&.unlink
 end

@@ -31,90 +31,91 @@
     # Force load cards with associations first to avoid strict_loading issues
     # This must happen before any other queries on @cards
     @cards_array ||= @cards.to_a
-    
-    # Main set stats (just this set)
-    main_set_cards = @card_set.cards.includes(:collection_card).to_a
+
+    # Main set stats (use preloaded data from controller - no extra queries!)
+    main_set_cards = @main_set_cards
     main_total = main_set_cards.count
     main_owned = main_set_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
     main_completion = main_total > 0 ? (main_owned.to_f / main_total * 100).round(1) : 0
-    
+
     # Normal cards stats (cards that can be nonfoil)
     normal_cards = main_set_cards.select { |c| c.nonfoil? }
     normal_total = normal_cards.count
     normal_owned = normal_cards.count { |c| c.collection_card&.quantity.to_i > 0 }
     normal_completion = normal_total > 0 ? (normal_owned.to_f / normal_total * 100).round(1) : 0
-    
+
     # Foil cards stats (cards that can be foil)
     foil_cards = main_set_cards.select { |c| c.foil? }
     foil_total = foil_cards.count
     foil_owned = foil_cards.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
     foil_completion = foil_total > 0 ? (foil_owned.to_f / foil_total * 100).round(1) : 0
-    
+
     # Main set images stats
     main_images_downloaded = main_set_cards.count { |c| c.image_path.present? }
     main_images_completion = main_total > 0 ? (main_images_downloaded.to_f / main_total * 100).round(1) : 0
-    
-    # Related sets stats (child sets only)
+
+    # Related sets stats (child sets only) - use preloaded data from controller
     if @child_sets.any?
-      # Load all child set cards with associations
-      related_cards = @child_sets.flat_map { |cs| cs.cards.includes(:collection_card).to_a }
-      
+      # Use already eager-loaded cards from controller (no extra queries!)
+      related_cards = @child_sets_with_cards.flat_map { |h| h[:cards] }
+
       related_total_cards = related_cards.count
       related_owned_cards = related_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
       related_completion = related_total_cards > 0 ? (related_owned_cards.to_f / related_total_cards * 100).round(1) : 0
-      
+
       # Related Normal stats
       related_normal_cards = related_cards.select { |c| c.nonfoil? }
       related_normal_total = related_normal_cards.count
       related_normal_owned = related_normal_cards.count { |c| c.collection_card&.quantity.to_i > 0 }
       related_normal_completion = related_normal_total > 0 ? (related_normal_owned.to_f / related_normal_total * 100).round(1) : 0
-      
+
       # Related Foil stats
       related_foil_cards = related_cards.select { |c| c.foil? }
       related_foil_total = related_foil_cards.count
       related_foil_owned = related_foil_cards.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
       related_foil_completion = related_foil_total > 0 ? (related_foil_owned.to_f / related_foil_total * 100).round(1) : 0
-      
+
       # Related Images stats
       related_images_downloaded = related_cards.count { |c| c.image_path.present? }
       related_images_completion = related_total_cards > 0 ? (related_images_downloaded.to_f / related_total_cards * 100).round(1) : 0
-      
+
       # Combined stats (main + related)
       combined_total = main_total + related_total_cards
       combined_owned = main_owned + related_owned_cards
       combined_completion = combined_total > 0 ? (combined_owned.to_f / combined_total * 100).round(1) : 0
-      
+
       # Combined Normal stats
       combined_normal_total = normal_total + related_normal_total
       combined_normal_owned = normal_owned + related_normal_owned
       combined_normal_completion = combined_normal_total > 0 ? (combined_normal_owned.to_f / combined_normal_total * 100).round(1) : 0
-      
+
       # Combined Foil stats
       combined_foil_total = foil_total + related_foil_total
       combined_foil_owned = foil_owned + related_foil_owned
       combined_foil_completion = combined_foil_total > 0 ? (combined_foil_owned.to_f / combined_foil_total * 100).round(1) : 0
-      
+
       # Combined Images stats
       combined_images_downloaded = main_images_downloaded + related_images_downloaded
       combined_images_completion = combined_total > 0 ? (combined_images_downloaded.to_f / combined_total * 100).round(1) : 0
-      
-      # Per-child set stats for the foldable section
-      child_sets_stats = @child_sets.map do |cs|
-        cs_cards = cs.cards.includes(:collection_card).to_a
+
+      # Per-child set stats for the foldable section (use preloaded data)
+      child_sets_stats = @child_sets_with_cards.map do |h|
+        cs = h[:card_set]
+        cs_cards = h[:cards]
         cs_total = cs_cards.count
         cs_owned = cs_cards.count { |c| (c.collection_card&.quantity.to_i > 0) || (c.collection_card&.foil_quantity.to_i > 0) }
         cs_completion = cs_total > 0 ? (cs_owned.to_f / cs_total * 100).round(1) : 0
-        
+
         cs_normal = cs_cards.select { |c| c.nonfoil? }
         cs_normal_total = cs_normal.count
         cs_normal_owned = cs_normal.count { |c| c.collection_card&.quantity.to_i > 0 }
         cs_normal_completion = cs_normal_total > 0 ? (cs_normal_owned.to_f / cs_normal_total * 100).round(1) : 0
-        
+
         cs_foil = cs_cards.select { |c| c.foil? }
         cs_foil_total = cs_foil.count
         cs_foil_owned = cs_foil.count { |c| c.collection_card&.foil_quantity.to_i > 0 }
         cs_foil_completion = cs_foil_total > 0 ? (cs_foil_owned.to_f / cs_foil_total * 100).round(1) : 0
-        
+
         cs_images = cs_cards.count { |c| c.image_path.present? }
         cs_images_completion = cs_total > 0 ? (cs_images.to_f / cs_total * 100).round(1) : 0
         
@@ -622,15 +623,32 @@
       total_spreads = spread_pages.count + 1 # +1 for cover spread
     %>
     
+    <%
+      # Count cards needing placement in this view
+      needs_placement_count = sorted_cards.count { |c| c.collection_card&.needs_placement? }
+    %>
     <!-- Binder Configuration -->
-    <div data-controller="binder-settings" 
+    <div data-controller="binder-settings"
          data-binder-settings-url-value="<%= update_binder_settings_card_set_path(@card_set) %>"
          style="margin-bottom:24px;">
-      
+
       <!-- Info Bar with Settings -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
-        <div style="color:#888;font-size:13px;">
-          <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= cards_per_page %> cards/page &middot; <%= binder_pages.count %> pages
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="color:#888;font-size:13px;">
+            <%= binder_rows %>&times;<%= binder_columns %> layout &middot; <%= cards_per_page %> cards/page &middot; <%= binder_pages.count %> pages
+          </div>
+          <% if needs_placement_count > 0 %>
+            <%= button_to clear_placement_markers_card_set_path(@card_set),
+                method: :post,
+                data: {
+                  placement_count: needs_placement_count,
+                  turbo_confirm: "Clear all #{needs_placement_count} placement markers? This marks all NEW cards as placed in your binder."
+                },
+                style: "background:#d4a017;color:#1a1a1a;border:1px solid #b8860b;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;" do %>
+              Clear All (<span data-count><%= needs_placement_count %></span>)
+            <% end %>
+          <% end %>
         </div>
         
         <!-- Settings Cog Button -->

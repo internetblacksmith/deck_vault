@@ -3,6 +3,7 @@
   foil_quantity = card.collection_card&.foil_quantity.to_i
   is_owned = quantity > 0 || foil_quantity > 0
   is_dfc = card.double_faced?
+  needs_placement = card.collection_card&.needs_placement?
   card_uid = "binder-card-#{card.id}"
 %>
 <% unless is_owned %>
@@ -11,11 +12,12 @@
   #<%= card_uid %>:hover .binder-card-img { filter: none !important; }
 </style>
 <% end %>
-<div data-controller="binder-card" 
+<div data-controller="binder-card"
      id="<%= card_uid %>"
      data-card-id="<%= card.id %>"
      data-binder-card-card-set-id-value="<%= card_set.id %>"
      data-binder-card-is-dfc-value="<%= is_dfc %>"
+     data-binder-card-needs-placement-value="<%= needs_placement %>"
      data-binder-card-front-image-value="<%= card.image_path.present? ? "/#{card.image_path}" : '/card_placeholder.webp' %>"
      data-binder-card-back-image-value="<%= is_dfc && card.back_image_path.present? ? "/#{card.back_image_path}" : '' %>"
      data-card-name="<%= card.name.downcase %>"
@@ -23,21 +25,41 @@
      data-card-type="<%= card.type_line&.downcase %>"
      style="display:flex;flex-direction:column;gap:4px;">
   
-  <!-- Control Bar (above card) -->
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px;">
-    <!-- Left: Flip button (DFC only) + Quantity badges -->
-    <div style="display:flex;align-items:center;gap:4px;">
-      <% if is_dfc %>
-        <button data-action="click->binder-card#flipCard"
-                data-binder-card-target="flipButton"
-                style="width:22px;height:22px;border-radius:3px;background:#333;border:1px solid #444;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"
-                onmouseover="this.style.background='#444'"
-                onmouseout="this.style.background=this.dataset.showing === 'back' ? '#2864b4' : '#333'"
-                title="Flip card (double-faced)"
-                data-showing="front">
-          &#8644;
-        </button>
-      <% end %>
+   <!-- Control Bar (above card) -->
+   <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px;">
+     <!-- Left: Download button (if missing image) + Flip button (DFC only) + Quantity badges -->
+     <div style="display:flex;align-items:center;gap:4px;">
+       <% if card.image_path.blank? %>
+         <button data-action="click->binder-card#downloadImage"
+                 data-binder-card-target="downloadButton"
+                 style="width:22px;height:22px;border-radius:3px;background:#28a745;border:1px solid #4caf50;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"
+                 onmouseover="this.style.background='#218838'"
+                 onmouseout="this.style.background='#28a745'"
+                 title="Download missing image">
+           &#x2193;
+         </button>
+       <% end %>
+       <% if is_dfc %>
+         <button data-action="click->binder-card#flipCard"
+                 data-binder-card-target="flipButton"
+                 style="width:22px;height:22px;border-radius:3px;background:#333;border:1px solid #444;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"
+                 onmouseover="this.style.background='#444'"
+                 onmouseout="this.style.background=this.dataset.showing === 'back' ? '#2864b4' : '#333'"
+                 title="Flip card (double-faced)"
+                 data-showing="front">
+           &#8644;
+         </button>
+       <% end %>
+       <% if needs_placement %>
+         <button data-action="click->binder-card#markPlaced"
+                 data-binder-card-target="newBadge"
+                 style="padding:1px 6px;border-radius:3px;background:#d4a017;color:#1a1a1a;font-size:9px;font-weight:700;border:1px solid #b8860b;cursor:pointer;transition:all 0.2s;"
+                 onmouseover="this.style.background='#e0b000';this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.background='#d4a017';this.style.transform='scale(1)'"
+                 title="Click to mark as placed in binder">
+           NEW
+         </button>
+       <% end %>
       <% if is_owned %>
         <div class="quantity-badges" data-binder-card-target="badges" style="display:flex;gap:3px;">
           <% if quantity > 0 %>
