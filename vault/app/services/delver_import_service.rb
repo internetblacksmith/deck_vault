@@ -17,6 +17,13 @@ require "tempfile"
 class DelverImportService
   Result = Struct.new(:success?, :imported, :foils_imported, :skipped, :errors, keyword_init: true)
 
+  # Whitelist of allowed table names to prevent SQL injection
+  # These are the known table names used in Delver Lens .dlens files
+  ALLOWED_TABLE_NAMES = %w[cards collection entries items card_entries card_meta cards_meta metadata].freeze
+
+  # Pattern for valid SQLite table names (alphanumeric and underscores only)
+  VALID_TABLE_NAME_PATTERN = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/
+
   def initialize(dlens_file)
     @dlens_file = dlens_file
     @errors = []
@@ -71,8 +78,14 @@ class DelverImportService
       return
     end
 
-    # Get the schema to understand the columns
-    schema = db.execute("PRAGMA table_info(#{cards_table})")
+    # Validate table name before use
+    unless valid_table_name?(cards_table)
+      @errors << "Invalid table name detected in .dlens file"
+      return
+    end
+
+    # Get the schema to understand the columns (use parameterized query)
+    schema = db.execute("PRAGMA table_info(#{quote_identifier(cards_table)})")
     columns = schema.map { |col| col["name"] }
     Rails.logger.info("Cards table columns: #{columns.join(', ')}")
 
@@ -89,33 +102,59 @@ class DelverImportService
   end
 
   def find_cards_table(db, tables)
+    # Filter to only valid/safe table names
+    safe_tables = tables.select { |t| valid_table_name?(t) }
+
     # Common table names in Delver backups
     candidates = %w[cards collection entries items card_entries]
     candidates.each do |name|
-      return name if tables.include?(name)
+      return name if safe_tables.include?(name)
     end
 
     # Try to find a table with quantity column
-    tables.each do |table|
+    safe_tables.each do |table|
       next if table.start_with?("sqlite_")
-      schema = db.execute("PRAGMA table_info(#{table})")
+      schema = db.execute("PRAGMA table_info(?)", table)
       columns = schema.map { |col| col["name"].downcase }
       return table if columns.include?("quantity") || columns.include?("count")
     end
 
-    # Return first non-system table as fallback
-    tables.reject { |t| t.start_with?("sqlite_") || t == "android_metadata" }.first
+    # Return first non-system table as fallback (only from safe tables)
+    safe_tables.reject { |t| t.start_with?("sqlite_") || t == "android_metadata" }.first
+  end
+
+  def valid_table_name?(name)
+    return false if name.nil? || name.empty?
+    return true if ALLOWED_TABLE_NAMES.include?(name.downcase)
+
+    # Only allow alphanumeric and underscores, must start with letter or underscore
+    name.match?(VALID_TABLE_NAME_PATTERN) && !name.include?("--") && !name.include?(";")
+  end
+
+  def quote_identifier(name)
+    # Double-quote identifier and escape any existing quotes
+    '"' + name.gsub('"', '""') + '"'
   end
 
   def import_with_metadata(db, cards_table, meta_table)
+    # Validate both table names
+    unless valid_table_name?(cards_table) && valid_table_name?(meta_table)
+      @errors << "Invalid table name detected in .dlens file"
+      return
+    end
+
     # This handles the case where card names/sets are in a separate table
     Rails.logger.info("Importing with metadata table: #{meta_table}")
+
+    # Use quoted identifiers for table names
+    quoted_cards = quote_identifier(cards_table)
+    quoted_meta = quote_identifier(meta_table)
 
     # Try to join the tables
     query = <<-SQL
       SELECT c.*, m.name, m.set_code, m.collector_number
-      FROM #{cards_table} c
-      LEFT JOIN #{meta_table} m ON c.card = m.id OR c.card_id = m.id
+      FROM #{quoted_cards} c
+      LEFT JOIN #{quoted_meta} m ON c.card = m.id OR c.card_id = m.id
       WHERE c.quantity > 0 OR c.count > 0
     SQL
 
@@ -129,11 +168,18 @@ class DelverImportService
   end
 
   def import_without_metadata(db, cards_table, columns)
+    unless valid_table_name?(cards_table)
+      @errors << "Invalid table name detected in .dlens file"
+      return
+    end
+
     Rails.logger.info("Importing from table: #{cards_table}")
+
+    quoted_table = quote_identifier(cards_table)
 
     # Get all rows with quantity > 0
     qty_col = columns.include?("quantity") ? "quantity" : "count"
-    query = "SELECT * FROM #{cards_table} WHERE #{qty_col} > 0"
+    query = "SELECT * FROM #{quoted_table} WHERE #{quote_identifier(qty_col)} > 0"
 
     begin
       rows = db.execute(query)
@@ -141,7 +187,7 @@ class DelverImportService
     rescue SQLite3::Exception => e
       # Try without WHERE clause
       Rails.logger.warn("Query failed, trying without filter: #{e.message}")
-      rows = db.execute("SELECT * FROM #{cards_table}")
+      rows = db.execute("SELECT * FROM #{quoted_table}")
       process_rows(rows)
     end
   end
