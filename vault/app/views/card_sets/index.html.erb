@@ -106,7 +106,7 @@
       <!-- Backup/Restore Controls -->
       <div class="backup-controls" data-controller="backup">
         <div class="backup-buttons">
-          <a href="<%= export_collection_card_sets_path %>" class="backup-btn backup-btn--export">
+          <a href="<%= export_collection_path %>" class="backup-btn backup-btn--export">
             Export Backup
           </a>
           <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--import">
@@ -115,10 +115,10 @@
           <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--delver">
             Import Delver
           </button>
-          <%= button_to "Publish to Showcase", publish_to_gist_card_sets_path, method: :post, class: "backup-btn backup-btn--publish", data: { turbo_confirm: "Publish your collection to GitHub Gist for the Showcase site?" } %>
+          <%= button_to "Publish to Showcase", publish_to_gist_path, method: :post, class: "backup-btn backup-btn--publish", data: { turbo_confirm: "Publish your collection to GitHub Gist for the Showcase site?" } %>
         </div>
         <div data-backup-target="importPanel" class="import-panel" style="display:none;">
-          <%= form_tag import_collection_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
+          <%= form_tag import_collection_path, method: :post, multipart: true, class: "import-form" do %>
             <input type="file" name="backup_files[]" accept=".json" class="import-file-input" multiple>
             <div class="import-actions">
               <%= submit_tag "Restore", class: "backup-btn backup-btn--restore" %>
@@ -127,9 +127,12 @@
             <p class="import-hint">Select one or more previously exported JSON backup files</p>
           <% end %>
         </div>
-        <div data-backup-target="delverPanel" class="import-panel" style="display:none;">
-          <%= form_tag import_delver_csv_card_sets_path, method: :post, multipart: true, class: "import-form" do %>
-            <input type="file" name="csv_files[]" accept=".csv" class="import-file-input" multiple>
+        <div data-backup-target="delverPanel" class="import-panel" style="display:none;"
+             data-controller="delver-import"
+             data-delver-import-preview-url-value="<%= preview_delver_csv_path %>"
+             data-delver-import-import-url-value="<%= import_delver_csv_path %>">
+          <%= form_tag import_delver_csv_path, method: :post, multipart: true, class: "import-form", data: { delver_import_target: "form" } do %>
+            <input type="file" name="csv_files[]" accept=".csv" class="import-file-input" multiple data-delver-import-target="fileInput">
             <div class="import-mode-options">
               <label class="import-mode-option">
                 <input type="radio" name="import_mode" value="add" checked>
@@ -143,12 +146,23 @@
               </label>
             </div>
             <div class="import-actions">
-              <%= submit_tag "Import from Delver", class: "backup-btn backup-btn--restore" %>
+              <button type="button" class="backup-btn backup-btn--restore" data-action="click->delver-import#preview">Preview Import</button>
               <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--cancel">Cancel</button>
             </div>
             <p class="import-hint">Export as CSV from Delver Lens, then select one or more files here.<br>
             <strong>Note:</strong> First download the sets you need, then import to add quantities and foils.</p>
           <% end %>
+
+          <!-- Loading Overlay -->
+          <div data-delver-import-target="loading" class="preview-loading" style="display:none;">
+            <div class="preview-loading-spinner"></div>
+            <div class="preview-loading-text">Parsing CSV files...</div>
+          </div>
+
+          <!-- Preview Modal -->
+          <div data-delver-import-target="modal" class="preview-modal" style="display:none;" data-action="click->delver-import#closeModalOnBackdrop">
+            <div data-delver-import-target="modalContent" class="preview-modal-content"></div>
+          </div>
         </div>
       </div>
       
@@ -939,6 +953,372 @@
     .download-btn {
       padding: 6px 10px;
       font-size: 11px;
+    }
+  }
+
+  /* Preview Modal Styles */
+  .preview-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  .preview-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #333;
+    border-top-color: #29f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .preview-loading-text {
+    color: #ccc;
+    margin-top: 16px;
+    font-size: 14px;
+  }
+
+  .preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+  }
+
+  .preview-modal-content {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-modal-inner {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+  }
+
+  .preview-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #333;
+    flex-shrink: 0;
+  }
+
+  .preview-modal-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .preview-modal-close {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .preview-modal-close:hover {
+    color: #fff;
+  }
+
+  .preview-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .preview-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid #333;
+    flex-shrink: 0;
+  }
+
+  .preview-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .preview-stat {
+    background: #222;
+    padding: 16px;
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  .preview-stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .preview-stat-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .preview-warning {
+    background: #3a2a1a;
+    border: 1px solid #5a4a2a;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .preview-warning strong {
+    color: #fc8;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .preview-warning p {
+    color: #cca;
+    font-size: 13px;
+    margin: 0 0 8px 0;
+  }
+
+  .preview-found-sets {
+    background: #1a2a1a;
+    border: 1px solid #2a4a2a;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .preview-found-sets strong {
+    color: #8c8;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .preview-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .preview-tag {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .preview-tag--warning {
+    background: #4a3a1a;
+    color: #fc8;
+  }
+
+  .preview-tag--success {
+    background: #1a3a1a;
+    color: #8c8;
+  }
+
+  .preview-cards-section {
+    margin-top: 16px;
+  }
+
+  .preview-cards-section h4 {
+    color: #fff;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+  }
+
+  .preview-set-group {
+    background: #222;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .preview-set-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #333;
+  }
+
+  .preview-set-name {
+    color: #fff;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .preview-set-count {
+    color: #888;
+    font-size: 13px;
+  }
+
+  .preview-badge {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .preview-badge--download {
+    background: #4a3a1a;
+    color: #fc8;
+  }
+
+  .preview-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .preview-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a1a;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .preview-card-name {
+    color: #ccc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 8px;
+  }
+
+  .preview-card-qty {
+    color: #888;
+    flex-shrink: 0;
+  }
+
+  .preview-foil {
+    color: #f8c;
+    margin-left: 2px;
+    font-weight: 600;
+  }
+
+  .preview-card--more {
+    color: #666;
+    font-style: italic;
+    justify-content: center;
+  }
+
+  .preview-truncated {
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+    padding: 12px;
+    background: #222;
+    border-radius: 6px;
+    margin-top: 12px;
+  }
+
+  .preview-errors {
+    background: #2a1a1a;
+    border: 1px solid #4a2a2a;
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  .preview-errors strong {
+    color: #c88;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .preview-errors ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #a88;
+    font-size: 13px;
+  }
+
+  .preview-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    font-weight: 500;
+  }
+
+  .preview-btn--cancel {
+    background: #333;
+    color: #ccc;
+  }
+
+  .preview-btn--cancel:hover {
+    background: #444;
+  }
+
+  .preview-btn--confirm {
+    background: #29f;
+    color: #fff;
+  }
+
+  .preview-btn--confirm:hover {
+    background: #38f;
+  }
+
+  /* Modal responsive */
+  @media (max-width: 600px) {
+    .preview-modal {
+      padding: 10px;
+    }
+
+    .preview-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .preview-cards-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .preview-modal-header {
+      padding: 12px 16px;
+    }
+
+    .preview-modal-body {
+      padding: 16px;
+    }
+
+    .preview-modal-footer {
+      padding: 12px 16px;
     }
   }
 </style>

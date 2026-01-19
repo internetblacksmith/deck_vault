@@ -30,17 +30,22 @@ Rails.application.routes.draw do
   patch "settings", to: "settings#update"
   delete "settings/clear_gist_id", to: "settings#clear_gist_id", as: :clear_gist_id_settings
 
+  # Collection imports
+  post "collection/import", to: "collection_imports#import_collection", as: :import_collection
+  post "collection/import_delver", to: "collection_imports#import_delver", as: :import_delver
+  post "collection/import_delver_csv", to: "collection_imports#import_delver_csv", as: :import_delver_csv
+  post "collection/preview_delver_csv", to: "collection_imports#preview_delver_csv", as: :preview_delver_csv
+
+  # Collection exports
+  get "collection/export", to: "collection_exports#export_collection", as: :export_collection
+  get "collection/export_showcase", to: "collection_exports#export_showcase", as: :export_showcase
+  get "collection/export_duplicates", to: "collection_exports#export_duplicates", as: :export_duplicates
+  post "collection/publish_to_gist", to: "collection_exports#publish_to_gist", as: :publish_to_gist
+
   resources :card_sets, only: [ :index, :show, :destroy ] do
     collection do
       post :download_set
       get :available_sets
-      get :export_collection
-      post :import_collection
-      post :import_delver
-      post :import_delver_csv
-      get :export_showcase
-      get :export_duplicates
-      post :publish_to_gist
     end
     member do
       patch :update_card
@@ -48,6 +53,8 @@ Rails.application.routes.draw do
       post :refresh_cards
       patch :update_binder_settings
       post :import_csv
+      post :download_card_image
+      post :clear_placement_markers
     end
   end
 
