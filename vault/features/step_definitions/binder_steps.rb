@@ -107,7 +107,14 @@ Then('I should see {string} on the cover spread') do |text|
 end
 
 When('I click {string}') do |button_text|
-  click_on button_text
+  # Handle navigation buttons with arrows
+  if button_text == "Next"
+    find('[data-binder-target="nextBtn"]').click
+  elsif button_text == "Previous"
+    find('[data-binder-target="prevBtn"]').click
+  else
+    click_on button_text
+  end
 end
 
 Then('I should see page navigation showing {string}') do |text|
@@ -166,5 +173,56 @@ Then('the card image should show the back face') do
     # Could be rgb or # format depending on browser
     style = flip_button[:style] || ''
     expect(style).to match(/background.*#2864b4|background.*rgb\(40,\s*100,\s*180/)
+  end
+end
+
+# Placement marker steps
+Given('I own {int} copies of {string} marked for placement') do |quantity, card_name|
+  card = Card.includes(:card_set).find_by!(name: card_name)
+  CollectionCard.find_or_create_by!(card: card) do |cc|
+    cc.quantity = quantity
+    cc.needs_placement_at = Time.current
+  end.tap do |cc|
+    cc.update!(quantity: quantity, needs_placement_at: Time.current)
+  end
+end
+
+Given('I own {int} foil copies of {string} marked for placement') do |quantity, card_name|
+  card = Card.includes(:card_set).find_by!(name: card_name)
+  CollectionCard.find_or_create_by!(card: card) do |cc|
+    cc.foil_quantity = quantity
+    cc.needs_placement_at = Time.current
+  end.tap do |cc|
+    cc.update!(foil_quantity: quantity, needs_placement_at: Time.current)
+  end
+end
+
+Then('I should see the NEW badge on {string}') do |card_name|
+  card = Card.includes(:card_set).find_by!(name: card_name)
+  card_container = find("[data-card-id='#{card.id}']")
+  expect(card_container).to have_css('button[data-binder-card-target="newBadge"]', text: 'NEW')
+end
+
+Then('I should not see the NEW badge on {string}') do |card_name|
+  card = Card.includes(:card_set).find_by!(name: card_name)
+  card_container = find("[data-card-id='#{card.id}']")
+  expect(card_container).not_to have_css('button[data-binder-card-target="newBadge"]')
+end
+
+When('I click the NEW badge on {string}') do |card_name|
+  card = Card.includes(:card_set).find_by!(name: card_name)
+  card_container = find("[data-card-id='#{card.id}']")
+  card_container.find('button[data-binder-card-target="newBadge"]').click
+  # Wait for the animation and AJAX to complete
+  sleep 0.5
+end
+
+Then('I should see the Clear All button showing {string}') do |count|
+  expect(page).to have_button("Clear All (#{count})")
+end
+
+When('I confirm and click {string}') do |button_text|
+  accept_confirm do
+    click_on button_text
   end
 end

@@ -51,11 +51,11 @@ Feature: Binder View
 
   @javascript
   Scenario: Navigating binder pages
-    Given the binder is configured for 2 rows and 2 columns
+    Given the binder is configured for 1 row and 2 columns
     When I visit the binder view for "Test Set"
     Then I should see "Page 1" on the cover spread
     When I click "Next"
-    Then I should see page navigation showing "Pages 2-3"
+    Then I should see page navigation showing "Spread 2"
 
   @javascript
   Scenario: Binder stats reflect collection accurately
@@ -89,3 +89,34 @@ Feature: Binder View
     When I visit the binder view for "Art Set"
     And I click the flip button on "Aang // Avatar Aang"
     Then the card image should show the back face
+
+  @javascript
+  Scenario: Viewing NEW badge on recently imported cards
+    Given I own 2 copies of "Fire Dragon" marked for placement
+    When I visit the binder view for "Test Set"
+    Then I should see the NEW badge on "Fire Dragon"
+
+  @javascript
+  Scenario: Cards without placement marker do not show NEW badge
+    Given I own 2 copies of "Fire Dragon"
+    When I visit the binder view for "Test Set"
+    Then I should not see the NEW badge on "Fire Dragon"
+
+  @javascript
+  Scenario: Clicking NEW badge clears the placement marker
+    Given I own 2 copies of "Fire Dragon" marked for placement
+    When I visit the binder view for "Test Set"
+    Then I should see the NEW badge on "Fire Dragon"
+    When I click the NEW badge on "Fire Dragon"
+    Then I should not see the NEW badge on "Fire Dragon"
+    And "Fire Dragon" should not need placement
+
+  @javascript
+  Scenario: Clear All button clears all placement markers
+    Given I own 2 copies of "Fire Dragon" marked for placement
+    And I own 1 copies of "Water Serpent" marked for placement
+    When I visit the binder view for "Test Set"
+    Then I should see the Clear All button showing "2"
+    When I confirm and click "Clear All (2)"
+    Then I should not see the NEW badge on "Fire Dragon"
+    And I should not see the NEW badge on "Water Serpent"

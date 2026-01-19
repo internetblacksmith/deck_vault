@@ -38,6 +38,10 @@ Given('the binder is configured for {int} rows and {int} columns') do |rows, col
   @card_set.update(binder_rows: rows, binder_columns: columns)
 end
 
+Given('the binder is configured for {int} row and {int} columns') do |rows, columns|
+  @card_set.update(binder_rows: rows, binder_columns: columns)
+end
+
 When('I visit the binder view for {string}') do |set_name|
   card_set = CardSet.find_by!(name: set_name)
   visit card_set_path(card_set, view_type: 'binder')
