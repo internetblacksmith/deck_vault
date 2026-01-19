@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_08_225830) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_19_204454) do
   create_table "card_sets", force: :cascade do |t|
     t.integer "binder_columns", default: 3
     t.integer "binder_pages_per_binder"
@@ -54,11 +54,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_08_225830) do
     t.string "card_id"
     t.datetime "created_at", null: false
     t.integer "foil_quantity"
+    t.datetime "needs_placement_at"
     t.text "notes"
     t.integer "page_number"
     t.integer "quantity"
     t.datetime "updated_at", null: false
     t.index ["card_id"], name: "index_collection_cards_on_card_id"
+    t.index ["needs_placement_at"], name: "index_collection_cards_on_needs_placement_at"
+    t.index ["quantity", "foil_quantity"], name: "index_collection_cards_on_quantities"
   end
 
   create_table "settings", force: :cascade do |t|
