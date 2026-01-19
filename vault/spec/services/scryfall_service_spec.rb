@@ -1,6 +1,459 @@
 require 'rails_helper'
 
 RSpec.describe ScryfallService do
+  describe '.fetch_sets' do
+    context 'when API call succeeds' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets')
+          .to_return(
+            status: 200,
+            body: {
+              data: [
+                { code: 'lea', name: 'Limited Edition Alpha', released_at: '1993-08-05', card_count: 295, set_type: 'core', parent_set_code: nil },
+                { code: 'leb', name: 'Limited Edition Beta', released_at: '1993-10-01', card_count: 302, set_type: 'core', parent_set_code: nil }
+              ]
+            }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+      end
+
+      it 'returns array of formatted sets' do
+        result = described_class.fetch_sets
+        expect(result.length).to eq(2)
+        expect(result.first[:code]).to eq('lea')
+        expect(result.first[:name]).to eq('Limited Edition Alpha')
+      end
+
+      it 'includes all set fields' do
+        result = described_class.fetch_sets.first
+        expect(result).to have_key(:code)
+        expect(result).to have_key(:name)
+        expect(result).to have_key(:released_at)
+        expect(result).to have_key(:card_count)
+        expect(result).to have_key(:set_type)
+        expect(result).to have_key(:parent_set_code)
+      end
+    end
+
+    context 'when API returns error' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets')
+          .to_return(status: 500, body: 'Internal Server Error')
+      end
+
+      it 'returns empty array' do
+        result = described_class.fetch_sets
+        expect(result).to eq([])
+      end
+    end
+
+    context 'when network error occurs' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets')
+          .to_raise(StandardError.new('Network error'))
+      end
+
+      it 'returns empty array' do
+        result = described_class.fetch_sets
+        expect(result).to eq([])
+      end
+
+      it 'logs the error' do
+        expect(Rails.logger).to receive(:error).with(/Error fetching sets/)
+        described_class.fetch_sets
+      end
+    end
+  end
+
+  describe '.fetch_cards_for_set' do
+    context 'when fetching single page of cards' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .with(query: { q: 'set:tst unique:prints', page: 1 })
+          .to_return(
+            status: 200,
+            body: {
+              data: [
+                { id: 'card-1', name: 'Card One', rarity: 'common', collector_number: '1', image_uris: { normal: 'https://example.com/1.jpg' } },
+                { id: 'card-2', name: 'Card Two', rarity: 'rare', collector_number: '2', image_uris: { normal: 'https://example.com/2.jpg' } }
+              ],
+              has_more: false
+            }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+      end
+
+      it 'returns array of formatted cards' do
+        result = described_class.fetch_cards_for_set('tst')
+        expect(result.length).to eq(2)
+        expect(result.first[:id]).to eq('card-1')
+        expect(result.first[:name]).to eq('Card One')
+      end
+    end
+
+    context 'when fetching paginated results' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .with(query: { q: 'set:tst unique:prints', page: 1 })
+          .to_return(
+            status: 200,
+            body: { data: [ { id: 'card-1', name: 'Card One', image_uris: {} } ], has_more: true }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .with(query: { q: 'set:tst unique:prints', page: 2 })
+          .to_return(
+            status: 200,
+            body: { data: [ { id: 'card-2', name: 'Card Two', image_uris: {} } ], has_more: false }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+
+        # Skip sleep in tests
+        allow(described_class).to receive(:sleep)
+      end
+
+      it 'fetches all pages' do
+        result = described_class.fetch_cards_for_set('tst')
+        expect(result.length).to eq(2)
+      end
+
+      it 'applies rate limiting between pages' do
+        expect(described_class).to receive(:sleep).with(0.1).once
+        described_class.fetch_cards_for_set('tst')
+      end
+    end
+
+    context 'when API returns error' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .to_return(status: 404, body: { object: 'error', details: 'No cards found' }.to_json)
+      end
+
+      it 'returns empty array' do
+        result = described_class.fetch_cards_for_set('invalid')
+        expect(result).to eq([])
+      end
+    end
+
+    context 'when network error occurs' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .to_raise(StandardError.new('Timeout'))
+      end
+
+      it 'returns empty array' do
+        result = described_class.fetch_cards_for_set('tst')
+        expect(result).to eq([])
+      end
+
+      it 'logs the error' do
+        expect(Rails.logger).to receive(:error).with(/Error fetching cards/)
+        described_class.fetch_cards_for_set('tst')
+      end
+    end
+  end
+
+  describe '.format_set' do
+    let(:set_data) do
+      {
+        'code' => 'lea',
+        'name' => 'Limited Edition Alpha',
+        'released_at' => '1993-08-05',
+        'card_count' => 295,
+        'scryfall_uri' => 'https://scryfall.com/sets/lea',
+        'set_type' => 'core',
+        'parent_set_code' => nil
+      }
+    end
+
+    it 'formats set data with symbol keys' do
+      result = described_class.format_set(set_data)
+      expect(result[:code]).to eq('lea')
+      expect(result[:name]).to eq('Limited Edition Alpha')
+      expect(result[:released_at]).to eq('1993-08-05')
+      expect(result[:card_count]).to eq(295)
+      expect(result[:set_type]).to eq('core')
+      expect(result[:parent_set_code]).to be_nil
+    end
+
+    context 'with child set' do
+      let(:child_set_data) do
+        {
+          'code' => 'pcel',
+          'name' => 'Celebration Cards',
+          'released_at' => '1993-08-05',
+          'card_count' => 1,
+          'set_type' => 'promo',
+          'parent_set_code' => 'lea'
+        }
+      end
+
+      it 'includes parent_set_code' do
+        result = described_class.format_set(child_set_data)
+        expect(result[:parent_set_code]).to eq('lea')
+      end
+    end
+  end
+
+  describe '.group_sets' do
+    let(:sets) do
+      [
+        { code: 'lea', name: 'Alpha', parent_set_code: nil },
+        { code: 'leb', name: 'Beta', parent_set_code: nil },
+        { code: 'pcel', name: 'Alpha Promos', parent_set_code: 'lea' },
+        { code: 'ptok', name: 'Alpha Tokens', parent_set_code: 'lea' }
+      ]
+    end
+
+    it 'groups children under their parents' do
+      result = described_class.group_sets(sets)
+      expect(result.length).to eq(2) # Only parent sets
+
+      alpha = result.find { |s| s[:code] == 'lea' }
+      expect(alpha[:children].length).to eq(2)
+      expect(alpha[:children].map { |c| c[:code] }).to contain_exactly('pcel', 'ptok')
+    end
+
+    it 'includes parent set data in result' do
+      result = described_class.group_sets(sets)
+      alpha = result.find { |s| s[:code] == 'lea' }
+      expect(alpha[:name]).to eq('Alpha')
+    end
+
+    it 'returns empty children array for sets without children' do
+      result = described_class.group_sets(sets)
+      beta = result.find { |s| s[:code] == 'leb' }
+      expect(beta[:children]).to eq([])
+    end
+  end
+
+  describe '.fetch_set_details' do
+    context 'when API call succeeds' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets/lea')
+          .to_return(
+            status: 200,
+            body: { code: 'lea', name: 'Limited Edition Alpha', card_count: 295 }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+      end
+
+      it 'returns set details' do
+        result = described_class.fetch_set_details('lea')
+        expect(result['name']).to eq('Limited Edition Alpha')
+        expect(result['card_count']).to eq(295)
+      end
+    end
+
+    context 'when API returns error' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets/invalid')
+          .to_return(status: 404, body: { object: 'error' }.to_json)
+      end
+
+      it 'returns empty hash' do
+        result = described_class.fetch_set_details('invalid')
+        expect(result).to eq({})
+      end
+    end
+
+    context 'when network error occurs' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets/lea')
+          .to_raise(StandardError.new('Network error'))
+      end
+
+      it 'returns empty hash' do
+        result = described_class.fetch_set_details('lea')
+        expect(result).to eq({})
+      end
+    end
+  end
+
+  describe '.fetch_child_sets' do
+    before do
+      stub_request(:get, 'https://api.scryfall.com/sets')
+        .to_return(
+          status: 200,
+          body: {
+            data: [
+              { code: 'lea', name: 'Alpha', parent_set_code: nil },
+              { code: 'pcel', name: 'Alpha Promos', parent_set_code: 'lea' },
+              { code: 'tlae', name: 'Alpha Tokens', parent_set_code: 'lea' },
+              { code: 'leb', name: 'Beta', parent_set_code: nil }
+            ]
+          }.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        )
+    end
+
+    it 'returns codes of child sets' do
+      result = described_class.fetch_child_sets('lea')
+      expect(result).to contain_exactly('pcel', 'tlae')
+    end
+
+    it 'returns empty array for set without children' do
+      result = described_class.fetch_child_sets('leb')
+      expect(result).to eq([])
+    end
+
+    context 'when network error occurs' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets')
+          .to_raise(StandardError.new('Error'))
+      end
+
+      it 'returns empty array' do
+        result = described_class.fetch_child_sets('lea')
+        expect(result).to eq([])
+      end
+    end
+  end
+
+  describe '.download_set' do
+    let(:set_details) do
+      { 'code' => 'tst', 'name' => 'Test Set', 'card_count' => 1, 'released_at' => '2024-01-01', 'set_type' => 'expansion', 'parent_set_code' => nil }
+    end
+
+    let(:card_data) do
+      [ { id: 'card-1', name: 'Test Card', image_uris: '{}', rarity: 'common', collector_number: '1' } ]
+    end
+
+    before do
+      stub_request(:get, 'https://api.scryfall.com/sets/tst')
+        .to_return(status: 200, body: set_details.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      stub_request(:get, 'https://api.scryfall.com/cards/search')
+        .with(query: { q: 'set:tst unique:prints', page: 1 })
+        .to_return(status: 200, body: { data: [ { id: 'card-1', name: 'Test Card', image_uris: {} } ], has_more: false }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      stub_request(:get, 'https://api.scryfall.com/sets')
+        .to_return(status: 200, body: { data: [] }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+      allow(DownloadCardImagesJob).to receive(:perform_later)
+    end
+
+    it 'creates card set in database' do
+      expect {
+        described_class.download_set('tst')
+      }.to change(CardSet, :count).by(1)
+
+      card_set = CardSet.find_by(code: 'tst')
+      expect(card_set.name).to eq('Test Set')
+    end
+
+    it 'creates cards in database' do
+      expect {
+        described_class.download_set('tst')
+      }.to change(Card, :count).by(1)
+    end
+
+    it 'queues image download jobs' do
+      expect(DownloadCardImagesJob).to receive(:perform_later).with('card-1')
+      described_class.download_set('tst')
+    end
+
+    it 'returns the card set' do
+      result = described_class.download_set('tst')
+      expect(result).to be_a(CardSet)
+      expect(result.code).to eq('tst')
+    end
+
+    context 'with include_children: true' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets')
+          .to_return(
+            status: 200,
+            body: { data: [ { code: 'tst', name: 'Test Set', parent_set_code: nil }, { code: 'ptst', name: 'Test Promos', parent_set_code: 'tst' } ] }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+
+        stub_request(:get, 'https://api.scryfall.com/sets/ptst')
+          .to_return(status: 200, body: { 'code' => 'ptst', 'name' => 'Test Promos', 'card_count' => 1, 'parent_set_code' => 'tst' }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .with(query: { q: 'set:ptst unique:prints', page: 1 })
+          .to_return(status: 200, body: { data: [ { id: 'promo-1', name: 'Promo Card', image_uris: {} } ], has_more: false }.to_json, headers: { 'Content-Type' => 'application/json' })
+      end
+
+      it 'downloads child sets' do
+        expect {
+          described_class.download_set('tst', include_children: true)
+        }.to change(CardSet, :count).by(2)
+      end
+    end
+
+    context 'when set details fetch fails' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets/bad')
+          .to_return(status: 404, body: { object: 'error' }.to_json)
+
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .with(query: { q: 'set:bad unique:prints', page: 1 })
+          .to_return(status: 200, body: { data: [], has_more: false }.to_json, headers: { 'Content-Type' => 'application/json' })
+      end
+
+      it 'still creates set with nil values for missing data' do
+        result = described_class.download_single_set('bad')
+        expect(result).to be_a(CardSet)
+        expect(result.code).to eq('bad')
+        expect(result.name).to be_nil # No set details available
+      end
+    end
+
+    context 'when card fetch returns empty results' do
+      before do
+        stub_request(:get, 'https://api.scryfall.com/sets/empty')
+          .to_return(status: 200, body: { 'code' => 'empty', 'name' => 'Empty Set', 'card_count' => 0 }.to_json, headers: { 'Content-Type' => 'application/json' })
+
+        stub_request(:get, 'https://api.scryfall.com/cards/search')
+          .with(query: { q: 'set:empty unique:prints', page: 1 })
+          .to_return(status: 404, body: { object: 'error', details: 'No cards found' }.to_json)
+
+        stub_request(:get, 'https://api.scryfall.com/sets')
+          .to_return(status: 200, body: { data: [] }.to_json, headers: { 'Content-Type' => 'application/json' })
+      end
+
+      it 'creates set with no cards' do
+        result = described_class.download_single_set('empty')
+        expect(result).to be_a(CardSet)
+        expect(result.cards.count).to eq(0)
+      end
+    end
+  end
+
+  describe '.download_card_image' do
+    context 'when download fails' do
+      let(:card_data) do
+        { id: 'test-123', name: 'Test Card', image_uris: { 'normal' => 'https://example.com/card.jpg' } }
+      end
+
+      before do
+        allow(FileUtils).to receive(:mkdir_p)
+        allow(File).to receive(:exist?).and_return(false)
+      end
+
+      it 'returns nil on HTTP error' do
+        allow(HTTParty).to receive(:get).and_return(double(success?: false))
+        result = described_class.download_card_image(card_data)
+        expect(result).to be_nil
+      end
+
+      it 'returns nil on network timeout' do
+        allow(HTTParty).to receive(:get).and_raise(Net::ReadTimeout)
+        result = described_class.download_card_image(card_data)
+        expect(result).to be_nil
+      end
+
+      it 'logs error on failure' do
+        allow(HTTParty).to receive(:get).and_raise(StandardError.new('Connection refused'))
+        expect(Rails.logger).to receive(:error).with(/Error downloading card image/)
+        described_class.download_card_image(card_data)
+      end
+    end
+  end
+
   describe '.extract_image_uris' do
     context 'with normal card (image_uris at top level)' do
       let(:card_data) do
