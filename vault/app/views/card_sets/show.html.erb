@@ -301,16 +301,23 @@
   <!-- View Toggle and Sort Controls -->
   <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;">
     <div style="display:flex;gap:8px;align-items:center;">
+      <% view_tooltips = {
+           "table" => "List view with card details, quantities, and page numbers",
+           "grid" => "Visual grid showing card images with hover-to-edit",
+           "binder" => "Physical binder simulation with page navigation"
+         } %>
       <% ["table", "grid", "binder"].each do |view| %>
-        <a href="<%= card_set_path(@card_set, view_type: view, include_subsets: (@view_type != "binder" && @include_subsets) || nil) %>" 
-           style="padding:8px 16px;border-radius:4px;text-decoration:none;font-size:14px;<%= @view_type == view ? 'background:#29f;color:#fff;' : 'background:#333;color:#ccc;' %>">
+        <a href="<%= card_set_path(@card_set, view_type: view, include_subsets: (@view_type != "binder" && @include_subsets) || nil) %>"
+           style="padding:8px 16px;border-radius:4px;text-decoration:none;font-size:14px;<%= @view_type == view ? 'background:#29f;color:#fff;' : 'background:#333;color:#ccc;' %>"
+           title="<%= view_tooltips[view] %>">
           <%= view.capitalize %>
         </a>
       <% end %>
       
       <!-- Import CSV Button -->
       <div style="margin-left:16px;" data-controller="csv-import">
-        <button data-action="click->csv-import#toggle" 
+        <button data-action="click->csv-import#toggle"
+                title="Import card quantities from a CSV file (tab or comma separated)"
                 style="background:#333;color:#ccc;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;">
           Import CSV
         </button>
@@ -396,6 +403,7 @@
         <% if @child_sets.any? %>
           <!-- Include Related Sets Toggle -->
           <a href="<%= card_set_path(@card_set, view_type: @view_type, include_subsets: !@include_subsets || nil, group_by_set: @group_by_set || nil) %>"
+             title="Include cards from related sets like tokens, promos, and commander decks"
              style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:4px;text-decoration:none;font-size:13px;border-left:1px solid #444;padding-left:16px;margin-left:4px;<%= @include_subsets ? 'background:#4a3;color:#fff;' : 'background:#333;color:#888;' %>">
             <span style="font-size:14px;"><%= @include_subsets ? '&#9745;' : '&#9744;' %></span>
             Include Related
@@ -405,6 +413,7 @@
         <% if %w[grid table].include?(@view_type) && @include_subsets %>
           <!-- Group by Set Toggle (grid and table views with subsets) -->
           <a href="<%= card_set_path(@card_set, view_type: @view_type, include_subsets: @include_subsets || nil, group_by_set: !@group_by_set || nil) %>"
+             title="Group cards by their set with section headers"
              style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:4px;text-decoration:none;font-size:13px;<%= @group_by_set ? 'background:#369;color:#fff;' : 'background:#333;color:#888;' %>">
             <span style="font-size:14px;"><%= @group_by_set ? '&#9745;' : '&#9744;' %></span>
             Group by Set
@@ -772,6 +781,17 @@
                 style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;font-size:14px;">
           Next &rarr;
         </button>
+        <!-- Help Button -->
+        <button onclick="document.getElementById('binder-help-modal').style.display='flex'"
+                style="background:#333;color:#888;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:bold;margin-left:8px;"
+                title="Show keyboard shortcuts and help">
+          ?
+        </button>
+      </div>
+
+      <!-- Keyboard Shortcuts Hint -->
+      <div style="text-align:center;margin-bottom:16px;">
+        <span style="color:#555;font-size:12px;">Use <kbd style="background:#333;padding:2px 6px;border-radius:3px;color:#888;font-family:monospace;">&larr;</kbd> <kbd style="background:#333;padding:2px 6px;border-radius:3px;color:#888;font-family:monospace;">&rarr;</kbd> arrow keys to navigate</span>
       </div>
       
       <!-- Page Navigation with Status -->
@@ -1062,7 +1082,112 @@
           <% end %>
         </div>
       <% end %>
-      
+
+    </div>
+
+    <!-- Help Modal -->
+    <div id="binder-help-modal"
+         onclick="if(event.target===this)this.style.display='none'"
+         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #333;">
+          <h3 style="margin:0;color:#fff;font-size:18px;">Binder View Help</h3>
+          <button onclick="document.getElementById('binder-help-modal').style.display='none'"
+                  style="background:none;border:none;color:#888;font-size:24px;cursor:pointer;padding:0;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:20px;">
+          <!-- Keyboard Shortcuts -->
+          <div style="margin-bottom:24px;">
+            <h4 style="color:#4cf;font-size:14px;margin:0 0 12px 0;">Keyboard Shortcuts</h4>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:13px;">
+              <kbd style="background:#333;padding:4px 8px;border-radius:3px;color:#fff;font-family:monospace;">&larr;</kbd>
+              <span style="color:#ccc;">Previous spread (page pair)</span>
+              <kbd style="background:#333;padding:4px 8px;border-radius:3px;color:#fff;font-family:monospace;">&rarr;</kbd>
+              <span style="color:#ccc;">Next spread (page pair)</span>
+            </div>
+          </div>
+
+          <!-- Card Controls -->
+          <div style="margin-bottom:24px;">
+            <h4 style="color:#4cf;font-size:14px;margin:0 0 12px 0;">Card Controls</h4>
+            <div style="font-size:13px;color:#ccc;line-height:1.8;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#333;padding:2px 6px;border-radius:3px;font-size:11px;">&#9881;</span>
+                <span><strong>Edit button</strong> - Click to open quantity editor for the card</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#333;padding:2px 6px;border-radius:3px;font-size:11px;">&#8644;</span>
+                <span><strong>Flip button</strong> - For double-faced cards, flip between front and back</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#28a745;padding:2px 6px;border-radius:3px;font-size:11px;color:#fff;">&#x2193;</span>
+                <span><strong>Download button</strong> - Download missing card image from Scryfall</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#d4a017;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:#1a1a1a;">NEW</span>
+                <span><strong>Placement badge</strong> - Click to mark card as placed in your physical binder</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#1a3a1a;padding:2px 6px;border-radius:3px;font-size:11px;color:#4f8;">x2</span>
+                <span><strong>Quantity badge</strong> - Shows how many regular copies you own</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="background:linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%);padding:2px 6px;border-radius:3px;font-size:11px;color:#c9f;">x1</span>
+                <span><strong>Foil badge</strong> - Shows how many foil copies you own</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Page Indicators -->
+          <div style="margin-bottom:24px;">
+            <h4 style="color:#4cf;font-size:14px;margin:0 0 12px 0;">Page Navigation</h4>
+            <div style="font-size:13px;color:#ccc;line-height:1.8;">
+              <p style="margin:0 0 8px 0;">Click any page number button to jump directly to that page.</p>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="background:#2a4a2a;border:1px solid #4a4;padding:4px 8px;border-radius:4px;font-size:11px;color:#6c6;">5</span>
+                  <span>Complete page</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="background:#4a3a1a;border:1px solid #c90;padding:4px 8px;border-radius:4px;font-size:11px;color:#eb0;">12</span>
+                  <span>Partial page</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="background:#333;border:1px solid #555;padding:4px 8px;border-radius:4px;font-size:11px;color:#888;">23</span>
+                  <span>Empty page</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Binder Settings -->
+          <div style="margin-bottom:24px;">
+            <h4 style="color:#4cf;font-size:14px;margin:0 0 12px 0;">Binder Settings</h4>
+            <div style="font-size:13px;color:#ccc;line-height:1.6;">
+              <p style="margin:0 0 8px 0;">Click the <span style="background:#333;padding:2px 6px;border-radius:3px;">&#9881;</span> gear icon above the binder to access settings:</p>
+              <ul style="margin:0;padding-left:20px;color:#999;">
+                <li><strong>Rows/Columns</strong> - Match your physical binder layout</li>
+                <li><strong>Sort by</strong> - How cards are ordered (number, name, rarity, etc.)</li>
+                <li><strong>Pages/Binder</strong> - Set page count to simulate multiple binders</li>
+                <li><strong>Include Related</strong> - Show cards from related sets (tokens, promos)</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Card Appearance -->
+          <div>
+            <h4 style="color:#4cf;font-size:14px;margin:0 0 12px 0;">Card Appearance</h4>
+            <div style="font-size:13px;color:#ccc;line-height:1.6;">
+              <ul style="margin:0;padding-left:20px;color:#999;">
+                <li><strong>Bright cards</strong> - Cards you own</li>
+                <li><strong>Dimmed/grayscale cards</strong> - Cards you don't own (hover to see full image)</li>
+                <li><strong>Card number</strong> - Shown at bottom-left of each card</li>
+                <li><strong>Position number</strong> - Shown at bottom-right (#1, #2, etc. on the page)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   <% end %>
 </div>
