@@ -106,16 +106,16 @@
       <!-- Backup/Restore Controls -->
       <div class="backup-controls" data-controller="backup">
         <div class="backup-buttons">
-          <a href="<%= export_collection_path %>" class="backup-btn backup-btn--export">
+          <a href="<%= export_collection_path %>" class="backup-btn backup-btn--export" title="Download your collection as a JSON backup file. Use this to save your data or transfer to another device.">
             Export Backup
           </a>
-          <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--import">
+          <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--import" title="Restore collection from a previously exported JSON backup file.">
             Import Backup
           </button>
-          <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--delver">
+          <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--delver" title="Import cards from Delver Lens CSV exports. Supports adding quantities and tracking foils.">
             Import Delver
           </button>
-          <%= button_to "Publish to Showcase", publish_to_gist_path, method: :post, class: "backup-btn backup-btn--publish", data: { turbo_confirm: "Publish your collection to GitHub Gist for the Showcase site?" } %>
+          <%= button_to "Publish to Showcase", publish_to_gist_path, method: :post, class: "backup-btn backup-btn--publish", title: "Share your collection stats publicly via GitHub Gist for the Showcase website.", data: { turbo_confirm: "Publish your collection to GitHub Gist for the Showcase site?" } %>
         </div>
         <div data-backup-target="importPanel" class="import-panel" style="display:none;">
           <%= form_tag import_collection_path, method: :post, multipart: true, class: "import-form" do %>
@@ -124,7 +124,8 @@
               <%= submit_tag "Restore", class: "backup-btn backup-btn--restore" %>
               <button type="button" data-action="click->backup#toggleImport" class="backup-btn backup-btn--cancel">Cancel</button>
             </div>
-            <p class="import-hint">Select one or more previously exported JSON backup files</p>
+            <p class="import-hint">Select one or more previously exported JSON backup files.<br>
+            <span style="color:#888;">This will restore your collection quantities and settings from the backup.</span></p>
           <% end %>
         </div>
         <div data-backup-target="delverPanel" class="import-panel" style="display:none;"
@@ -149,8 +150,30 @@
               <button type="button" class="backup-btn backup-btn--restore" data-action="click->delver-import#preview">Preview Import</button>
               <button type="button" data-action="click->backup#toggleDelver" class="backup-btn backup-btn--cancel">Cancel</button>
             </div>
-            <p class="import-hint">Export as CSV from Delver Lens, then select one or more files here.<br>
-            <strong>Note:</strong> First download the sets you need, then import to add quantities and foils.</p>
+            <div class="import-hint-box" style="background:#222;border-radius:6px;padding:12px;margin-top:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="color:#888;font-size:12px;font-weight:500;">How to Import from Delver Lens</span>
+                <button type="button" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent==='Show'?'Hide':'Show'"
+                        style="background:#333;border:1px solid #444;color:#888;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px;">Show</button>
+              </div>
+              <div style="display:none;font-size:12px;color:#999;line-height:1.6;">
+                <ol style="margin:0;padding-left:20px;">
+                  <li style="margin-bottom:6px;"><strong>In Delver Lens:</strong> Select cards > Export > CSV format</li>
+                  <li style="margin-bottom:6px;"><strong>Select files:</strong> Choose one or more CSV files above</li>
+                  <li style="margin-bottom:6px;"><strong>Choose mode:</strong>
+                    <ul style="margin:4px 0 0 0;padding-left:16px;list-style-type:disc;">
+                      <li><em>Add to collection</em> - Adds quantities to existing cards. Marks imported cards with <span style="background:#d4a017;padding:1px 4px;border-radius:2px;font-size:10px;color:#1a1a1a;font-weight:600;">NEW</span> badge</li>
+                      <li><em>Replace collection</em> - Overwrites all quantities with CSV values. No NEW badges</li>
+                    </ul>
+                  </li>
+                  <li style="margin-bottom:6px;"><strong>Preview:</strong> Review cards before importing. Missing sets will be auto-downloaded from Scryfall</li>
+                  <li><strong>Confirm:</strong> Click "Confirm Import" to add cards to your collection</li>
+                </ol>
+                <p style="margin:12px 0 0 0;padding-top:8px;border-top:1px solid #333;color:#888;">
+                  <strong>Tip:</strong> The <span style="background:#d4a017;padding:1px 4px;border-radius:2px;font-size:10px;color:#1a1a1a;font-weight:600;">NEW</span> badge helps you find newly imported cards in the binder view. Click the badge to mark the card as placed in your physical binder.
+                </p>
+              </div>
+            </div>
           <% end %>
 
           <!-- Loading Overlay -->
