@@ -10,6 +10,33 @@ export default class extends Controller {
 
   connect() {
     this.updateNavigation()
+
+    // Add global keyboard listener for arrow key navigation
+    this.boundKeydown = this.globalKeydown.bind(this)
+    document.addEventListener("keydown", this.boundKeydown)
+  }
+
+  disconnect() {
+    // Remove global keyboard listener
+    if (this.boundKeydown) {
+      document.removeEventListener("keydown", this.boundKeydown)
+    }
+  }
+
+  // Global keyboard handler - works without focus on binder element
+  globalKeydown(event) {
+    // Don't intercept if user is typing in an input/textarea
+    if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") {
+      return
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault()
+      this.previousSpread()
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault()
+      this.nextSpread()
+    }
   }
 
   previousSpread() {
