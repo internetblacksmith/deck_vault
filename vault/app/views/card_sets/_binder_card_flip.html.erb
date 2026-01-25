@@ -5,6 +5,18 @@
   is_dfc = card.double_faced?
   needs_placement = card.collection_card&.needs_placement?
   card_uid = "binder-card-#{card.id}"
+
+  # For DFC cards, determine the back image URL (local path or Scryfall fallback)
+  if is_dfc
+    if card.back_image_path.present?
+      back_image_url = "/#{card.back_image_path}"
+    else
+      back_uris = JSON.parse(card.back_image_uris || '{}') rescue {}
+      back_image_url = back_uris['normal'] || back_uris['large'] || back_uris['small'] || ''
+    end
+  else
+    back_image_url = ''
+  end
 %>
 <% unless is_owned %>
 <style>
@@ -19,7 +31,7 @@
      data-binder-card-is-dfc-value="<%= is_dfc %>"
      data-binder-card-needs-placement-value="<%= needs_placement %>"
      data-binder-card-front-image-value="<%= card.image_path.present? ? "/#{card.image_path}" : '/card_placeholder.webp' %>"
-     data-binder-card-back-image-value="<%= is_dfc && card.back_image_path.present? ? "/#{card.back_image_path}" : '' %>"
+     data-binder-card-back-image-value="<%= back_image_url %>"
      data-card-name="<%= card.name.downcase %>"
      data-card-number="<%= card.collector_number.downcase %>"
      data-card-type="<%= card.type_line&.downcase %>"
