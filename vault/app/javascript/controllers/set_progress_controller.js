@@ -18,8 +18,6 @@ export default class extends Controller {
     
     if (progressBar) {
       subscribeToSetProgress(this.setIdValue, (data) => {
-        console.log("Progress update received:", data)
-        
         if (data.percentage) {
           progressBar.style.width = data.percentage + "%"
         }

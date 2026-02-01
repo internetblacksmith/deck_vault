@@ -38,11 +38,9 @@ export async function loadCollectionData(): Promise<ShowcaseData> {
 
   try {
     if (gistUrl) {
-      console.log('Loading collection from Gist...');
       return await fetchFromGist(gistUrl);
     }
     // Fall back to local file
-    console.log('Loading collection from local file...');
     return await loadFromLocalFile();
   } catch (error) {
     console.error('Failed to load collection data:', error);
@@ -50,7 +48,6 @@ export async function loadCollectionData(): Promise<ShowcaseData> {
     // If Gist failed, try local file as fallback
     if (gistUrl) {
       try {
-        console.log('Gist failed, trying local file...');
         return await loadFromLocalFile();
       } catch {
         // Both failed
