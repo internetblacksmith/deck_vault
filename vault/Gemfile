@@ -52,7 +52,7 @@ gem "httparty", ">= 0.24.0"
 gem "csv", "3.3.5"
 
 # HTTP requests
-gem "faraday", "2.14.0"
+gem "faraday", "2.14.1"
 
 # Background job processing
 gem "sidekiq", "7.3.10"
