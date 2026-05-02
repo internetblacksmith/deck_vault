@@ -5,6 +5,12 @@ on:
   push:
     branches: [ main ]
 
+# Ruby 4.0 is too new for precompiled ffi binaries (1.17.x ships
+# x86_64-linux-gnu only for Ruby 2.5–3.4). Force bundler to install
+# ffi from source so it compiles against the running Ruby.
+env:
+  BUNDLE_FORCE_RUBY_PLATFORM: "true"
+
 defaults:
   run:
     working-directory: vault
